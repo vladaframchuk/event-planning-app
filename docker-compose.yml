@@ -1,0 +1,78 @@
+services:
+  # Сервис Базы Данных
+  postgres:
+    image: postgres:15
+    container_name: event_db
+    environment:
+      POSTGRES_DB: event_db
+      POSTGRES_USER: event_user
+      POSTGRES_PASSWORD: event_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U event_user -d event_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Сервис Кеша
+  redis:
+    image: redis:7-alpine
+    container_name: event_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Сервис Бэкенда 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev 
+    container_name: event_backend
+    command: /app/scripts/init.sh python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app 
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=your-secret-key-for-dev-12345
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - DATABASE_URL=psql://event_user:event_password@postgres:5432/event_db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Сервис Фронтенда 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: event_frontend
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules 
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

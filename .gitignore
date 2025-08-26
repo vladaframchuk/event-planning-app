@@ -1,0 +1,5 @@
+.env
+.env.*
+!.env.example
+.dockerignore
+docker-compose.override.yml
