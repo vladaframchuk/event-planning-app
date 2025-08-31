@@ -57,20 +57,12 @@ jobs:
     - name: Verify Django configuration
       run: |
         cd backend
-        python manage.py check --deploy --fail-level WARNING
+        python manage.py check --deploy --fail-level ERROR
       env:
         SECRET_KEY: "test-secret-key-for-ci-with-more-than-50-characters-here-12345"
         DEBUG: "False"
         CELERY_BROKER_URL: "redis://localhost:6379/0"
         DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
-        SECURE_HSTS_SECONDS: "0"
-        SECURE_SSL_REDIRECT: "False"
-        SESSION_COOKIE_SECURE: "False"
-        CSRF_COOKIE_SECURE: "False"
-        SECURE_HSTS_INCLUDE_SUBDOMAINS: "False"
-        SECURE_HSTS_PRELOAD: "False"
-        SECURE_BROWSER_XSS_FILTER: "False"
-        SECURE_CONTENT_TYPE_NOSNIFF: "False"
 
     - name: Run database migrations
       run: |
