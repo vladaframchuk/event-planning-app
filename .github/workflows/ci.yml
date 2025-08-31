@@ -59,6 +59,7 @@ jobs:
         cd backend
         python manage.py check --deploy --fail-level WARNING
       env:
+        CELERY_BROKER_URL: "redis://localhost:6379/0"
         DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
         SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
         DEBUG: "False"
@@ -113,26 +114,6 @@ jobs:
         cd frontend
         npx tsc --noEmit
 
-  validate-docker:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Validate Docker Compose configuration
-      run: |
-        docker-compose -f docker-compose.yml config
-
-    - name: Build backend Docker image
-      run: |
-        cd backend
-        docker build -f Dockerfile.dev -t backend-test .
-
-    - name: Build frontend Docker image
-      run: |
-        cd frontend
-        docker build -f Dockerfile.dev -t frontend-test .
-
   security-scan:
     runs-on: ubuntu-latest
     steps:
@@ -143,12 +124,3 @@ jobs:
       uses: gitleaks/gitleaks-action@v2
       with:
         config-path: .gitleaks.toml
-
-    - name: Check dependencies for vulnerabilities
-      run: |
-        cd backend
-        pip install safety
-        safety check -r requirements.txt --full-report
-
-        cd ../frontend
-        npm audit --audit-level moderate

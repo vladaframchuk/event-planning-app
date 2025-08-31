@@ -1,29 +1,14 @@
-// frontend/src/app/layout.tsx
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { QueryClient, QueryClientProvider } from './QueryClientProvider';
+'use client';
 
-const inter = Inter({ subsets: ["latin"] });
+import { QueryClient, QueryClientProvider as _QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 
-export const metadata: Metadata = {
-  title: "Event Planning App",
-  description: "Plan your events together",
-};
+export function QueryClientProvider({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient()); 
 
-// Создаем клиент для React Query
-const makeQueryClient = () => new QueryClient();
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <QueryClientProvider>{children}</QueryClientProvider>
-      </body>
-    </html>
+    <_QueryClientProvider client={queryClient}>
+      {children}
+    </_QueryClientProvider>
   );
 }
