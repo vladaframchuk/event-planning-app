@@ -1,14 +1,25 @@
-'use client';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { QueryClientProvider } from './QueryClientProvider';
 
-import { QueryClient, QueryClientProvider as _QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+const inter = Inter({ subsets: ["latin"] });
 
-export function QueryClientProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient()); 
+export const metadata: Metadata = {
+  title: "Event Planning App",
+  description: "Plan your events together",
+};
 
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <_QueryClientProvider client={queryClient}>
-      {children}
-    </_QueryClientProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        <QueryClientProvider>{children}</QueryClientProvider>
+      </body>
+    </html>
   );
 }
