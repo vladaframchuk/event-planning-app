@@ -1,0 +1,154 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  validate-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: backend/requirements.txt
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+
+    - name: Verify Django configuration
+      run: |
+        cd backend
+        python manage.py check --deploy --fail-level WARNING
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        DEBUG: "False"
+
+    - name: Run database migrations
+      run: |
+        cd backend
+        python manage.py migrate --no-input
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        DEBUG: "False"
+
+    - name: Basic smoke test
+      run: |
+        cd backend
+        python manage.py shell -c "
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        print('✅ Django ORM works')
+        "
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        DEBUG: "False"
+
+  validate-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+
+    - name: Check for TypeScript errors
+      run: |
+        cd frontend
+        npx tsc --noEmit
+
+  validate-docker:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate Docker Compose configuration
+      run: |
+        docker-compose -f docker-compose.yml config
+
+    - name: Build backend Docker image
+      run: |
+        cd backend
+        docker build -f Dockerfile.dev -t backend-test .
+
+    - name: Build frontend Docker image
+      run: |
+        cd frontend
+        docker build -f Dockerfile.dev -t frontend-test .
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Scan for secrets
+      uses: gitleaks/gitleaks-action@v2
+      with:
+        config-path: .gitleaks.toml
+
+    - name: Check dependencies for vulnerabilities
+      run: |
+        cd backend
+        pip install safety
+        safety check -r requirements.txt --full-report
+
+        cd ../frontend
+        npm audit --audit-level moderate

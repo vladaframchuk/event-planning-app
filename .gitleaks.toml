@@ -1,0 +1,9 @@
+title = "gitleaks config"
+[[rules]]
+description = "AWS Access Key"
+id = "aws-access-key"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+[[rules]]
+description = "Django Secret Key"
+id = "django-secret-key"
+regex = '''SECRET_KEY = ['"][^'"]{50}['"]'''
