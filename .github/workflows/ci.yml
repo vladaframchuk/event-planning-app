@@ -59,19 +59,24 @@ jobs:
         cd backend
         python manage.py check --deploy --fail-level WARNING
       env:
-        CELERY_BROKER_URL: "redis://localhost:6379/0"
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        SECRET_KEY: "test-secret-key-for-ci-with-more-than-50-characters-here-12345"
         DEBUG: "False"
+        CELERY_BROKER_URL: "redis://localhost:6379/0"
+        DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
+        SECURE_HSTS_SECONDS: "0"
+        SECURE_SSL_REDIRECT: "False"
 
     - name: Run database migrations
       run: |
         cd backend
         python manage.py migrate --no-input
       env:
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        SECRET_KEY: "test-secret-key-for-ci-with-more-than-50-characters-here-12345"
         DEBUG: "False"
+        CELERY_BROKER_URL: "redis://localhost:6379/0"
+        DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
+        SECURE_HSTS_SECONDS: "0"
+        SECURE_SSL_REDIRECT: "False"
 
     - name: Basic smoke test
       run: |
@@ -82,9 +87,12 @@ jobs:
         print('✅ Django ORM works')
         "
       env:
-        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-        SECRET_KEY: test-secret-key-for-ci-${{ github.run_id }}
+        SECRET_KEY: "test-secret-key-for-ci-with-more-than-50-characters-here-12345"
         DEBUG: "False"
+        CELERY_BROKER_URL: "redis://localhost:6379/0"
+        DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
+        SECURE_HSTS_SECONDS: "0"
+        SECURE_SSL_REDIRECT: "False"
 
   validate-frontend:
     runs-on: ubuntu-latest

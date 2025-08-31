@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 interface AppState {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  _initialized: boolean;
 }
 
-export const useAppStore = create<AppState>()(() => ({}));
+export const useAppStore = create<AppState>()(() => ({_initialized: true}));
