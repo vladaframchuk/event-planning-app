@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -124,6 +125,9 @@ TIME_ZONE = "Europe/Berlin"
 USE_I18N = True
 USE_TZ = True
 
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+SITE_URL: str = env("SITE_URL", default="http://localhost:8000")
+
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
@@ -146,14 +150,17 @@ REST_FRAMEWORK: dict[str, Any] = {
 }
 
 
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
 # CORS and CSRF
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
-)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
