@@ -1,0 +1,66 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        name: black (backend)
+        language_version: python3.11
+        files: ^backend/.*\.py$
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (backend)
+        language_version: python3.11
+        files: ^backend/.*\.py$
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        name: flake8 (backend)
+        language_version: python3.11
+        files: ^backend/.*\.py$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        name: mypy (backend)
+        files: ^backend/.*\.py$
+        additional_dependencies:
+          - django-stubs==5.0.2
+          - djangorestframework-stubs==3.14.5
+          - mypy-extensions==1.0.0
+        args: ["--config-file", "backend/pyproject.toml"]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: pretty-format-json
+        name: pretty json
+        files: \.json$
+        args: ["--autofix"]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: frontend eslint
+        entry: npx
+        language: node
+        additional_dependencies: []
+        args:
+          - eslint
+          - --max-warnings=0
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+      - id: frontend-prettier
+        name: frontend prettier
+        entry: npx
+        language: node
+        args:
+          - prettier
+          - --write
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|md)$

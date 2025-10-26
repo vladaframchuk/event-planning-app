@@ -1,5 +1,4 @@
 services:
-  # Сервис Базы Данных
   postgres:
     image: postgres:15
     container_name: event_db
@@ -16,8 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  # Сервис Кеша
   redis:
     image: redis:7-alpine
     container_name: event_redis
@@ -30,32 +29,44 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 5s
 
-  # Сервис Бэкенда 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev 
+      dockerfile: Dockerfile.dev
     container_name: event_backend
     command: /app/scripts/init.sh python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./backend:/app 
+      - ./backend:/app
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - SECRET_KEY=your-secret-key-for-dev-12345
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend
-      - DATABASE_URL=psql://event_user:event_password@postgres:5432/event_db
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      DJANGO_SECRET_KEY: dev-secret
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      DATABASE_URL: postgres://event_user:event_password@postgres:5432/event_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      CSRF_TRUSTED_ORIGINS: http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8000/api/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
-  # Сервис Фронтенда 
   frontend:
     build:
       context: ./frontend
@@ -64,13 +75,24 @@ services:
     command: npm run dev
     volumes:
       - ./frontend:/app
-      - /app/node_modules 
+      - /app/node_modules
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:3000/health > /dev/null 2>&1 || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
 volumes:

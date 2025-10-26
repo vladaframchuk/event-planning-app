@@ -1,5 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.python-version
+*.log
+venv/
+.venv/
+
+# Django / local configs
 .env
 .env.*
-!.env.example
-.dockerignore
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/.turbo/
+frontend/.env.local
+frontend/.env.*
+!frontend/.env.local.example
+*.tsbuildinfo
+
+# Docker artifacts
+*.tar
+*.pid
+.docker/
 docker-compose.override.yml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+
+# IDE / tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# Coverage / reports
+htmlcov/
+.coverage
+.pytest_cache/
+coverage.xml
+*.cover
+*.py,cover
+*.hypothesis/
+
+# Misc
+.gitleaks*
+__MACOSX/

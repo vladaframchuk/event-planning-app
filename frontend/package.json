@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=0 .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.5",
@@ -22,8 +23,15 @@
     "@types/node": "^20.19.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
