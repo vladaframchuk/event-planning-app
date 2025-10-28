@@ -1,20 +1,26 @@
-// Даты указываются в формате ISO 8601 (строка, например "2025-10-26T12:00:00Z").
+export type EventOwner = {
+  id: number;
+  email: string;
+};
 
 export type Event = {
   id: number;
   title: string;
-  category?: string;
-  description?: string;
-  startAt?: string;
-  endAt?: string;
-  location?: string;
-  ownerId: number;
+  category: string | null;
+  description: string | null;
+  startAt: string | null;
+  endAt: string | null;
+  location: string | null;
+  owner: EventOwner;
+  createdAt: string;
+  updatedAt: string;
 };
 
-export type Participant = {
-  id: number;
-  eventId: number;
-  userId: number;
-  role: 'organizer' | 'member';
-  joinedAt: string;
+export type EventInput = {
+  title?: string;
+  category?: string | null;
+  description?: string | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  location?: string | null;
 };
