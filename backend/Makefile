@@ -9,4 +9,4 @@ fmt:
 	python -m black apps config
 
 test:
-	python manage.py test tests
+	python -m pytest tests

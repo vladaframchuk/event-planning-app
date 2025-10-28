@@ -1,8 +1,8 @@
 'use client';
 
-import { type JSX, ChangeEvent, FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { type JSX, ChangeEvent, FormEvent, useState } from 'react';
 
 import { login } from '@/lib/authClient';
 
