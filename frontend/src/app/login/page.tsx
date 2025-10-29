@@ -65,6 +65,14 @@ const LoginPage = (): JSX.Element => {
 
     try {
       await login(values.email.trim(), values.password);
+      if (typeof window !== 'undefined') {
+        const pendingToken = window.localStorage.getItem('epa_pending_invite_token');
+        if (pendingToken) {
+          window.localStorage.removeItem('epa_pending_invite_token');
+          router.push(`/join?token=${encodeURIComponent(pendingToken)}`);
+          return;
+        }
+      }
       router.push('/events');
     } catch (error) {
       const message =

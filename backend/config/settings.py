@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.events.apps.EventsConfig",
     "apps.health.apps.HealthConfig",
+    "apps.tasks.apps.TasksConfig",
 ]
 
 
@@ -128,6 +129,7 @@ USE_TZ = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 SITE_URL: str = env("SITE_URL", default="http://localhost:8000")
+SITE_FRONT_URL: str = env("SITE_FRONT_URL", default="http://localhost:3000")
 
 
 # Static files (CSS, JavaScript, Images)
@@ -150,6 +152,11 @@ REST_FRAMEWORK: dict[str, Any] = {
     ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
     ],
 }
 

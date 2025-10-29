@@ -109,6 +109,11 @@ export async function getEventCategories(): Promise<string[]> {
   const response = await apiFetch<{ categories: string[] }>(`${EVENT_LIST_PATH}categories/`, { method: 'GET' });
   return response.categories;
 }
+
+export async function getEventById(id: number): Promise<Event> {
+  const response = await apiFetch<ApiEvent>(`${EVENT_LIST_PATH}${id}/`, { method: 'GET' });
+  return mapEvent(response);
+}
 export async function createEvent(payload: EventInput): Promise<Event> {
   const body = JSON.stringify(serializeEventInput(payload));
   const response = await apiFetch<ApiEvent>(EVENT_LIST_PATH, {

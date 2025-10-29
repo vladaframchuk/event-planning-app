@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import secrets
+from datetime import datetime
+
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class Event(models.Model):
@@ -80,3 +84,65 @@ class Participant(models.Model):
     def __str__(self) -> str:
         """Возвращает представление участника для админки."""
         return f"{self.user} @ {self.event}"
+
+
+def _generate_invite_token() -> str:
+    """Криптостойкая генерация токена приглашения."""
+    return secrets.token_urlsafe(32)
+
+
+class Invite(models.Model):
+    """Инвайт для присоединения к событию."""
+
+    id = models.BigAutoField(primary_key=True)
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="invites",
+        verbose_name="Событие",
+    )
+    token = models.CharField(
+        "Токен",
+        max_length=128,
+        unique=True,
+        default=_generate_invite_token,
+        help_text="Уникальный токен приглашения.",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_invites",
+        verbose_name="Создатель",
+    )
+    expires_at = models.DateTimeField("Истекает в")
+    max_uses = models.PositiveIntegerField("Максимум использований", default=0)
+    uses_count = models.PositiveIntegerField("Количество использований", default=0)
+    is_revoked = models.BooleanField("Отозвано", default=False)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлено", auto_now=True)
+
+    class Meta:
+        verbose_name = "Инвайт"
+        verbose_name_plural = "Инвайты"
+        indexes = [
+            models.Index(
+                fields=["event", "expires_at", "is_revoked"],
+                name="inv_event_exp_rev_idx",
+            ),
+        ]
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        """Короткое представление инвайта."""
+        return f"Invite for event {self.event_id}"
+
+    def is_active(self, now: datetime | None = None) -> bool:
+        """Инвайт активен, если не отозван, не просрочен и не исчерпан."""
+        current_time = now or timezone.now()
+        if self.is_revoked:
+            return False
+        if self.expires_at <= current_time:
+            return False
+        if self.max_uses != 0 and self.uses_count >= self.max_uses:
+            return False
+        return True
