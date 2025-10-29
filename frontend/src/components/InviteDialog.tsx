@@ -22,6 +22,11 @@ type CopyState = 'idle' | 'copied' | 'error';
 const focusableSelector =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
+const inviteExpirationFormatter = new Intl.DateTimeFormat('ru-RU', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 const InviteDialog = ({ eventId, open, onClose }: InviteDialogProps) => {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
@@ -172,10 +177,7 @@ const InviteDialog = ({ eventId, open, onClose }: InviteDialogProps) => {
       return invite.expires_at;
     }
 
-    return new Intl.DateTimeFormat('ru-RU', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(date);
+    return inviteExpirationFormatter.format(date);
   })();
 
   const usesLeft = invite

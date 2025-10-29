@@ -11,6 +11,8 @@ import { acceptInvite, validateInvite, type ValidateInviteResponse } from '@/lib
 const PENDING_TOKEN_STORAGE_KEY = 'epa_pending_invite_token';
 const INVITE_SUCCESS_TOAST_KEY = 'epa_invite_join_success';
 
+const inviteDateFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
+
 const formatDate = (value: string | null): string | null => {
   if (!value) {
     return null;
@@ -21,7 +23,7 @@ const formatDate = (value: string | null): string | null => {
     return null;
   }
 
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(date);
+  return inviteDateFormatter.format(date);
 };
 
 const buildStatusMessage = (status: ValidateInviteResponse['status']): string => {

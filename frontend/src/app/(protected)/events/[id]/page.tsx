@@ -13,6 +13,8 @@ import type { Event } from '@/types/event';
 
 const INVITE_SUCCESS_TOAST_KEY = 'epa_invite_join_success';
 
+const eventDetailsDateTimeFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'full', timeStyle: 'short' });
+
 const formatDateTime = (value: string | null): string | null => {
   if (!value) {
     return null;
@@ -23,7 +25,7 @@ const formatDateTime = (value: string | null): string | null => {
     return null;
   }
 
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'full', timeStyle: 'short' }).format(date);
+  return eventDetailsDateTimeFormatter.format(date);
 };
 
 const EventDetailsPage = () => {

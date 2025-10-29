@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db import transaction
 from django.db.models import Max, Prefetch, QuerySet
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -43,6 +47,22 @@ def _get_task_event_id(task_id: int | None) -> int | None:
         .values_list("list__event_id", flat=True)
         .first()
     )
+
+
+def _validate_ordered_ids(raw_value: Any) -> list[int]:
+    """Проверяем, что пришел непустой список уникальных чисел."""
+    if not isinstance(raw_value, list) or not raw_value:
+        raise ValidationError({"ordered_ids": ["ordered_ids должен быть непустым списком чисел."]})
+
+    try:
+        ordered_ids = [int(item) for item in raw_value]
+    except (TypeError, ValueError) as exc:
+        raise ValidationError({"ordered_ids": ["ordered_ids должен содержать только целые числа."]}) from exc
+
+    if len(ordered_ids) != len(set(ordered_ids)):
+        raise ValidationError({"ordered_ids": ["ordered_ids не должен содержать дубликатов."]})
+
+    return ordered_ids
 
 
 class EventScopedPermissionMixin:
@@ -149,6 +169,92 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
         if max_order is None:
             max_order = -1
         serializer.save(order=max_order + 1)
+
+
+class ReorderTaskListsView(APIView):
+    permission_classes = [IsAuthenticated, IsEventOwnerWrite]
+
+    def get_event_id(self, request: Request) -> int | None:
+        if hasattr(self, "_cached_event_id"):
+            return self._cached_event_id
+        event_id = _parse_int(self.kwargs.get("event_id"))
+        self._cached_event_id = event_id
+        return event_id
+
+    @transaction.atomic
+    def post(self, request: Request, event_id: int) -> Response:
+        ordered_ids = _validate_ordered_ids(request.data.get("ordered_ids"))
+        event = get_object_or_404(Event.objects.only("id"), id=event_id)
+
+        task_lists = list(
+            TaskList.objects.filter(event=event)
+            .select_for_update()
+            .order_by("order", "id")
+        )
+        existing_ids = [task_list.id for task_list in task_lists]
+        if set(existing_ids) != set(ordered_ids) or len(existing_ids) != len(ordered_ids):
+            return Response(
+                {
+                    "code": "invalid_ids",
+                    "message": "Переданы ID колонок, не принадлежащие событию либо отсутствующие.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        id_to_task_list = {task_list.id: task_list for task_list in task_lists}
+        now = timezone.now()
+        for index, task_list_id in enumerate(ordered_ids):
+            task_list = id_to_task_list[task_list_id]
+            task_list.order = index
+            task_list.updated_at = now
+            task_list.save(update_fields=["order", "updated_at"])
+
+        return Response({"message": "ok", "count": len(ordered_ids)})
+
+
+class ReorderTasksInListView(APIView):
+    permission_classes = [IsAuthenticated, IsEventOwnerWrite]
+
+    def get_event_id(self, request: Request) -> int | None:
+        if hasattr(self, "_cached_event_id"):
+            return self._cached_event_id
+        list_id = _parse_int(self.kwargs.get("list_id"))
+        event_id = _get_tasklist_event_id(list_id)
+        self._cached_event_id = event_id
+        return event_id
+
+    @transaction.atomic
+    def post(self, request: Request, list_id: int) -> Response:
+        ordered_ids = _validate_ordered_ids(request.data.get("ordered_ids"))
+        task_list = get_object_or_404(
+            TaskList.objects.select_related("event").only("id", "event_id"),
+            id=list_id,
+        )
+
+        tasks = list(
+            Task.objects.filter(list=task_list)
+            .select_for_update()
+            .order_by("order", "id")
+        )
+        existing_ids = [task.id for task in tasks]
+        if set(existing_ids) != set(ordered_ids) or len(existing_ids) != len(ordered_ids):
+            return Response(
+                {
+                    "code": "invalid_ids",
+                    "message": "Переданы ID задач, не принадлежащие указанной колонке.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        id_to_task = {task.id: task for task in tasks}
+        now = timezone.now()
+        for index, task_id in enumerate(ordered_ids):
+            task = id_to_task[task_id]
+            task.order = index
+            task.updated_at = now
+            task.save(update_fields=["order", "updated_at"])
+
+        return Response({"message": "ok", "count": len(ordered_ids)})
 
 
 class BoardView(EventScopedPermissionMixin, APIView):

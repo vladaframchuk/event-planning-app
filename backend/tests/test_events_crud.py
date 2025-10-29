@@ -101,6 +101,28 @@ def test_update_and_delete_only_for_owner() -> None:
     assert not Event.objects.filter(pk=event.id).exists()
 
 
+def test_event_organizer_can_update_event_details() -> None:
+    """Организатор события получает права на редактирование."""
+    owner = User.objects.create_user(email="owner-organizer@example.com", password="Password123")
+    organizer = User.objects.create_user(email="coorganizer@example.com", password="Password123")
+
+    event = Event.objects.create(owner=owner, title="Collaborative Event")
+    Participant.objects.create(event=event, user=organizer, role=Participant.Role.ORGANIZER)
+
+    organizer_client = _auth_client(organizer)
+    response = organizer_client.patch(
+        f"/api/events/{event.id}/",
+        data={"title": "Updated By Organizer"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["title"] == "Updated By Organizer"
+    event.refresh_from_db()
+    assert event.title == "Updated By Organizer"
+
+
 def test_filter_search_ordering() -> None:
     """Проверяем работу фильтров, поиска и сортировки."""
     user = User.objects.create_user(email="filter@example.com", password="Password123")

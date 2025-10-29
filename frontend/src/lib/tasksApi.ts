@@ -181,3 +181,18 @@ export async function deleteTask(id: number): Promise<void> {
   await apiFetch<null>(`${TASK_PATH}${id}/`, { method: 'DELETE' });
 }
 
+export async function reorderTaskLists(eventId: number, orderedIds: number[]): Promise<void> {
+  await apiFetch<null>(`/api/events/${eventId}/tasklists/reorder`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+}
+
+export async function reorderTasksInList(listId: number, orderedIds: number[]): Promise<void> {
+  await apiFetch<null>(`/api/tasklists/${listId}/tasks/reorder`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+}

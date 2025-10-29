@@ -14,6 +14,8 @@ type EventListProps = {
   pendingDeleteId?: number | null;
 };
 
+const eventDateTimeFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+
 const formatDate = (value: string | null): string | null => {
   if (!value) {
     return null;
@@ -24,7 +26,7 @@ const formatDate = (value: string | null): string | null => {
     return null;
   }
 
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return eventDateTimeFormatter.format(date);
 };
 
 const formatDateRange = (startAt: string | null, endAt: string | null): string => {

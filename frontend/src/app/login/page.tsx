@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type JSX, ChangeEvent, FormEvent, useState } from 'react';
 
+import { AUTH_CHANGE_EVENT_NAME } from '@/components/AuthGuard';
 import { login } from '@/lib/authClient';
 
 type LoginFormValues = {
@@ -18,6 +19,14 @@ type LoginFormErrors = Partial<Record<keyof LoginFormValues, string>> & {
 const initialValues: LoginFormValues = {
   email: '',
   password: '',
+};
+
+const dispatchAuthEvent = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT_NAME));
 };
 
 const validate = (values: LoginFormValues): LoginFormErrors => {
@@ -65,6 +74,7 @@ const LoginPage = (): JSX.Element => {
 
     try {
       await login(values.email.trim(), values.password);
+      dispatchAuthEvent();
       if (typeof window !== 'undefined') {
         const pendingToken = window.localStorage.getItem('epa_pending_invite_token');
         if (pendingToken) {

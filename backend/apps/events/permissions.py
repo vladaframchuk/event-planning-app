@@ -4,7 +4,7 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import View
 
-from apps.events.models import Event
+from apps.events.models import Event, Participant
 
 
 class IsEventOwnerOrReadOnly(BasePermission):
@@ -22,4 +22,12 @@ class IsEventOwnerOrReadOnly(BasePermission):
             if obj.owner_id == request.user.id:
                 return True
             return obj.participants.filter(user=request.user).exists()
-        return obj.owner_id == request.user.id
+
+        if obj.owner_id == request.user.id:
+            return True
+
+        return Participant.objects.filter(
+            event=obj,
+            user=request.user,
+            role=Participant.Role.ORGANIZER,
+        ).exists()
