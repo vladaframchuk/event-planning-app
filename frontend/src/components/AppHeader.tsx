@@ -131,7 +131,7 @@ const menuClasses =
   'block w-full rounded-md px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-100 focus:outline-none dark:text-neutral-200 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700';
 
 const avatarBaseClasses =
-  'flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400';
+  'flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-transparent bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400';
 
 const dispatchAuthEvent = (): void => {
   if (typeof window === 'undefined') {
