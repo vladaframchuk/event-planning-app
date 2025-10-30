@@ -8,16 +8,28 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from apps.events.models import Event
+from apps.events.models import Event, Participant
 from apps.tasks.models import Task, TaskList
-from apps.tasks.permissions import IsEventOwnerWrite, IsEventParticipantReadOnly
-from apps.tasks.serializers import BoardSerializer, TaskListSerializer, TaskSerializer
+from apps.tasks.permissions import (
+    IsEventOwner,
+    IsEventOwnerWrite,
+    IsEventParticipantReadOnly,
+    IsTaskAssignee,
+)
+from apps.tasks.serializers import (
+    BoardSerializer,
+    TaskAssignSerializer,
+    TaskListSerializer,
+    TaskSerializer,
+    TaskStatusSerializer,
+)
 
 
 def _parse_int(value: Any) -> int | None:
@@ -50,9 +62,11 @@ def _get_task_event_id(task_id: int | None) -> int | None:
 
 
 def _validate_ordered_ids(raw_value: Any) -> list[int]:
-    """Проверяем, что пришел непустой список уникальных чисел."""
-    if not isinstance(raw_value, list) or not raw_value:
-        raise ValidationError({"ordered_ids": ["ordered_ids должен быть непустым списком чисел."]})
+    """Validate that ordered_ids is a list of unique integers."""
+    if not isinstance(raw_value, list):
+        raise ValidationError({"ordered_ids": ["ordered_ids must be provided as a list of integers."]})
+    if not raw_value:
+        return []
 
     try:
         ordered_ids = [int(item) for item in raw_value]
@@ -125,6 +139,18 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
     search_fields = ("title", "description")
     ordering_fields = ("due_at", "created_at", "order")
 
+    def get_permissions(self):
+        if getattr(self, "action", None) in {"take", "assign", "status"}:
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
+    def _get_participant(self, task: Task, user) -> Participant | None:
+        return (
+            Participant.objects.select_related("user")
+            .filter(event_id=task.list.event_id, user=user)
+            .first()
+        )
+
     def get_queryset(self) -> QuerySet[Task]:
         user = self.request.user
         queryset = (
@@ -162,6 +188,81 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
 
         self._cached_event_id = event_id
         return event_id
+
+    @action(detail=True, methods=["post"])
+    def take(self, request: Request, pk: int | None = None) -> Response:
+        task = self.get_object()
+        participant = self._get_participant(task, request.user)
+        if participant is None:
+            return Response(
+                {"detail": "User is not a participant of this event."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        updated = (
+            Task.objects.filter(id=task.id, assignee__isnull=True)
+            .update(assignee=participant, updated_at=timezone.now())
+        )
+        if updated == 0:
+            return Response({"code": "already_assigned"}, status=status.HTTP_409_CONFLICT)
+
+        return Response(
+            {
+                "message": "taken",
+                "assignee": {
+                    "id": participant.id,
+                    "user": {
+                        "id": participant.user.id,
+                        "email": participant.user.email,
+                        "name": participant.user.name,
+                    },
+                },
+            }
+        )
+
+    @action(detail=True, methods=["post"])
+    def assign(self, request: Request, pk: int | None = None) -> Response:
+        task = self.get_object()
+        if not IsEventOwner().has_object_permission(request, self, task):
+            return Response(
+                {"detail": "Only event owner can assign tasks."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = TaskAssignSerializer(data=request.data, context={"task": task})
+        serializer.is_valid(raise_exception=True)
+        participant: Participant | None = serializer.validated_data["participant"]
+
+        Task.objects.filter(id=task.id).update(
+            assignee=participant, updated_at=timezone.now()
+        )
+
+        return Response({"message": "assigned"})
+
+    @action(detail=True, methods=["post"])
+    def status(self, request: Request, pk: int | None = None) -> Response:
+        task = self.get_object()
+        owner_permission = IsEventOwner()
+        assignee_permission = IsTaskAssignee()
+        if not (
+            owner_permission.has_object_permission(request, self, task)
+            or assignee_permission.has_object_permission(request, self, task)
+        ):
+            return Response(
+                {"code": "forbidden", "message": "Недостаточно прав"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = TaskStatusSerializer(data=request.data, context={"task": task})
+        serializer.is_valid(raise_exception=True)
+        new_status: str = serializer.validated_data["status"]
+
+        if new_status != task.status:
+            Task.objects.filter(id=task.id).update(
+                status=new_status, updated_at=timezone.now()
+            )
+
+        return Response({"message": "status_updated", "status": new_status})
 
     def perform_create(self, serializer: TaskSerializer) -> None:
         task_list: TaskList = serializer.validated_data["list"]
@@ -284,5 +385,11 @@ class BoardView(EventScopedPermissionMixin, APIView):
                 ),
             )
         )
-        serializer = BoardSerializer({"event": event, "lists": lists}, context={"request": request})
+        participants = list(
+            event.participants.select_related("user").order_by("id")
+        )
+        serializer = BoardSerializer(
+            {"event": event, "lists": lists, "participants": participants},
+            context={"request": request},
+        )
         return Response(serializer.data)

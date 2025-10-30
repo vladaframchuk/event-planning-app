@@ -6,13 +6,24 @@ export type Task = {
   title: string;
   description?: string;
   status: TaskStatus;
-  assignee?: number | null;
+  assignee: number | null;
   startAt?: string | null;
   dueAt?: string | null;
   order: number;
   dependsOn: number[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type BoardParticipant = {
+  id: number;
+  role: string;
+  user: {
+    id: number;
+    email: string;
+    name: string | null;
+    avatarUrl: string | null;
+  };
 };
 
 export type TaskList = {
@@ -28,5 +39,6 @@ export type Board = {
   event: { id: number; title: string };
   lists: Array<TaskList & { tasks: Task[] }>;
   isOwner: boolean;
+  participants: BoardParticipant[];
 };
 

@@ -70,3 +70,28 @@ class IsEventOwnerWrite(BasePermission):
             return False
         return Event.objects.filter(id=event_id, owner=request.user).exists()
 
+
+class IsEventOwner(BasePermission):
+    """Проверяет, что текущий пользователь является владельцем события."""
+
+    def has_permission(self, request, view) -> bool:
+        event_id = _resolve_event_id_from_view(view, request)
+        if event_id is None:
+            return True
+        return Event.objects.filter(id=event_id, owner=request.user).exists()
+
+    def has_object_permission(self, request, view, obj: Model) -> bool:
+        event_id = _extract_event_id(obj)
+        if event_id is None:
+            return False
+        return Event.objects.filter(id=event_id, owner=request.user).exists()
+
+
+class IsTaskAssignee(BasePermission):
+    """Разрешает доступ только назначенному ответственному задачи."""
+
+    def has_object_permission(self, request, view, obj: Model) -> bool:
+        if isinstance(obj, Task):
+            assignee = obj.assignee
+            return assignee is not None and assignee.user_id == request.user.id
+        return False

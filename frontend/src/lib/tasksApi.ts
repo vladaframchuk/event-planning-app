@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/fetcher';
-import type { Board, Task, TaskList, TaskStatus } from '@/types/task';
+import type { Board, BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
 
 type ApiTask = {
   id: number;
@@ -29,6 +29,11 @@ type ApiBoard = {
   event: { id: number; title: string };
   lists: Array<ApiTaskList & { tasks: ApiTask[] }>;
   is_owner: boolean;
+  participants: Array<{
+    id: number;
+    role: string;
+    user: { id: number; email: string; name: string | null; avatar_url: string | null };
+  }>;
 };
 
 type CreateListPayload = {
@@ -76,6 +81,17 @@ const mapTask = (payload: ApiTask): Task => ({
   updatedAt: payload.updated_at,
 });
 
+const mapParticipant = (payload: ApiBoard['participants'][number]): BoardParticipant => ({
+  id: payload.id,
+  role: payload.role,
+  user: {
+    id: payload.user.id,
+    email: payload.user.email,
+    name: payload.user.name,
+    avatarUrl: payload.user.avatar_url,
+  },
+});
+
 const mapTaskList = (payload: ApiTaskList): TaskList => ({
   id: payload.id,
   event: payload.event,
@@ -88,6 +104,7 @@ const mapTaskList = (payload: ApiTaskList): TaskList => ({
 const mapBoard = (payload: ApiBoard): Board => ({
   event: payload.event,
   isOwner: payload.is_owner,
+  participants: payload.participants.map(mapParticipant),
   lists: payload.lists.map((item) => ({
     ...mapTaskList(item),
     tasks: item.tasks.map(mapTask),
@@ -194,5 +211,28 @@ export async function reorderTasksInList(listId: number, orderedIds: number[]): 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+}
+
+export async function takeTask(taskId: number) {
+  return apiFetch<{ message: string; assignee: { id: number; user: { id: number; email: string; name: string | null } } }>(
+    `/api/tasks/${taskId}/take/`,
+    { method: 'POST' },
+  );
+}
+
+export async function assignTask(taskId: number, assigneeParticipantId: number | null) {
+  return apiFetch<{ message: string }>(`/api/tasks/${taskId}/assign/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assignee_participant_id: assigneeParticipantId }),
+  });
+}
+
+export async function updateTaskStatus(taskId: number, status: TaskStatus) {
+  return apiFetch<{ message: string; status: TaskStatus }>(`/api/tasks/${taskId}/status/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
   });
 }

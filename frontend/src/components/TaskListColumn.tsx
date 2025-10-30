@@ -7,7 +7,9 @@ import {
   useMemo,
 } from 'react';
 
-import type { Task, TaskList } from '@/types/task';
+import type { BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
+
+import TaskCard from './TaskCard';
 
 type DragMode = 'mouse' | 'keyboard';
 
@@ -37,26 +39,18 @@ type TaskListColumnProps = {
   onTaskDragEnd: () => void;
   onTaskKeyboardMove: (listId: number, taskId: number, direction: 'up' | 'down' | 'left' | 'right') => void;
   onCancelDrag: () => void;
+  participants: Map<number, BoardParticipant>;
+  taskPermissions: Map<number, { canTake: boolean; canChangeStatus: boolean }>;
+  showMyTasksOnly: boolean;
+  myParticipantId: number | null;
+  isTaskPending: (taskId: number) => boolean;
+  onTakeTask: (taskId: number) => void;
+  onUpdateTaskStatus: (taskId: number, status: TaskStatus) => void;
+  onStatusChangeDenied: () => void;
 };
 
 const DRAG_TYPE_LIST = 'application/x-event-taskboard-list';
 const DRAG_TYPE_TASK = 'application/x-event-taskboard-task';
-
-const taskDateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
-const formatDate = (value?: string | null): string | null => {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return taskDateTimeFormatter.format(date);
-};
 
 const TaskListColumn = ({
   list,
@@ -77,8 +71,29 @@ const TaskListColumn = ({
   onTaskDragEnd,
   onTaskKeyboardMove,
   onCancelDrag,
+  participants,
+  taskPermissions,
+  showMyTasksOnly,
+  myParticipantId,
+  isTaskPending,
+  onTakeTask,
+  onUpdateTaskStatus,
+  onStatusChangeDenied,
 }: TaskListColumnProps): JSX.Element => {
   const tasks = useMemo(() => list.tasks, [list.tasks]);
+  const filteredTasks = useMemo(
+    () =>
+      tasks
+        .map<{ task: Task; index: number }>((task, index) => ({ task, index }))
+        .filter(({ task }) => {
+          if (!showMyTasksOnly || myParticipantId === null) {
+            return true;
+          }
+          return task.assignee === myParticipantId;
+        }),
+    [tasks, showMyTasksOnly, myParticipantId],
+  );
+
   const isListDragging = dragContext?.type === 'list' && dragContext.id === list.id;
   const isListDropTarget = dragContext?.type === 'list' && dropListId === list.id && dragContext.id !== list.id;
   const dropIndex = dropTaskIndicator.listId === list.id ? dropTaskIndicator.index : null;
@@ -128,27 +143,14 @@ const TaskListColumn = ({
     if (!isOwner || isSyncing) {
       return;
     }
-    const isActive = dragContext?.type === 'list' && dragContext.id === list.id;
-    if ((event.key === ' ' || event.key === 'Enter') && !event.shiftKey) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
-      if (isActive) {
-        onCancelDrag();
-      } else {
-        onListDragStart(list.id, 'keyboard');
-      }
-      return;
-    }
-    if (!isActive) {
+      onListKeyboardMove(list.id, event.key === 'ArrowLeft' ? 'left' : 'right');
       return;
     }
     if (event.key === 'Escape') {
       event.preventDefault();
       onCancelDrag();
-      return;
-    }
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      event.preventDefault();
-      onListKeyboardMove(list.id, event.key === 'ArrowLeft' ? 'left' : 'right');
     }
   };
 
@@ -156,19 +158,27 @@ const TaskListColumn = ({
     if (!isOwner || dragContext?.type !== 'task') {
       return;
     }
+    const targetElement = event.target as HTMLElement | null;
+    if (targetElement?.closest('[data-task-card="true"]')) {
+      return;
+    }
     event.preventDefault();
-    event.stopPropagation();
     event.dataTransfer.dropEffect = 'move';
-    onTaskDragOver(list.id, tasks.length);
+    const targetIndex = resolveContainerDropIndex(event);
+    onTaskDragOver(list.id, targetIndex);
   };
 
   const handleTasksContainerDrop = (event: DragEvent<HTMLDivElement>) => {
     if (!isOwner || dragContext?.type !== 'task') {
       return;
     }
+    const targetElement = event.target as HTMLElement | null;
+    if (targetElement?.closest('[data-task-card="true"]')) {
+      return;
+    }
     event.preventDefault();
-    event.stopPropagation();
-    onTaskDrop(list.id, tasks.length);
+    const targetIndex = resolveContainerDropIndex(event);
+    onTaskDrop(list.id, targetIndex);
   };
 
   const handleTaskDragStart = (task: Task) => (event: DragEvent<HTMLElement>) => {
@@ -186,7 +196,6 @@ const TaskListColumn = ({
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
     event.dataTransfer.dropEffect = 'move';
     onTaskDragOver(list.id, index);
   };
@@ -196,29 +205,21 @@ const TaskListColumn = ({
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
     onTaskDrop(list.id, index);
-  };
-
-  const handleTaskDragEnd = () => {
-    onTaskDragEnd();
   };
 
   const handleTaskKeyDown = (task: Task) => (event: KeyboardEvent<HTMLElement>) => {
     if (!isOwner || isSyncing) {
       return;
     }
-    const isActive = dragContext?.type === 'task' && dragContext.id === task.id;
-    if ((event.key === ' ' || event.key === 'Enter') && !event.shiftKey) {
+    if (event.key === ' ' || event.key === 'SpaceBar') {
       event.preventDefault();
-      if (isActive) {
+      const isGrabbing = dragContext?.type === 'task' && dragContext.id === task.id;
+      if (isGrabbing) {
         onTaskDragEnd();
       } else {
         onTaskDragStart(list.id, task.id, 'keyboard');
       }
-      return;
-    }
-    if (!isActive) {
       return;
     }
     if (event.key === 'Escape') {
@@ -235,6 +236,56 @@ const TaskListColumn = ({
       event.preventDefault();
       onTaskKeyboardMove(list.id, task.id, event.key === 'ArrowLeft' ? 'left' : 'right');
     }
+  };
+
+  const visibleTaskCount = filteredTasks.length;
+  const totalTaskCount = tasks.length;
+  const taskCountLabel =
+    showMyTasksOnly && myParticipantId !== null && visibleTaskCount !== totalTaskCount
+      ? `Задач: ${visibleTaskCount} / ${totalTaskCount}`
+      : `Задач: ${totalTaskCount}`;
+
+  const baseEmptyMessage = 'Задач пока нет. Перетащите карточку или создайте новую.';
+  const filteredEmptyMessage = 'Для вас пока нет задач в этой колонке.';
+  const emptyMessage =
+    totalTaskCount === 0 || !showMyTasksOnly || myParticipantId === null ? baseEmptyMessage : filteredEmptyMessage;
+
+  const dropIndicator = (
+    <div className="my-1 h-2 rounded border-2 border-dashed border-blue-400" aria-hidden="true" />
+  );
+
+  let dropIndicatorRendered = false;
+
+  const showEmptyIndicatorBefore =
+    visibleTaskCount === 0 && dropIndex !== null && dropIndex <= 0;
+  const showEmptyIndicatorAfter =
+    visibleTaskCount === 0 && dropIndex !== null && dropIndex > 0 && dropIndex >= tasks.length;
+
+  if (showEmptyIndicatorBefore || showEmptyIndicatorAfter) {
+    dropIndicatorRendered = true;
+  }
+
+  const resolveContainerDropIndex = (event: DragEvent<HTMLDivElement>): number => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetY = event.clientY - rect.top;
+    if (!Number.isFinite(offsetY) || rect.height <= 0) {
+      return dropTaskIndicator.listId === list.id && dropTaskIndicator.index !== null
+        ? dropTaskIndicator.index
+        : tasks.length;
+    }
+    if (tasks.length === 0) {
+      return 0;
+    }
+    const ratio = offsetY / rect.height;
+    if (ratio <= 0.25) {
+      return 0;
+    }
+    if (ratio >= 0.75) {
+      return tasks.length;
+    }
+    return dropTaskIndicator.listId === list.id && dropTaskIndicator.index !== null
+      ? dropTaskIndicator.index
+      : tasks.length;
   };
 
   return (
@@ -257,7 +308,7 @@ const TaskListColumn = ({
           onKeyDown={handleHeaderKeyDown}
         >
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{list.title}</h2>
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">Задач: {tasks.length}</span>
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">{taskCountLabel}</span>
         </div>
         {isOwner ? (
           <button
@@ -280,68 +331,65 @@ const TaskListColumn = ({
         onDragOver={handleTasksContainerDragOver}
         onDrop={handleTasksContainerDrop}
       >
-        {tasks.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-            Задач пока нет. Перетащите карточку или создайте новую.
-          </p>
+        {visibleTaskCount === 0 ? (
+          <>
+            {showEmptyIndicatorBefore ? dropIndicator : null}
+            <p className="rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+              {emptyMessage}
+            </p>
+            {showEmptyIndicatorAfter ? dropIndicator : null}
+          </>
         ) : (
-          tasks.map((task, index) => {
+          filteredTasks.map(({ task, index: originalIndex }) => {
+            const shouldRenderDropIndicator =
+              dropIndex !== null && !dropIndicatorRendered && dropIndex <= originalIndex;
+            if (shouldRenderDropIndicator) {
+              dropIndicatorRendered = true;
+            }
+
             const isTaskDragging = dragContext?.type === 'task' && dragContext.id === task.id;
-            const showDropIndicator = dropIndex === index;
+            const permission = taskPermissions.get(task.id) ?? { canTake: false, canChangeStatus: false };
+            const assigneeParticipant =
+              task.assignee !== null ? participants.get(task.assignee) ?? null : null;
             const taskClasses = [
               'flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700 shadow-sm transition hover:border-blue-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200',
             ];
             if (isTaskDragging) {
               taskClasses.push('opacity-60', 'dragging');
             }
+
             return (
               <div key={task.id}>
-                {showDropIndicator ? (
-                  <div className="mb-2 h-2 rounded border-2 border-dashed border-blue-400" aria-hidden="true" />
-                ) : null}
+                {shouldRenderDropIndicator ? dropIndicator : null}
                 <article
+                  data-task-card="true"
                   role="listitem"
                   tabIndex={0}
                   className={taskClasses.join(' ')}
                   draggable={isOwner && !isSyncing}
                   onDragStart={handleTaskDragStart(task)}
-                  onDragOver={handleTaskDragOver(index)}
-                  onDrop={handleTaskDrop(index)}
-                  onDragEnd={handleTaskDragEnd}
+                  onDragOver={handleTaskDragOver(originalIndex)}
+                  onDrop={handleTaskDrop(originalIndex)}
+                  onDragEnd={onTaskDragEnd}
                   aria-grabbed={isTaskDragging}
                   onKeyDown={handleTaskKeyDown(task)}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{task.title}</h3>
-                    <span className="inline-flex min-w-[72px] justify-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                      {task.status}
-                    </span>
-                  </div>
-                  {task.description ? (
-                    <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">{task.description}</p>
-                  ) : null}
-                  <ul className="flex flex-col gap-1 text-xs text-neutral-500 dark:text-neutral-400">
-                    {formatDate(task.startAt) ? (
-                      <li>
-                        <span className="font-medium text-neutral-600 dark:text-neutral-300">Начало:</span>{' '}
-                        {formatDate(task.startAt)}
-                      </li>
-                    ) : null}
-                    {formatDate(task.dueAt) ? (
-                      <li>
-                        <span className="font-medium text-neutral-600 dark:text-neutral-300">Дедлайн:</span>{' '}
-                        {formatDate(task.dueAt)}
-                      </li>
-                    ) : null}
-                  </ul>
+                  <TaskCard
+                    task={task}
+                    assignee={assigneeParticipant}
+                    canTake={permission.canTake}
+                    canChangeStatus={permission.canChangeStatus}
+                    isBusy={isTaskPending(task.id)}
+                    onTake={() => onTakeTask(task.id)}
+                    onStatusChange={(status) => onUpdateTaskStatus(task.id, status)}
+                    onStatusChangeDenied={onStatusChangeDenied}
+                  />
                 </article>
               </div>
             );
           })
         )}
-        {dropIndex === tasks.length ? (
-          <div className="mt-2 h-2 rounded border-2 border-dashed border-blue-400" aria-hidden="true" />
-        ) : null}
+        {dropIndex !== null && dropIndex >= tasks.length && !dropIndicatorRendered ? dropIndicator : null}
       </div>
     </section>
   );

@@ -13,15 +13,18 @@ import {
   useState,
 } from 'react';
 
+import { getMe, type Profile } from '@/lib/profileApi';
 import {
   createList,
   createTask,
   getBoard,
   reorderTaskLists,
   reorderTasksInList,
+  takeTask,
   updateTask,
+  updateTaskStatus,
 } from '@/lib/tasksApi';
-import type { Board, Task, TaskList } from '@/types/task';
+import type { Board, BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
 
 import TaskCreateDialog from './TaskCreateDialog';
 import TaskListColumn from './TaskListColumn';
@@ -89,6 +92,10 @@ const reindexTasks = (tasks: Task[]): Task[] => tasks.map((task, index) => ({ ..
 const cloneBoard = (board: Board): Board => ({
   event: board.event,
   isOwner: board.isOwner,
+  participants: board.participants.map((participant) => ({
+    ...participant,
+    user: { ...participant.user },
+  })),
   lists: board.lists.map((list) => ({
     ...list,
     tasks: list.tasks.map((task) => ({ ...task })),
@@ -120,12 +127,20 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const [dropListId, setDropListId] = useState<number | null>(null);
   const [dropTaskIndicator, setDropTaskIndicator] = useState<DropTaskIndicator>({ listId: null, index: null });
   const [isSyncing, setSyncing] = useState(false);
+  const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
 
   const boardQueryKey = useMemo(() => ['events', eventId, 'board'], [eventId]);
 
   const boardQuery = useQuery<Board, Error>({
     queryKey: boardQueryKey,
     queryFn: () => getBoard(eventId),
+  });
+
+  const profileQuery = useQuery<Profile, Error>({
+    queryKey: ['profile', 'me'],
+    queryFn: getMe,
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -136,13 +151,53 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   }, [boardQuery.data]);
 
   const board = boardState ?? boardQuery.data ?? null;
-  const isOwner = board?.isOwner ?? false;
+  const me = profileQuery.data ?? null;
+
+  const participantsById = useMemo(() => {
+    if (!board) {
+      return new Map<number, BoardParticipant>();
+    }
+    return new Map(board.participants.map((participant) => [participant.id, participant]));
+  }, [board]);
+
+  const myParticipantId = useMemo(() => {
+    if (!board || !me) {
+      return null;
+    }
+    const participant = board.participants.find((item) => item.user.id === me.id);
+    return participant ? participant.id : null;
+  }, [board, me]);
+
+  const isParticipant = myParticipantId !== null;
+
+  useEffect(() => {
+    if (!isParticipant && showMyTasksOnly) {
+      setShowMyTasksOnly(false);
+    }
+  }, [isParticipant, showMyTasksOnly]);
+
+  const taskPermissions = useMemo(() => {
+    const permissions = new Map<number, { canTake: boolean; canChangeStatus: boolean }>();
+    if (!board) {
+      return permissions;
+    }
+    for (const list of board.lists) {
+      for (const task of list.tasks) {
+        const canTake = myParticipantId !== null && task.assignee === null;
+        const canChangeStatus = board.isOwner || (myParticipantId !== null && task.assignee === myParticipantId);
+        permissions.set(task.id, { canTake, canChangeStatus });
+      }
+    }
+    return permissions;
+  }, [board, myParticipantId]);
 
   useEffect(() => {
     if (!toast) {
       return;
     }
-    const timeout = window.setTimeout(() => setToast((current) => (current?.id === toast.id ? null : current)), 3000);
+    const timeout = window.setTimeout(() => {
+      setToast((current) => (current?.id === toast.id ? null : current));
+    }, 3000);
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
@@ -152,7 +207,9 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     }
     if (dragContext) {
       document.body.classList.add('dragging');
-      return () => document.body.classList.remove('dragging');
+      return () => {
+        document.body.classList.remove('dragging');
+      };
     }
     document.body.classList.remove('dragging');
     return undefined;
@@ -164,6 +221,31 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     }
     return board.lists.find((list) => list.id === activeListId) ?? null;
   }, [board, activeListId]);
+
+  const showToast = useCallback((message: string, type: ToastState['type']) => {
+    setToast({ id: Date.now(), message, type });
+  }, []);
+
+  const updatePendingTask = useCallback((taskId: number, pending: boolean) => {
+    setPendingTaskIds((current) => {
+      const next = new Set(current);
+      if (pending) {
+        next.add(taskId);
+      } else {
+        next.delete(taskId);
+      }
+      return next;
+    });
+  }, []);
+
+  const isTaskPending = useCallback((taskId: number) => pendingTaskIds.has(taskId), [pendingTaskIds]);
+
+  const toggleMyTasksOnly = useCallback(() => {
+    if (!isParticipant) {
+      return;
+    }
+    setShowMyTasksOnly((current) => !current);
+  }, [isParticipant]);
 
   const clearDropIndicators = useCallback(() => {
     setDropListId(null);
@@ -227,7 +309,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       event.preventDefault();
       const trimmed = listTitle.trim();
       if (!trimmed) {
-        setListError('Введите название колонки.');
+        setListError('Название колонки не может быть пустым.');
         return;
       }
       try {
@@ -256,6 +338,101 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     setTaskDialogError(null);
   }, []);
 
+  const handleStatusChangeDeniedMessage = useCallback(() => {
+    showToast('Недостаточно прав.', 'error');
+  }, [showToast]);
+
+  const handleTakeTask = useCallback(
+    async (taskId: number) => {
+      if (myParticipantId === null) {
+        showToast('Недостаточно прав.', 'error');
+        return;
+      }
+      const source = boardState ?? board;
+      if (!source) {
+        return;
+      }
+      const optimistic = cloneBoard(source);
+      let updated = false;
+      for (const list of optimistic.lists) {
+        const task = list.tasks.find((item) => item.id === taskId);
+        if (task) {
+          task.assignee = myParticipantId;
+          updated = true;
+          break;
+        }
+      }
+      if (!updated) {
+        return;
+      }
+      setBoardState(optimistic);
+      updatePendingTask(taskId, true);
+      try {
+        await takeTask(taskId);
+        showToast('Задача назначена на вас.', 'success');
+        await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+      } catch (error) {
+        setBoardState(cloneBoard(source));
+        const message = error instanceof Error ? error.message : 'Не удалось назначить задачу.';
+        if (message.toLowerCase().includes('already_assigned')) {
+          showToast('Задача уже назначена.', 'error');
+        } else {
+          showToast(message, 'error');
+        }
+      } finally {
+        updatePendingTask(taskId, false);
+      }
+    },
+    [board, boardState, myParticipantId, showToast, updatePendingTask, queryClient, boardQueryKey],
+  );
+
+  const handleStatusChange = useCallback(
+    async (taskId: number, nextStatus: TaskStatus) => {
+      const permission = taskPermissions.get(taskId);
+      if (!permission || !permission.canChangeStatus) {
+        showToast('Недостаточно прав.', 'error');
+        return;
+      }
+      const source = boardState ?? board;
+      if (!source) {
+        return;
+      }
+      const optimistic = cloneBoard(source);
+      let updated = false;
+      for (const list of optimistic.lists) {
+        const task = list.tasks.find((item) => item.id === taskId);
+        if (task) {
+          if (task.status === nextStatus) {
+            return;
+          }
+          task.status = nextStatus;
+          updated = true;
+          break;
+        }
+      }
+      if (!updated) {
+        return;
+      }
+      setBoardState(optimistic);
+      updatePendingTask(taskId, true);
+      try {
+        await updateTaskStatus(taskId, nextStatus);
+        await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+      } catch (error) {
+        setBoardState(cloneBoard(source));
+        const message = error instanceof Error ? error.message : 'Не удалось обновить статус задачи.';
+        if (message.toLowerCase().includes('depend')) {
+          showToast('Сначала завершите зависимости.', 'error');
+        } else {
+          showToast(message, 'error');
+        }
+      } finally {
+        updatePendingTask(taskId, false);
+      }
+    },
+    [board, boardState, taskPermissions, showToast, updatePendingTask, queryClient, boardQueryKey],
+  );
+
   const handleTaskDialogSubmit = useCallback(
     async (payload: TaskCreatePayload) => {
       if (activeListId === null) {
@@ -270,25 +447,24 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     },
     [activeListId, createTaskMutation],
   );
-
   const handleListDragStart = useCallback(
     (listId: number, mode: DragMode) => {
-      if (!isOwner || isSyncing) {
+      if (!board?.isOwner || isSyncing) {
         return;
       }
       setDragContext({ type: 'list', id: listId, mode });
     },
-    [isOwner, isSyncing],
+    [board?.isOwner, isSyncing],
   );
 
   const handleTaskDragStart = useCallback(
     (listId: number, taskId: number, mode: DragMode) => {
-      if (!isOwner || isSyncing) {
+      if (!board?.isOwner || isSyncing) {
         return;
       }
       setDragContext({ type: 'task', id: taskId, listId, mode });
     },
-    [isOwner, isSyncing],
+    [board?.isOwner, isSyncing],
   );
 
   const handleListDragOver = useCallback(
@@ -477,51 +653,32 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
           await updateTask(movedTaskId, { list: targetList.id });
           listUpdated = true;
         }
-
-        if (remainingTasks.length > 0) {
+        if (remainingTaskIds.join(',') !== previousSourceOrder.join(',')) {
           await reorderTasksInList(sourceList.id, remainingTaskIds);
           sourcePersisted = true;
         }
-
-        await reorderTasksInList(targetList.id, insertedTaskIds);
-        targetPersisted = true;
+        if (insertedTaskIds.join(',') !== previousTargetOrder.join(',')) {
+          await reorderTasksInList(targetList.id, insertedTaskIds);
+          targetPersisted = true;
+        }
         await queryClient.invalidateQueries({ queryKey: boardQueryKey });
         if (maintainContext) {
           setDragContext({ ...context, listId: targetList.id });
         }
       } catch (error) {
+        console.error('Failed to persist task reorder', {
+          error,
+          listUpdated,
+          sourcePersisted,
+          targetPersisted,
+        });
         setBoardState(previous);
         setDragContext(null);
         setToast({
           id: Date.now(),
-          message: 'Failed to sync tasks order.',
+          message: 'Не удалось сохранить порядок задач.',
           type: 'error',
         });
-        console.error('Failed to reorder tasks', error);
-
-        if (targetPersisted && previousTargetOrder.length > 0) {
-          try {
-            await reorderTasksInList(targetList.id, previousTargetOrder);
-          } catch (rollbackError) {
-            console.warn('Failed to rollback target list reorder', rollbackError);
-          }
-        }
-
-        if (sourcePersisted && previousSourceOrder.length > 0) {
-          try {
-            await reorderTasksInList(sourceList.id, previousSourceOrder);
-          } catch (rollbackError) {
-            console.warn('Failed to rollback source list reorder', rollbackError);
-          }
-        }
-
-        if (listUpdated) {
-          try {
-            await updateTask(movedTaskId, { list: sourceList.id });
-          } catch (rollbackError) {
-            console.warn('Failed to rollback task list update', rollbackError);
-          }
-        }
       } finally {
         setSyncing(false);
       }
@@ -529,60 +686,75 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     [boardState, dragContext, isSyncing, clearDropIndicators, queryClient, boardQueryKey],
   );
 
-  const handleListDrop = useCallback(
-    (listId: number) => {
-      const lists = boardState?.lists ?? [];
-      const targetIndex = lists.findIndex((list) => list.id === listId);
-      if (targetIndex === -1) {
-        cancelDrag();
+  const handleBoardDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      if (!board?.isOwner || dragContext?.type !== 'list') {
         return;
       }
-      void commitListReorder(targetIndex);
+      event.preventDefault();
     },
-    [boardState, commitListReorder, cancelDrag],
+    [board?.isOwner, dragContext],
   );
 
-  const handleListDropToEnd = useCallback(() => {
-    if (!boardState) {
-      cancelDrag();
-      return;
-    }
-    void commitListReorder(boardState.lists.length - 1);
-  }, [boardState, commitListReorder, cancelDrag]);
+  const handleBoardDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      if (!board?.isOwner || dragContext?.type !== 'list') {
+        return;
+      }
+      event.preventDefault();
+      commitListReorder((board?.lists.length ?? 1) - 1);
+    },
+    [board, dragContext, commitListReorder],
+  );
+
+  const handleListDrop = useCallback(
+    (listId: number) => {
+      const targetIndex = boardState?.lists.findIndex((list) => list.id === listId) ?? -1;
+      if (targetIndex === -1) {
+        return;
+      }
+      commitListReorder(targetIndex);
+    },
+    [boardState?.lists, commitListReorder],
+  );
 
   const handleTaskDrop = useCallback(
     (listId: number, index: number) => {
-      void commitTaskReorder(listId, index);
+      commitTaskReorder(listId, index);
     },
     [commitTaskReorder],
   );
 
+  const handleTaskDragEnd = useCallback(() => {
+    setDragContext(null);
+    clearDropIndicators();
+  }, [clearDropIndicators]);
+
+  const handleListDragEnd = useCallback(() => {
+    setDragContext(null);
+    clearDropIndicators();
+  }, [clearDropIndicators]);
+
   const handleListKeyboardMove = useCallback(
     (listId: number, direction: 'left' | 'right') => {
-      if (!boardState || dragContext?.type !== 'list') {
-        return;
-      }
-      const currentIndex = boardState.lists.findIndex((list) => list.id === listId);
+      const currentIndex = boardState?.lists.findIndex((list) => list.id === listId) ?? -1;
       if (currentIndex === -1) {
         return;
       }
-      const offset = direction === 'left' ? -1 : 1;
-      const targetIndex = Math.max(0, Math.min(boardState.lists.length - 1, currentIndex + offset));
-      if (targetIndex === currentIndex) {
+      const delta = direction === 'left' ? -1 : 1;
+      const targetIndex = currentIndex + delta;
+      if (targetIndex < 0 || !boardState || targetIndex >= boardState.lists.length) {
         return;
       }
-      void commitListReorder(targetIndex);
+      commitListReorder(targetIndex);
     },
-    [boardState, dragContext, commitListReorder],
+    [boardState, commitListReorder],
   );
 
   const handleTaskKeyboardMove = useCallback(
     (listId: number, taskId: number, direction: 'up' | 'down' | 'left' | 'right') => {
-      if (!boardState || dragContext?.type !== 'task' || dragContext.id !== taskId) {
-        return;
-      }
-      const listIndex = boardState.lists.findIndex((list) => list.id === listId);
-      if (listIndex === -1) {
+      const listIndex = boardState?.lists.findIndex((list) => list.id === listId) ?? -1;
+      if (listIndex === -1 || !boardState) {
         return;
       }
       const list = boardState.lists[listIndex];
@@ -590,55 +762,37 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       if (taskIndex === -1) {
         return;
       }
+
       if (direction === 'up' || direction === 'down') {
-        const offset = direction === 'up' ? -1 : 1;
-        const targetIndex = Math.max(0, Math.min(list.tasks.length, taskIndex + offset));
-        void commitTaskReorder(list.id, targetIndex);
+        const delta = direction === 'up' ? -1 : 1;
+        const targetIndex = taskIndex + delta;
+        commitTaskReorder(listId, targetIndex);
         return;
       }
-      const listOffset = direction === 'left' ? -1 : 1;
-      const neighbourIndex = listIndex + listOffset;
-      if (neighbourIndex < 0 || neighbourIndex >= boardState.lists.length) {
-        return;
-      }
-      const neighbourList = boardState.lists[neighbourIndex];
-      void commitTaskReorder(neighbourList.id, neighbourList.tasks.length);
-    },
-    [boardState, dragContext, commitTaskReorder],
-  );
 
-  const handleBoardDragOver = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      if (dragContext?.type === 'list') {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-        setDropListId(null);
+      if (direction === 'left' || direction === 'right') {
+        const listDelta = direction === 'left' ? -1 : 1;
+        const targetList = boardState.lists[listIndex + listDelta];
+        if (!targetList) {
+          return;
+        }
+        commitTaskReorder(targetList.id, targetList.tasks.length);
       }
     },
-    [dragContext],
+    [boardState, commitTaskReorder],
   );
+  const boardData = board;
+  const isLoading = boardQuery.isLoading || profileQuery.isLoading;
+  const error = boardQuery.error ?? profileQuery.error ?? null;
+  const isOwner = boardData?.isOwner ?? false;
+  const canShowAddListButton = Boolean(isOwner && showInlineAddListButton && !isListFormVisible);
 
-  const handleBoardDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      if (dragContext?.type !== 'list') {
-        return;
-      }
-      event.preventDefault();
-      handleListDropToEnd();
-    },
-    [dragContext, handleListDropToEnd],
-  );
-
-  const handleTaskDragEnd = useCallback(() => {
-    cancelDrag();
-  }, [cancelDrag]);
-
-  const handleListDragEnd = useCallback(() => {
-    cancelDrag();
-  }, [cancelDrag]);
-
-  const isLoading = boardQuery.isLoading;
-  const error = boardQuery.error;
+  const myTasksButtonClassName = [
+    'inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+    showMyTasksOnly
+      ? 'border-blue-600 bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400'
+      : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800',
+  ].join(' ');
 
   return (
     <section className="flex flex-col gap-6">
@@ -646,9 +800,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
         <div
           role="status"
           className={`fixed right-8 top-8 z-40 flex items-center gap-3 rounded-xl px-5 py-3 text-sm shadow-lg transition ${
-            toast.type === 'success'
-              ? 'bg-emerald-500 text-white'
-              : 'bg-red-600 text-white'
+            toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-600 text-white'
           }`}
         >
           <span>{toast.message}</span>
@@ -663,10 +815,10 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       ) : null}
 
       {isLoading ? (
-        <div className="flex gap-4 overflow-x-auto">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <SkeletonColumn key={index} />
-          ))}
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          <SkeletonColumn />
+          <SkeletonColumn />
+          <SkeletonColumn />
         </div>
       ) : null}
 
@@ -676,7 +828,10 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
           <p className="mt-2 text-sm">{error.message}</p>
           <button
             type="button"
-            onClick={() => boardQuery.refetch()}
+            onClick={() => {
+              boardQuery.refetch();
+              profileQuery.refetch();
+            }}
             className="mt-3 inline-flex items-center rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
           >
             Повторить попытку
@@ -684,21 +839,35 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
         </div>
       ) : null}
 
-      {!isLoading && !error && board ? (
+      {!isLoading && !error && boardData ? (
         <>
-          {board.isOwner && showInlineAddListButton && !isListFormVisible ? (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={openListForm}
-                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-              >
-                Добавить колонку
-              </button>
+          {(isParticipant || canShowAddListButton) && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {isParticipant ? (
+                <button
+                  type="button"
+                  className={myTasksButtonClassName}
+                  onClick={toggleMyTasksOnly}
+                  aria-pressed={showMyTasksOnly}
+                >
+                  Мои задачи
+                </button>
+              ) : (
+                <span />
+              )}
+              {canShowAddListButton ? (
+                <button
+                  type="button"
+                  onClick={openListForm}
+                  className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  Добавить колонку
+                </button>
+              ) : null}
             </div>
-          ) : null}
+          )}
 
-          {board.isOwner && isListFormVisible ? (
+          {isOwner && isListFormVisible ? (
             <form
               onSubmit={handleListSubmit}
               className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:flex-row md:items-end"
@@ -745,16 +914,16 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
             onDrop={handleBoardDrop}
             aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
           >
-            {board.lists.length === 0 ? (
+            {boardData.lists.length === 0 ? (
               <div className="flex w-full min-w-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
                 Добавьте первую колонку, чтобы начать планирование.
               </div>
             ) : (
-              board.lists.map((taskList) => (
+              boardData.lists.map((taskList) => (
                 <TaskListColumn
                   key={taskList.id}
                   list={taskList}
-                  isOwner={board.isOwner}
+                  isOwner={boardData.isOwner}
                   isSyncing={isSyncing}
                   dragContext={dragContext}
                   dropListId={dropListId}
@@ -771,6 +940,14 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                   onTaskDragEnd={handleTaskDragEnd}
                   onTaskKeyboardMove={handleTaskKeyboardMove}
                   onCancelDrag={cancelDrag}
+                  participants={participantsById}
+                  taskPermissions={taskPermissions}
+                  showMyTasksOnly={showMyTasksOnly}
+                  myParticipantId={myParticipantId}
+                  isTaskPending={isTaskPending}
+                  onTakeTask={handleTakeTask}
+                  onUpdateTaskStatus={handleStatusChange}
+                  onStatusChangeDenied={handleStatusChangeDeniedMessage}
                 />
               ))
             )}

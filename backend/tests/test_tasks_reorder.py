@@ -68,6 +68,21 @@ def test_owner_can_reorder_tasks_within_list_and_orders_are_compact() -> None:
     assert [task.order for task in ordered_tasks] == [0, 1, 2]
 
 
+def test_reorder_tasks_accepts_empty_list() -> None:
+    event, owner = _create_event_with_owner("owner@empty-tasks.com")
+    task_list = TaskList.objects.create(event=event, title="Main")
+
+    client = _auth_client(owner)
+    response = client.post(
+        f"/api/tasklists/{task_list.id}/tasks/reorder",
+        data={"ordered_ids": []},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "ok", "count": 0}
+
+
 def test_participant_cannot_reorder_returns_403() -> None:
     event, owner = _create_event_with_owner("owner@403.com")
     member = User.objects.create_user(email="member@403.com", password="Password123")
