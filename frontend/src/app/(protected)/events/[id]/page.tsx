@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import EventProgressBar from '@/components/EventProgressBar';
 import InviteDialog from '@/components/InviteDialog';
 import TaskBoard, { type TaskBoardHandle } from '@/components/TaskBoard';
 import { getEventById } from '@/lib/eventsApi';
@@ -153,6 +154,7 @@ const EventDetailsPage = () => {
             Организатор: <span className="font-medium">{event.owner.email}</span>
           </p>
         </header>
+        <EventProgressBar eventId={event.id} />
 
         <div className="flex flex-wrap items-center gap-3">
           {isOwner ? (

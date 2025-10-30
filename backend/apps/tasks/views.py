@@ -30,6 +30,8 @@ from apps.tasks.serializers import (
     TaskSerializer,
     TaskStatusSerializer,
 )
+from apps.tasks.services.order import normalize_task_orders_in_list, normalize_tasklist_orders_in_event
+from apps.tasks.services.progress import compute_event_progress, get_cached_progress, set_cached_progress
 
 
 def _parse_int(value: Any) -> int | None:
@@ -95,6 +97,11 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
     queryset = TaskList.objects.all()
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
+    def get_permissions(self):
+        if getattr(self, "action", None) == "destroy":
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
     def get_queryset(self) -> QuerySet[TaskList]:
         user = self.request.user
         queryset = (
@@ -128,6 +135,19 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
             max_order = -1
         serializer.save(order=max_order + 1)
 
+    @transaction.atomic
+    def destroy(self, request: Request, *args, **kwargs) -> Response:
+        task_list = self.get_object()
+        event = task_list.event
+        if event.owner_id != request.user.id:
+            # Проверяем, что удаление выполняет владелец события.
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        event_id = int(task_list.event_id)
+        response = super().destroy(request, *args, **kwargs)
+        if response.status_code == status.HTTP_204_NO_CONTENT:
+            normalize_tasklist_orders_in_event(event_id)
+        return response
+
 
 class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
     """CRUD для задач внутри списков выбранного события."""
@@ -140,7 +160,7 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
     ordering_fields = ("due_at", "created_at", "order")
 
     def get_permissions(self):
-        if getattr(self, "action", None) in {"take", "assign", "status"}:
+        if getattr(self, "action", None) in {"take", "assign", "status", "destroy"}:
             return [IsAuthenticated()]
         return super().get_permissions()
 
@@ -271,6 +291,19 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
             max_order = -1
         serializer.save(order=max_order + 1)
 
+    @transaction.atomic
+    def destroy(self, request: Request, *args, **kwargs) -> Response:
+        task = self.get_object()
+        event_owner_id = task.list.event.owner_id
+        if event_owner_id != request.user.id:
+            # Предотвращаем удаление задач участниками без прав владельца.
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        list_id = int(task.list_id)
+        response = super().destroy(request, *args, **kwargs)
+        if response.status_code == status.HTTP_204_NO_CONTENT:
+            normalize_task_orders_in_list(list_id)
+        return response
+
 
 class ReorderTaskListsView(APIView):
     permission_classes = [IsAuthenticated, IsEventOwnerWrite]
@@ -393,3 +426,31 @@ class BoardView(EventScopedPermissionMixin, APIView):
             context={"request": request},
         )
         return Response(serializer.data)
+
+
+class EventProgressView(APIView):
+    """Возвращает агрегированные метрики выполнения задач события."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_event_id(self, request: Request) -> int | None:
+        if hasattr(self, "_cached_event_id"):
+            return self._cached_event_id
+        event_id = _parse_int(self.kwargs.get("event_id"))
+        self._cached_event_id = event_id
+        return event_id
+
+    def get(self, request: Request, event_id: int) -> Response:
+        event = get_object_or_404(Event.objects.only("id", "owner_id"), id=event_id)
+        if event.owner_id != request.user.id:
+            is_participant = Participant.objects.filter(event=event, user=request.user).exists()
+            if not is_participant:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+        cached_payload = get_cached_progress(event_id)
+        if cached_payload is not None:
+            return Response(cached_payload)
+
+        payload = compute_event_progress(event_id)
+        set_cached_progress(event_id, payload)
+        return Response(payload)

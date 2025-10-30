@@ -1,14 +1,19 @@
-'use client';
+﻿'use client';
 
 import {
   type DragEvent,
   type JSX,
   type KeyboardEvent,
+  type MouseEvent,
+  useEffect,
   useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import type { BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
 
+import ConfirmDialog from './ConfirmDialog';
 import TaskCard from './TaskCard';
 
 type DragMode = 'mouse' | 'keyboard';
@@ -39,14 +44,17 @@ type TaskListColumnProps = {
   onTaskDragEnd: () => void;
   onTaskKeyboardMove: (listId: number, taskId: number, direction: 'up' | 'down' | 'left' | 'right') => void;
   onCancelDrag: () => void;
+  onDeleteTask: (listId: number, taskId: number) => Promise<boolean>;
+  onDeleteTaskList: (listId: number) => Promise<boolean>;
   participants: Map<number, BoardParticipant>;
   taskPermissions: Map<number, { canTake: boolean; canChangeStatus: boolean }>;
   showMyTasksOnly: boolean;
   myParticipantId: number | null;
   isTaskPending: (taskId: number) => boolean;
-  onTakeTask: (taskId: number) => void;
-  onUpdateTaskStatus: (taskId: number, status: TaskStatus) => void;
+  onTakeTask: (taskId: number) => Promise<boolean>;
+  onUpdateTaskStatus: (taskId: number, status: TaskStatus) => Promise<boolean>;
   onStatusChangeDenied: () => void;
+  onTaskChanged?: () => void;
 };
 
 const DRAG_TYPE_LIST = 'application/x-event-taskboard-list';
@@ -71,6 +79,8 @@ const TaskListColumn = ({
   onTaskDragEnd,
   onTaskKeyboardMove,
   onCancelDrag,
+  onDeleteTask,
+  onDeleteTaskList,
   participants,
   taskPermissions,
   showMyTasksOnly,
@@ -79,6 +89,7 @@ const TaskListColumn = ({
   onTakeTask,
   onUpdateTaskStatus,
   onStatusChangeDenied,
+  onTaskChanged,
 }: TaskListColumnProps): JSX.Element => {
   const tasks = useMemo(() => list.tasks, [list.tasks]);
   const filteredTasks = useMemo(
@@ -98,8 +109,80 @@ const TaskListColumn = ({
   const isListDropTarget = dragContext?.type === 'list' && dropListId === list.id && dragContext.id !== list.id;
   const dropIndex = dropTaskIndicator.listId === list.id ? dropTaskIndicator.index : null;
 
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeletingList, setDeletingList] = useState(false);
+  const [isContextMenuOpen, setContextMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const columnRef = useRef<HTMLElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isContextMenuOpen) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const menuNode = menuRef.current;
+      if (menuNode && menuNode.contains(event.target as Node)) {
+        return;
+      }
+      const columnNode = columnRef.current;
+      if (columnNode && columnNode.contains(event.target as Node)) {
+        setContextMenuOpen(false);
+        return;
+      }
+      setContextMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, true);
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown, true);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isContextMenuOpen]);
+
+  const closeContextMenu = () => {
+    setContextMenuOpen(false);
+  };
+
+  const handleContextMenu = (event: MouseEvent<HTMLElement>) => {
+    if (!isOwner) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (isSyncing || isDeletingList) {
+      return;
+    }
+    const columnNode = columnRef.current;
+    if (!columnNode) {
+      return;
+    }
+    const rect = columnNode.getBoundingClientRect();
+    setMenuPosition({
+      top: event.clientY - rect.top,
+      left: event.clientX - rect.left,
+    });
+    setContextMenuOpen(true);
+  };
+
+  const handleDeleteListFromMenu = () => {
+    closeContextMenu();
+    if (!isOwner || isSyncing || isDeletingList) {
+      return;
+    }
+    setDeleteDialogOpen(true);
+  };
+
   const sectionClasses = [
-    'flex w-full min-w-[260px] max-w-xs flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm transition dark:border-neutral-700 dark:bg-neutral-900',
+    'relative flex w-full min-w-[260px] max-w-xs flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm transition dark:border-neutral-700 dark:bg-neutral-900',
   ];
   if (isListDragging) {
     sectionClasses.push('opacity-60', 'dragging');
@@ -107,6 +190,28 @@ const TaskListColumn = ({
   if (isListDropTarget) {
     sectionClasses.push('ring-2', 'ring-blue-400');
   }
+
+  const handleDeleteListCancel = () => {
+    if (isDeletingList) {
+      return;
+    }
+    closeContextMenu();
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteListConfirm = async () => {
+    if (isDeletingList) {
+      return;
+    }
+    closeContextMenu();
+    setDeletingList(true);
+    const succeeded = await onDeleteTaskList(list.id).catch(() => false);
+    setDeletingList(false);
+    if (succeeded) {
+      setDeleteDialogOpen(false);
+      onTaskChanged?.();
+    }
+  };
 
   const handleHeaderDragStart = (event: DragEvent<HTMLDivElement>) => {
     if (!isOwner || isSyncing) {
@@ -289,12 +394,15 @@ const TaskListColumn = ({
   };
 
   return (
-    <section
-      className={sectionClasses.join(' ')}
-      onDragOver={handleSectionDragOver}
-      onDrop={handleSectionDrop}
-      aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
-    >
+    <>
+      <section
+        ref={columnRef}
+        className={sectionClasses.join(' ')}
+        onContextMenu={handleContextMenu}
+        onDragOver={handleSectionDragOver}
+        onDrop={handleSectionDrop}
+        aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
+      >
       <header className="flex items-center justify-between gap-3 rounded-t-2xl bg-neutral-50 px-4 py-3 dark:bg-neutral-800">
         <div
           className="flex flex-1 cursor-grab select-none flex-col gap-1 focus:outline-none"
@@ -311,17 +419,36 @@ const TaskListColumn = ({
           <span className="text-xs text-neutral-500 dark:text-neutral-400">{taskCountLabel}</span>
         </div>
         {isOwner ? (
-          <button
-            type="button"
-            onClick={() => onAddTask(list)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60"
-            aria-label={`Добавить задачу в колонку ${list.title}`}
-            disabled={isSyncing}
-          >
-            +
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onAddTask(list)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={`Добавить задачу в колонку ${list.title}`}
+              disabled={isSyncing || isDeletingList}
+            >
+              +
+            </button>
+          </div>
         ) : null}
       </header>
+      {isContextMenuOpen && isOwner ? (
+        <div
+          ref={menuRef}
+          className="absolute z-30 min-w-[180px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+          style={{ top: menuPosition.top, left: menuPosition.left }}
+          role="menu"
+        >
+          <button
+            type="button"
+            onClick={handleDeleteListFromMenu}
+            className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+            role="menuitem"
+          >
+            Удалить категорию
+          </button>
+        </div>
+      ) : null}
 
       <div
         className="flex flex-1 flex-col gap-3 p-4"
@@ -379,10 +506,13 @@ const TaskListColumn = ({
                     assignee={assigneeParticipant}
                     canTake={permission.canTake}
                     canChangeStatus={permission.canChangeStatus}
+                    canDelete={isOwner}
                     isBusy={isTaskPending(task.id)}
                     onTake={() => onTakeTask(task.id)}
+                    onDelete={() => onDeleteTask(list.id, task.id)}
                     onStatusChange={(status) => onUpdateTaskStatus(task.id, status)}
                     onStatusChangeDenied={onStatusChangeDenied}
+                    onTaskChanged={onTaskChanged}
                   />
                 </article>
               </div>
@@ -392,6 +522,17 @@ const TaskListColumn = ({
         {dropIndex !== null && dropIndex >= tasks.length && !dropIndicatorRendered ? dropIndicator : null}
       </div>
     </section>
+    <ConfirmDialog
+      open={isDeleteDialogOpen}
+      title={`Удалить категорию "${list.title}"?`}
+      message="Будут также удалены все задачи этой категории. Действие необратимо."
+      confirmLabel="Удалить"
+      cancelLabel="Отмена"
+      onConfirm={handleDeleteListConfirm}
+      onCancel={handleDeleteListCancel}
+      isProcessing={isDeletingList}
+    />
+  </>
   );
 };
 

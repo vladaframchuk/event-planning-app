@@ -2,6 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
+import os
 import environ
 from django.core.exceptions import ImproperlyConfigured
 
@@ -183,3 +184,10 @@ CELERY_BROKER_URL = env(
 )
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 REDIS_URL: str = env("REDIS_URL", default=CELERY_BROKER_URL)
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0"),
+    }
+}

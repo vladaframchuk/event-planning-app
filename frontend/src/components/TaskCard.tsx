@@ -1,7 +1,8 @@
 import Image from 'next/image';
-import { useMemo, type ChangeEvent, type JSX } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX, type MouseEvent } from 'react';
 
 import type { BoardParticipant, Task, TaskStatus } from '@/types/task';
+import ConfirmDialog from './ConfirmDialog';
 
 type TaskCardProps = {
   task: Task;
@@ -9,15 +10,27 @@ type TaskCardProps = {
   canTake: boolean;
   canChangeStatus: boolean;
   isBusy: boolean;
-  onTake: () => void;
-  onStatusChange: (status: TaskStatus) => void;
+  onTake: () => Promise<boolean>;
+  onStatusChange: (status: TaskStatus) => Promise<boolean>;
   onStatusChangeDenied: () => void;
+  canDelete: boolean;
+  onDelete?: () => Promise<boolean>;
+  onTaskChanged?: () => void;
 };
 
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  todo: 'Нужно сделать',
+  todo: 'В очереди',
   doing: 'В работе',
   done: 'Готово',
+};
+
+const TASK_STATUS_BADGE_CLASSES: Record<TaskStatus, string> = {
+  todo:
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
+  doing:
+    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
+  done:
+    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
 };
 
 const TASK_STATUS_OPTIONS: TaskStatus[] = ['todo', 'doing', 'done'];
@@ -60,9 +73,18 @@ const TaskCard = ({
   onTake,
   onStatusChange,
   onStatusChangeDenied,
+  canDelete,
+  onDelete,
+  onTaskChanged,
 }: TaskCardProps): JSX.Element => {
   const startDate = formatDate(task.startAt);
   const dueDate = formatDate(task.dueAt);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setDeleting] = useState(false);
+  const [isContextMenuOpen, setContextMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const assigneeDisplay = useMemo(() => {
     if (!assignee) {
@@ -74,43 +96,146 @@ const TaskCard = ({
     return { displayName, initials, avatarUrl: user.avatarUrl };
   }, [assignee]);
 
-  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextStatus = event.target.value as TaskStatus;
+  const handleStatusChange = async (event: ChangeEvent<HTMLSelectElement>) => {
+    const selectElement = event.currentTarget;
+    const nextStatus = selectElement.value as TaskStatus;
     if (isBusy) {
       event.preventDefault();
-      event.target.value = task.status;
+      selectElement.value = task.status;
       return;
     }
     if (!canChangeStatus) {
       event.preventDefault();
-      event.target.value = task.status;
+      selectElement.value = task.status;
       onStatusChangeDenied();
       return;
     }
-    if (nextStatus !== task.status) {
-      onStatusChange(nextStatus);
+    if (nextStatus === task.status) {
+      return;
     }
+    const succeeded = await onStatusChange(nextStatus).catch(() => false);
+    if (!succeeded) {
+      selectElement.value = task.status;
+      return;
+    }
+    onTaskChanged?.();
   };
 
-  const handleTakeClick = () => {
+  const handleTakeClick = async () => {
     if (!canTake || isBusy) {
       return;
     }
-    onTake();
+    const succeeded = await onTake().catch(() => false);
+    if (succeeded) {
+      onTaskChanged?.();
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    if (isDeleting) {
+      return;
+    }
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) {
+      return;
+    }
+    setDeleting(true);
+    const succeeded = await onDelete().catch(() => false);
+    setDeleting(false);
+    if (succeeded) {
+      setDeleteDialogOpen(false);
+      onTaskChanged?.();
+    }
+  };
+
+  const closeContextMenu = () => {
+    setContextMenuOpen(false);
+  };
+
+  const handleContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+    if (!canDelete) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (isBusy) {
+      return;
+    }
+    const card = cardRef.current;
+    if (!card) {
+      return;
+    }
+    const rect = card.getBoundingClientRect();
+    setMenuPosition({
+      top: event.clientY - rect.top,
+      left: event.clientX - rect.left,
+    });
+    setContextMenuOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isContextMenuOpen) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const menuNode = menuRef.current;
+      if (menuNode && menuNode.contains(event.target as Node)) {
+        return;
+      }
+      const cardNode = cardRef.current;
+      if (cardNode && cardNode.contains(event.target as Node)) {
+        // Клик по карточке за пределами меню — просто закрываем меню.
+        setContextMenuOpen(false);
+        return;
+      }
+      setContextMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, true);
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown, true);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isContextMenuOpen]);
+
+  const handleDeleteFromMenu = () => {
+    closeContextMenu();
+    if (!canDelete || isBusy || isDeleting) {
+      return;
+    }
+    setDeleteDialogOpen(true);
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{task.title}</h3>
-        <span className="inline-flex min-w-[88px] justify-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-          {TASK_STATUS_LABELS[task.status]}
-        </span>
-      </div>
+    <>
+      <div
+        ref={cardRef}
+        className="relative flex flex-col gap-3"
+        onContextMenu={handleContextMenu}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{task.title}</h3>
+          <span
+            className={`inline-flex min-w-[88px] justify-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${TASK_STATUS_BADGE_CLASSES[task.status]}`}
+          >
+            {TASK_STATUS_LABELS[task.status]}
+          </span>
+        </div>
 
-      {task.description ? (
-        <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">{task.description}</p>
-      ) : null}
+        {task.description ? (
+          <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">{task.description}</p>
+        ) : null}
 
       <div className="flex flex-wrap gap-3 text-xs text-neutral-500 dark:text-neutral-400">
         {startDate ? (
@@ -182,7 +307,35 @@ const TaskCard = ({
           </select>
         </label>
       </div>
-    </div>
+      {isContextMenuOpen && canDelete ? (
+        <div
+          ref={menuRef}
+          className="absolute z-20 min-w-[160px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none dark:border-neutral-700 dark:bg-neutral-900"
+          style={{ top: menuPosition.top, left: menuPosition.left }}
+          role="menu"
+        >
+          <button
+            type="button"
+            onClick={handleDeleteFromMenu}
+            className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+            role="menuitem"
+          >
+            Удалить задачу
+          </button>
+        </div>
+      ) : null}
+      </div>
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        title={`Удалить задачу "${task.title}"?`}
+        message="Действие необратимо."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        isProcessing={isDeleting}
+      />
+    </>
   );
 };
 

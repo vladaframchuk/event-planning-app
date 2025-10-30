@@ -194,8 +194,12 @@ export async function updateTask(id: number, payload: UpdateTaskPayload): Promis
   return mapTask(response);
 }
 
-export async function deleteTask(id: number): Promise<void> {
-  await apiFetch<null>(`${TASK_PATH}${id}/`, { method: 'DELETE' });
+export async function deleteTask(taskId: number): Promise<void> {
+  await apiFetch(`${TASK_PATH}${taskId}/`, { method: 'DELETE' });
+}
+
+export async function deleteTaskList(listId: number): Promise<void> {
+  await apiFetch(`${TASKLIST_PATH}${listId}/`, { method: 'DELETE' });
 }
 
 export async function reorderTaskLists(eventId: number, orderedIds: number[]): Promise<void> {

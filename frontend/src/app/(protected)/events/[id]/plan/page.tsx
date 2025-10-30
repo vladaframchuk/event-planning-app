@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { type JSX, useMemo } from 'react';
 
+import EventProgressBar from '@/components/EventProgressBar';
 import TaskBoard from '@/components/TaskBoard';
 
 const EventPlanPage = (): JSX.Element => {
@@ -31,6 +32,7 @@ const EventPlanPage = (): JSX.Element => {
           Здесь отображаются колонки и задачи выбранного события.
         </p>
       </header>
+      <EventProgressBar eventId={eventId} />
       <TaskBoard eventId={eventId} />
     </section>
   );

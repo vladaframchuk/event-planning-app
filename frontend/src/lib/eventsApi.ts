@@ -36,6 +36,23 @@ type ApiEventListResponse = {
   results: ApiEvent[];
 };
 
+export type EventProgress = {
+  event_id: number;
+  total_tasks: number;
+  counts: { todo: number; doing: number; done: number };
+  percent_done: number;
+  by_list: {
+    list_id: number;
+    title: string;
+    total: number;
+    todo: number;
+    doing: number;
+    done: number;
+  }[];
+  generated_at: string;
+  ttl_seconds: number;
+};
+
 const EVENT_LIST_PATH = '/api/events/';
 
 const mapEvent = (payload: ApiEvent): Event => ({
@@ -142,4 +159,8 @@ export async function deleteEvent(id: number): Promise<void> {
   await apiFetch<null>(`${EVENT_LIST_PATH}${id}/`, {
     method: 'DELETE',
   });
+}
+
+export async function getEventProgress(eventId: number): Promise<EventProgress> {
+  return apiFetch<EventProgress>(`${EVENT_LIST_PATH}${eventId}/progress`, { method: 'GET' });
 }

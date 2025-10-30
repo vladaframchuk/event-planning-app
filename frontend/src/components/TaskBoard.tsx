@@ -10,14 +10,19 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
+import { useInvalidateEventProgress } from '@/hooks/useInvalidateEventProgress';
+import type { EventProgress } from '@/lib/eventsApi';
 import { getMe, type Profile } from '@/lib/profileApi';
 import {
   createList,
   createTask,
   getBoard,
+  deleteTask,
+  deleteTaskList,
   reorderTaskLists,
   reorderTasksInList,
   takeTask,
@@ -89,6 +94,12 @@ export const withoutIndex = <T,>(items: T[], index: number): T[] =>
 
 const reindexTasks = (tasks: Task[]): Task[] => tasks.map((task, index) => ({ ...task, order: index }));
 
+const reindexTaskLists = (lists: Array<TaskList & { tasks: Task[] }>): Array<TaskList & { tasks: Task[] }> =>
+  lists.map((taskList, index) => ({
+    ...taskList,
+    order: index,
+  }));
+
 const cloneBoard = (board: Board): Board => ({
   event: board.event,
   isOwner: board.isOwner,
@@ -101,6 +112,40 @@ const cloneBoard = (board: Board): Board => ({
     tasks: list.tasks.map((task) => ({ ...task })),
   })),
 });
+
+const clampProgressPercentage = (done: number, total: number): number =>
+  total <= 0 ? 0 : (done / total) * 100;
+
+const applyStatusTransitionToProgress = (
+  progress: EventProgress,
+  listId: number,
+  from: TaskStatus,
+  to: TaskStatus,
+): EventProgress => {
+  if (from === to) {
+    return progress;
+  }
+  const nextCounts: EventProgress['counts'] = { ...progress.counts };
+  nextCounts[from] = Math.max(0, nextCounts[from] - 1);
+  nextCounts[to] = nextCounts[to] + 1;
+
+  const nextByList = progress.by_list.map((item) => {
+    if (item.list_id !== listId) {
+      return item;
+    }
+    const nextItem = { ...item };
+    nextItem[from] = Math.max(0, nextItem[from] - 1);
+    nextItem[to] = nextItem[to] + 1;
+    return nextItem;
+  });
+
+  return {
+    ...progress,
+    counts: nextCounts,
+    by_list: nextByList,
+    percent_done: clampProgressPercentage(nextCounts.done, progress.total_tasks),
+  };
+};
 
 const SkeletonColumn = (): JSX.Element => (
   <div className="flex w-full min-w-[260px] max-w-xs flex-col rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
@@ -131,6 +176,62 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
 
   const boardQueryKey = useMemo(() => ['events', eventId, 'board'], [eventId]);
+  const progressQueryKey = useMemo(() => ['event-progress', eventId] as const, [eventId]);
+  const invalidateProgress = useInvalidateEventProgress(eventId);
+  const progressInvalidateTimeoutRef = useRef<number | null>(null);
+
+  const invalidateBoard = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: boardQueryKey, exact: false }),
+    [queryClient, boardQueryKey],
+  );
+
+  const invalidateBoardAndProgress = useCallback(async () => {
+    await Promise.all([invalidateBoard(), invalidateProgress()]);
+  }, [invalidateBoard, invalidateProgress]);
+
+  const updateProgressCache = useCallback(
+    (updater: (current: EventProgress) => EventProgress) => {
+      const previous = queryClient.getQueryData<EventProgress>(progressQueryKey);
+      if (!previous) {
+        return undefined;
+      }
+      const next = updater(previous);
+      queryClient.setQueryData(progressQueryKey, next);
+      return previous;
+    },
+    [queryClient, progressQueryKey],
+  );
+
+  const restoreProgressCache = useCallback(
+    (snapshot?: EventProgress) => {
+      if (snapshot) {
+        queryClient.setQueryData(progressQueryKey, snapshot);
+      }
+    },
+    [queryClient, progressQueryKey],
+  );
+
+  const scheduleProgressInvalidate = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (progressInvalidateTimeoutRef.current !== null) {
+      window.clearTimeout(progressInvalidateTimeoutRef.current);
+    }
+    const progress = queryClient.getQueryData<EventProgress>(progressQueryKey);
+    const delay =
+      progress && Number.isFinite(progress.ttl_seconds)
+        ? Math.max(800, Math.min(progress.ttl_seconds * 1000, 10_000))
+        : 1200;
+    progressInvalidateTimeoutRef.current = window.setTimeout(() => {
+      progressInvalidateTimeoutRef.current = null;
+      void invalidateProgress();
+    }, delay);
+  }, [invalidateProgress, progressQueryKey, queryClient]);
+
+  const handleTaskChanged = useCallback(() => {
+    scheduleProgressInvalidate();
+  }, [scheduleProgressInvalidate]);
 
   const boardQuery = useQuery<Board, Error>({
     queryKey: boardQueryKey,
@@ -149,6 +250,18 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       setBoardState(cloneBoard(data));
     }
   }, [boardQuery.data]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    return () => {
+      if (progressInvalidateTimeoutRef.current !== null) {
+        window.clearTimeout(progressInvalidateTimeoutRef.current);
+        progressInvalidateTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const board = boardState ?? boardQuery.data ?? null;
   const me = profileQuery.data ?? null;
@@ -280,7 +393,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const createListMutation = useMutation({
     mutationFn: (title: string) => createList(eventId, { title }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+      await invalidateBoard();
       setToast({ id: Date.now(), message: 'Колонка создана.', type: 'success' });
       closeListForm();
     },
@@ -296,7 +409,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
         dueAt: payload.dueAt,
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+      await invalidateBoardAndProgress();
       setToast({ id: Date.now(), message: 'Задача создана.', type: 'success' });
       setTaskDialogOpen(false);
       setActiveListId(null);
@@ -343,14 +456,14 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   }, [showToast]);
 
   const handleTakeTask = useCallback(
-    async (taskId: number) => {
+    async (taskId: number): Promise<boolean> => {
       if (myParticipantId === null) {
         showToast('Недостаточно прав.', 'error');
-        return;
+        return false;
       }
       const source = boardState ?? board;
       if (!source) {
-        return;
+        return false;
       }
       const optimistic = cloneBoard(source);
       let updated = false;
@@ -363,14 +476,16 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
         }
       }
       if (!updated) {
-        return;
+        return false;
       }
       setBoardState(optimistic);
       updatePendingTask(taskId, true);
+      let succeeded = false;
       try {
         await takeTask(taskId);
         showToast('Задача назначена на вас.', 'success');
-        await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+        await invalidateBoard();
+        succeeded = true;
       } catch (error) {
         setBoardState(cloneBoard(source));
         const message = error instanceof Error ? error.message : 'Не удалось назначить задачу.';
@@ -382,44 +497,57 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       } finally {
         updatePendingTask(taskId, false);
       }
+      return succeeded;
     },
-    [board, boardState, myParticipantId, showToast, updatePendingTask, queryClient, boardQueryKey],
+    [board, boardState, myParticipantId, showToast, updatePendingTask, invalidateBoard],
   );
 
+
   const handleStatusChange = useCallback(
-    async (taskId: number, nextStatus: TaskStatus) => {
+    async (taskId: number, nextStatus: TaskStatus): Promise<boolean> => {
       const permission = taskPermissions.get(taskId);
       if (!permission || !permission.canChangeStatus) {
         showToast('Недостаточно прав.', 'error');
-        return;
+        return false;
       }
       const source = boardState ?? board;
       if (!source) {
-        return;
+        return false;
       }
       const optimistic = cloneBoard(source);
       let updated = false;
+      let previousStatus: TaskStatus | null = null;
+      let targetListId: number | null = null;
       for (const list of optimistic.lists) {
         const task = list.tasks.find((item) => item.id === taskId);
         if (task) {
-          if (task.status === nextStatus) {
-            return;
+          previousStatus = task.status;
+          if (previousStatus === nextStatus) {
+            return true;
           }
+          targetListId = list.id;
           task.status = nextStatus;
           updated = true;
           break;
         }
       }
-      if (!updated) {
-        return;
+      if (!updated || previousStatus === null || targetListId === null) {
+        return false;
       }
       setBoardState(optimistic);
       updatePendingTask(taskId, true);
+      const progressSnapshot = updateProgressCache((current) =>
+        applyStatusTransitionToProgress(current, targetListId, previousStatus as TaskStatus, nextStatus),
+      );
+      let succeeded = false;
       try {
         await updateTaskStatus(taskId, nextStatus);
-        await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+        await invalidateBoard();
+        scheduleProgressInvalidate();
+        succeeded = true;
       } catch (error) {
         setBoardState(cloneBoard(source));
+        restoreProgressCache(progressSnapshot);
         const message = error instanceof Error ? error.message : 'Не удалось обновить статус задачи.';
         if (message.toLowerCase().includes('depend')) {
           showToast('Сначала завершите зависимости.', 'error');
@@ -429,8 +557,91 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       } finally {
         updatePendingTask(taskId, false);
       }
+      return succeeded;
     },
-    [board, boardState, taskPermissions, showToast, updatePendingTask, queryClient, boardQueryKey],
+    [
+      board,
+      boardState,
+      taskPermissions,
+      showToast,
+      updatePendingTask,
+      updateProgressCache,
+      restoreProgressCache,
+      invalidateBoard,
+      scheduleProgressInvalidate,
+    ],
+  );
+
+  const handleDeleteTask = useCallback(
+    async (listId: number, taskId: number): Promise<boolean> => {
+      const source = boardState ?? board;
+      if (!source) {
+        return false;
+      }
+      const snapshot = cloneBoard(source);
+      const optimistic = cloneBoard(source);
+      const targetList = optimistic.lists.find((item) => item.id === listId);
+      if (!targetList) {
+        return false;
+      }
+      const taskIndex = targetList.tasks.findIndex((item) => item.id === taskId);
+      if (taskIndex === -1) {
+        return false;
+      }
+      targetList.tasks.splice(taskIndex, 1);
+      targetList.tasks = reindexTasks(targetList.tasks);
+      setBoardState(optimistic);
+      updatePendingTask(taskId, true);
+      try {
+        await deleteTask(taskId);
+        showToast('Задача удалена', 'success');
+        await invalidateBoard();
+        return true;
+      } catch (error) {
+        setBoardState(snapshot);
+        const message = error instanceof Error ? error.message : 'Не удалось удалить задачу.';
+        showToast(`Не удалось удалить задачу: ${message}`, 'error');
+        return false;
+      } finally {
+        updatePendingTask(taskId, false);
+      }
+    },
+    [board, boardState, updatePendingTask, showToast, invalidateBoard],
+  );
+
+  const handleDeleteTaskList = useCallback(
+    async (listId: number): Promise<boolean> => {
+      const source = boardState ?? board;
+      if (!source) {
+        return false;
+      }
+      const snapshot = cloneBoard(source);
+      const optimistic = cloneBoard(source);
+      const listIndex = optimistic.lists.findIndex((item) => item.id === listId);
+      if (listIndex === -1) {
+        return false;
+      }
+      optimistic.lists.splice(listIndex, 1);
+      optimistic.lists = reindexTaskLists(optimistic.lists);
+      setBoardState(optimistic);
+      try {
+        await deleteTaskList(listId);
+        showToast('Категория удалена', 'success');
+        if (activeListId === listId) {
+          setTaskDialogOpen(false);
+          setActiveListId(null);
+          setTaskDialogError(null);
+        }
+        await invalidateBoard();
+        return true;
+      } catch (error) {
+        setBoardState(snapshot);
+        const message = error instanceof Error ? error.message : 'Не удалось удалить категорию.';
+        showToast(`Не удалось удалить категорию: ${message}`, 'error');
+        return false;
+      }
+    },
+    [board, boardState, activeListId, showToast, invalidateBoard, setTaskDialogOpen, setActiveListId, setTaskDialogError],
   );
 
   const handleTaskDialogSubmit = useCallback(
@@ -521,7 +732,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 
       try {
         await reorderTaskLists(eventId, movedLists.map((list) => list.id));
-        await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+        await invalidateBoard();
         if (maintainContext) {
           setDragContext({ ...context });
         }
@@ -538,7 +749,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
         setSyncing(false);
       }
     },
-    [boardState, dragContext, isSyncing, clearDropIndicators, eventId, queryClient, boardQueryKey],
+    [boardState, dragContext, isSyncing, clearDropIndicators, eventId, invalidateBoard],
   );
 
   const commitTaskReorder = useCallback(
@@ -599,7 +810,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 
         try {
           await reorderTasksInList(sourceList.id, reorderedTasks.map((task) => task.id));
-          await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+          await invalidateBoard();
           if (maintainContext) {
             setDragContext({ ...context });
           }
@@ -661,7 +872,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
           await reorderTasksInList(targetList.id, insertedTaskIds);
           targetPersisted = true;
         }
-        await queryClient.invalidateQueries({ queryKey: boardQueryKey });
+        await invalidateBoard();
         if (maintainContext) {
           setDragContext({ ...context, listId: targetList.id });
         }
@@ -683,7 +894,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
         setSyncing(false);
       }
     },
-    [boardState, dragContext, isSyncing, clearDropIndicators, queryClient, boardQueryKey],
+    [boardState, dragContext, isSyncing, clearDropIndicators, invalidateBoard],
   );
 
   const handleBoardDragOver = useCallback(
@@ -842,7 +1053,16 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       {!isLoading && !error && boardData ? (
         <>
           {(isParticipant || canShowAddListButton) && (
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {canShowAddListButton ? (
+                <button
+                  type="button"
+                  onClick={openListForm}
+                  className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  Добавить колонку
+                </button>
+              ) : null}
               {isParticipant ? (
                 <button
                   type="button"
@@ -851,17 +1071,6 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                   aria-pressed={showMyTasksOnly}
                 >
                   Мои задачи
-                </button>
-              ) : (
-                <span />
-              )}
-              {canShowAddListButton ? (
-                <button
-                  type="button"
-                  onClick={openListForm}
-                  className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                >
-                  Добавить колонку
                 </button>
               ) : null}
             </div>
@@ -948,6 +1157,9 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                   onTakeTask={handleTakeTask}
                   onUpdateTaskStatus={handleStatusChange}
                   onStatusChangeDenied={handleStatusChangeDeniedMessage}
+                  onDeleteTask={handleDeleteTask}
+                  onDeleteTaskList={handleDeleteTaskList}
+                  onTaskChanged={handleTaskChanged}
                 />
               ))
             )}
@@ -970,3 +1182,11 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 TaskBoard.displayName = 'TaskBoard';
 
 export default TaskBoard;
+
+
+
+
+
+
+
+
