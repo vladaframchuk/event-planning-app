@@ -21,5 +21,5 @@ export type Poll = {
   totalVotes: number;
   myVotes: number[];
   leaderOptionIds: number[];
+  version: number;
 };
-

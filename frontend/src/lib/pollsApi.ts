@@ -22,6 +22,7 @@ type ApiPoll = {
   total_votes: number;
   my_votes: number[];
   leader_option_ids: number[];
+  version: number;
 };
 
 type ApiPollListResponse = {
@@ -57,6 +58,7 @@ const mapPoll = (payload: ApiPoll): Poll => ({
   totalVotes: payload.total_votes,
   myVotes: payload.my_votes,
   leaderOptionIds: payload.leader_option_ids,
+  version: payload.version,
 });
 
 export async function listPolls(

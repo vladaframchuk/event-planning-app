@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import EventNavigation from '@/components/EventNavigation';
 import PollCard from '@/components/PollCard';
 import PollCreateDialog from '@/components/PollCreateDialog';
+import { usePollsRealtime } from '@/hooks/usePollsRealtime';
 import { getEventById } from '@/lib/eventsApi';
 import { closePoll, deletePoll, listPolls, vote } from '@/lib/pollsApi';
 import { getMe, type Profile } from '@/lib/profileApi';
@@ -112,6 +113,8 @@ const PollsPage = () => {
       setToast({ id: Date.now(), message, type: 'error' });
     },
   });
+
+  usePollsRealtime({ eventId, pageSize: PAGE_SIZE });
 
   if (eventId === null) {
     return (

@@ -6,6 +6,8 @@ from typing import Any
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from apps.utils.ws import ensure_group_name_regex_allows_colon
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
@@ -38,8 +40,9 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             return
 
         self.event_id = event_id
-        self.group_name = f"event_{event_id}"
+        self.group_name = f"event:{event_id}"
 
+        ensure_group_name_regex_allows_colon(self.channel_layer)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         logger.info("EventConsumer: user %s connected to event %s", user.id, event_id)
         await self.accept()

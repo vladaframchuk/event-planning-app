@@ -35,6 +35,7 @@ class Poll(models.Model):
     is_closed = models.BooleanField(default=False)
     end_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    version = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -122,4 +123,3 @@ class Vote(models.Model):
 
     def __str__(self) -> str:
         return f"Vote<{self.id}>"
-

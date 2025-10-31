@@ -177,6 +177,30 @@ export function useEventChannel(eventId: number) {
 
   useEffect(() => {
     if (!isBrowser || !Number.isFinite(eventId) || eventId <= 0) {
+      shouldReconnectRef.current = false;
+      clearHeartbeat();
+      clearPendingFrame();
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      const socket = socketRef.current;
+      if (socket) {
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onerror = null;
+        socket.onclose = null;
+        try {
+          socket.close();
+        } catch (error) {
+          console.error('Failed to close realtime channel', error);
+        }
+      }
+      socketRef.current = null;
+      lastMessageRef.current = undefined;
+      setLastMessage(undefined);
+      pendingMessagesRef.current.length = 0;
+      setStatus('disconnected');
       return;
     }
 
