@@ -14,6 +14,8 @@ import {
   useState,
 } from 'react';
 
+import { useRealtimeStatusSetter } from '@/context/realtimeStatus';
+import { useEventChannel, type EventChannelMessage } from '@/hooks/useEventChannel';
 import { useInvalidateEventProgress } from '@/hooks/useInvalidateEventProgress';
 import type { EventProgress } from '@/lib/eventsApi';
 import { getMe, type Profile } from '@/lib/profileApi';
@@ -113,6 +115,308 @@ const cloneBoard = (board: Board): Board => ({
   })),
 });
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const toNumberArray = (value: unknown): number[] | null => {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const result: number[] = [];
+  for (const item of value) {
+    const parsed = toNumber(item);
+    if (parsed !== null) {
+      result.push(parsed);
+    }
+  }
+  return result;
+};
+
+const mapRealtimeTaskPayload = (payload: unknown): Task | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  const id = toNumber(payload.id);
+  const listId = toNumber(payload.list);
+  const title = typeof payload.title === 'string' ? payload.title : null;
+  const status = typeof payload.status === 'string' ? (payload.status as TaskStatus) : null;
+  const order = toNumber(payload.order);
+  const createdAt = typeof payload.created_at === 'string' ? payload.created_at : null;
+  const updatedAt = typeof payload.updated_at === 'string' ? payload.updated_at : null;
+  if (id === null || listId === null || !title || !status || order === null || !createdAt || !updatedAt) {
+    return null;
+  }
+  const description = typeof payload.description === 'string' ? payload.description : undefined;
+  const assigneeValue = payload.assignee;
+  const assignee =
+    assigneeValue === null || assigneeValue === undefined ? null : toNumber(assigneeValue);
+  const startAt =
+    typeof payload.start_at === 'string' || payload.start_at === null ? (payload.start_at as string | null) : null;
+  const dueAt =
+    typeof payload.due_at === 'string' || payload.due_at === null ? (payload.due_at as string | null) : null;
+  const dependsOn = toNumberArray(payload.depends_on) ?? [];
+
+  return {
+    id,
+    list: listId,
+    title,
+    description,
+    status,
+    assignee: assignee ?? null,
+    startAt: startAt ?? null,
+    dueAt: dueAt ?? null,
+    order,
+    dependsOn,
+    createdAt,
+    updatedAt,
+  };
+};
+
+const mapRealtimeTaskListPayload = (payload: unknown): TaskList | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  const id = toNumber(payload.id);
+  const eventId = toNumber(payload.event);
+  const title = typeof payload.title === 'string' ? payload.title : null;
+  const order = toNumber(payload.order);
+  const createdAt = typeof payload.created_at === 'string' ? payload.created_at : null;
+  const updatedAt = typeof payload.updated_at === 'string' ? payload.updated_at : null;
+  if (id === null || eventId === null || !title || order === null || !createdAt || !updatedAt) {
+    return null;
+  }
+  return {
+    id,
+    event: eventId,
+    title,
+    order,
+    createdAt,
+    updatedAt,
+  };
+};
+
+const mapTaskDeletePayload = (payload: unknown): number | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  return toNumber(payload.id);
+};
+
+const mapTaskReorderPayload = (
+  payload: unknown,
+): { listId: number; orderedIds: number[] } | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  const listId = toNumber(payload.list);
+  if (listId === null) {
+    return null;
+  }
+  const orderedIds = toNumberArray(payload.ordered_ids);
+  return { listId, orderedIds: orderedIds ?? [] };
+};
+
+const mapTaskListReorderPayload = (payload: unknown): number[] | null => {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  return toNumberArray(payload.ordered_ids) ?? [];
+};
+
+const upsertTaskInBoard = (board: Board, task: Task): boolean | null => {
+  let targetList: (TaskList & { tasks: Task[] }) | undefined;
+  for (const list of board.lists) {
+    if (list.id === task.list) {
+      targetList = list;
+    } else {
+      const filtered = list.tasks.filter((item) => item.id !== task.id);
+      if (filtered.length !== list.tasks.length) {
+        list.tasks = reindexTasks(filtered);
+      }
+    }
+  }
+  if (!targetList) {
+    return null;
+  }
+  const tasksWithoutCurrent = targetList.tasks.filter((item) => item.id !== task.id);
+  const insertIndex = Math.max(0, Math.min(task.order, tasksWithoutCurrent.length));
+  tasksWithoutCurrent.splice(insertIndex, 0, task);
+  targetList.tasks = reindexTasks(tasksWithoutCurrent);
+  return true;
+};
+
+const removeTaskFromBoard = (board: Board, taskId: number): boolean => {
+  let changed = false;
+  for (const list of board.lists) {
+    const filtered = list.tasks.filter((task) => task.id !== taskId);
+    if (filtered.length !== list.tasks.length) {
+      list.tasks = reindexTasks(filtered);
+      changed = true;
+    }
+  }
+  return changed;
+};
+
+const reorderTasksInBoard = (
+  board: Board,
+  listId: number,
+  orderedIds: number[],
+): boolean | null => {
+  const list = board.lists.find((item) => item.id === listId);
+  if (!list) {
+    return null;
+  }
+  if (orderedIds.length === 0) {
+    list.tasks = reindexTasks(list.tasks);
+    return true;
+  }
+  const byId = new Map(list.tasks.map((task) => [task.id, task]));
+  const ordered: Task[] = [];
+  for (const id of orderedIds) {
+    const task = byId.get(id);
+    if (task) {
+      ordered.push(task);
+      byId.delete(id);
+    }
+  }
+  if (ordered.length === 0 && orderedIds.length > 0) {
+    return null;
+  }
+  for (const task of list.tasks) {
+    if (byId.has(task.id)) {
+      ordered.push(task);
+    }
+  }
+  list.tasks = reindexTasks(ordered);
+  return true;
+};
+
+const upsertTaskListInBoard = (board: Board, list: TaskList): boolean => {
+  const lists = board.lists.slice();
+  const existingIndex = lists.findIndex((item) => item.id === list.id);
+  const preservedTasks = existingIndex !== -1 ? lists[existingIndex].tasks : [];
+  if (existingIndex !== -1) {
+    lists.splice(existingIndex, 1);
+  }
+  const insertIndex = Math.max(0, Math.min(list.order, lists.length));
+  lists.splice(insertIndex, 0, { ...list, tasks: preservedTasks });
+  board.lists = reindexTaskLists(lists);
+  return true;
+};
+
+const removeTaskListFromBoard = (board: Board, listId: number): boolean => {
+  const lists = board.lists.filter((item) => item.id !== listId);
+  if (lists.length === board.lists.length) {
+    return false;
+  }
+  board.lists = reindexTaskLists(lists);
+  return true;
+};
+
+const reorderTaskListsInBoard = (board: Board, orderedIds: number[]): boolean | null => {
+  if (orderedIds.length === 0) {
+    board.lists = reindexTaskLists(board.lists);
+    return true;
+  }
+  const byId = new Map(board.lists.map((list) => [list.id, list]));
+  const ordered: Array<TaskList & { tasks: Task[] }> = [];
+  for (const id of orderedIds) {
+    const list = byId.get(id);
+    if (list) {
+      ordered.push(list);
+      byId.delete(id);
+    }
+  }
+  if (ordered.length === 0 && orderedIds.length > 0) {
+    return null;
+  }
+  for (const list of board.lists) {
+    if (byId.has(list.id)) {
+      ordered.push(list);
+    }
+  }
+  board.lists = reindexTaskLists(ordered);
+  return true;
+};
+
+const applyRealtimeBoardUpdate = (board: Board, message: EventChannelMessage): Board | null => {
+  const working = cloneBoard(board);
+  switch (message.type) {
+    case 'task.created':
+    case 'task.updated': {
+      const task = mapRealtimeTaskPayload(message.payload);
+      if (!task) {
+        return null;
+      }
+      const result = upsertTaskInBoard(working, task);
+      if (result === null) {
+        return null;
+      }
+      return working;
+    }
+    case 'task.deleted': {
+      const taskId = mapTaskDeletePayload(message.payload);
+      if (taskId === null) {
+        return null;
+      }
+      const changed = removeTaskFromBoard(working, taskId);
+      return changed ? working : board;
+    }
+    case 'task.reordered': {
+      const payload = mapTaskReorderPayload(message.payload);
+      if (!payload) {
+        return null;
+      }
+      const changed = reorderTasksInBoard(working, payload.listId, payload.orderedIds);
+      if (changed === null) {
+        return null;
+      }
+      return changed ? working : board;
+    }
+    case 'tasklist.created':
+    case 'tasklist.updated': {
+      const list = mapRealtimeTaskListPayload(message.payload);
+      if (!list) {
+        return null;
+      }
+      upsertTaskListInBoard(working, list);
+      return working;
+    }
+    case 'tasklist.deleted': {
+      const listId = mapTaskDeletePayload(message.payload);
+      if (listId === null) {
+        return null;
+      }
+      const changed = removeTaskListFromBoard(working, listId);
+      return changed ? working : board;
+    }
+    case 'tasklist.reordered': {
+      const orderedIds = mapTaskListReorderPayload(message.payload);
+      if (!orderedIds) {
+        return null;
+      }
+      const changed = reorderTaskListsInBoard(working, orderedIds);
+      if (changed === null) {
+        return null;
+      }
+      return changed ? working : board;
+    }
+    default:
+      return board;
+  }
+};
+
 const clampProgressPercentage = (done: number, total: number): number =>
   total <= 0 ? 0 : (done / total) * 100;
 
@@ -178,7 +482,10 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const boardQueryKey = useMemo(() => ['events', eventId, 'board'], [eventId]);
   const progressQueryKey = useMemo(() => ['event-progress', eventId] as const, [eventId]);
   const invalidateProgress = useInvalidateEventProgress(eventId);
+  const { status: realtimeStatus, subscribe: subscribeToEventChannel } = useEventChannel(eventId);
+  const setRealtimeStatus = useRealtimeStatusSetter();
   const progressInvalidateTimeoutRef = useRef<number | null>(null);
+  const boardSnapshotRef = useRef<Board | null>(null);
 
   const invalidateBoard = useCallback(
     () => queryClient.invalidateQueries({ queryKey: boardQueryKey, exact: false }),
@@ -212,6 +519,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   );
 
   const scheduleProgressInvalidate = useCallback(() => {
+    void invalidateProgress();
     if (typeof window === 'undefined') {
       return;
     }
@@ -233,6 +541,37 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     scheduleProgressInvalidate();
   }, [scheduleProgressInvalidate]);
 
+  const handleRealtimeMessage = useCallback(
+    (message: EventChannelMessage) => {
+      if (!message?.type) {
+        return;
+      }
+      if (message.type === 'progress.invalidate') {
+        void invalidateProgress();
+        return;
+      }
+      let shouldRefetch = false;
+      setBoardState((current) => {
+        const base = current ?? boardSnapshotRef.current;
+        if (!base) {
+          shouldRefetch = true;
+          return current;
+        }
+        const next = applyRealtimeBoardUpdate(base, message);
+        if (next === null) {
+          shouldRefetch = true;
+          return current;
+        }
+        boardSnapshotRef.current = next;
+        return next;
+      });
+      if (shouldRefetch) {
+        void invalidateBoard();
+      }
+    },
+    [invalidateBoard, invalidateProgress],
+  );
+
   const boardQuery = useQuery<Board, Error>({
     queryKey: boardQueryKey,
     queryFn: () => getBoard(eventId),
@@ -250,6 +589,12 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       setBoardState(cloneBoard(data));
     }
   }, [boardQuery.data]);
+
+  useEffect(() => {
+    boardSnapshotRef.current = boardState ?? boardQuery.data ?? null;
+  }, [boardState, boardQuery.data]);
+
+  useEffect(() => subscribeToEventChannel(handleRealtimeMessage), [subscribeToEventChannel, handleRealtimeMessage]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1005,6 +1350,14 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800',
   ].join(' ');
 
+  useEffect(() => {
+    setRealtimeStatus(realtimeStatus);
+  }, [realtimeStatus, setRealtimeStatus]);
+
+  useEffect(() => () => {
+    setRealtimeStatus('disconnected');
+  }, [setRealtimeStatus]);
+
   return (
     <section className="flex flex-col gap-6">
       {toast ? (
@@ -1021,9 +1374,9 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
             className="ml-4 text-xs font-semibold uppercase tracking-wide text-white/80 hover:text-white"
           >
             Закрыть
-          </button>
-        </div>
-      ) : null}
+      </button>
+    </div>
+  ) : null}
 
       {isLoading ? (
         <div className="flex gap-4 overflow-x-auto pb-2">

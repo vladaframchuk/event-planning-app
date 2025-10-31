@@ -7,7 +7,7 @@ from django.db.models import Count, QuerySet
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.tasks.cache_utils import cache_safe_get, cache_safe_set
+from apps.tasks.cache_utils import cache_safe_delete, cache_safe_get, cache_safe_set
 from apps.tasks.models import Task, TaskList
 
 # Настройки кеша прогресса.
@@ -80,9 +80,14 @@ def get_cached_progress(event_id: int) -> dict[str, Any] | None:
 
 
 def set_cached_progress(event_id: int, payload: dict[str, Any]) -> None:
-    """Сохраняет прогресс в кеш, игнорируя проблемы подключения."""
+    """Сохраняет рассчитанный прогресс в кеш, чтобы не пересчитывать повторно."""
     cache_safe_set(
         build_event_progress_cache_key(event_id),
         payload,
         timeout=CACHE_TTL_SECONDS,
     )
+
+
+def invalidate_cached_progress(event_id: int) -> None:
+    """Удаляет кэш метрик прогресса для события."""
+    cache_safe_delete(build_event_progress_cache_key(event_id))

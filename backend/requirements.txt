@@ -14,6 +14,9 @@ django-environ==0.12.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 django-filter==24.2
+channels==4.1.0
+channels-redis==4.2.0
+daphne==4.1.0
 kombu==5.5.4
 packaging==25.0
 prompt_toolkit==3.0.51

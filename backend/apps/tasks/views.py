@@ -30,8 +30,24 @@ from apps.tasks.serializers import (
     TaskSerializer,
     TaskStatusSerializer,
 )
+from apps.tasks.realtime import (
+    fetch_ordered_task_ids,
+    fetch_ordered_tasklist_ids,
+    task_deleted_payload,
+    task_list_deleted_payload,
+    task_list_order_payload,
+    task_list_to_payload,
+    task_order_payload,
+    task_to_payload,
+)
 from apps.tasks.services.order import normalize_task_orders_in_list, normalize_tasklist_orders_in_event
-from apps.tasks.services.progress import compute_event_progress, get_cached_progress, set_cached_progress
+from apps.tasks.services.progress import (
+    compute_event_progress,
+    get_cached_progress,
+    invalidate_cached_progress,
+    set_cached_progress,
+)
+from apps.tasks.ws_notify import notify_event_group_sync, notify_progress_invalidation
 
 
 def _parse_int(value: Any) -> int | None:
@@ -133,7 +149,15 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
         max_order = TaskList.objects.filter(event=event).aggregate(max_value=Max("order")).get("max_value")
         if max_order is None:
             max_order = -1
-        serializer.save(order=max_order + 1)
+        task_list_instance = serializer.save(order=max_order + 1)
+        event_id = int(task_list_instance.event_id)
+        notify_event_group_sync(
+            event_id,
+            "tasklist.created",
+            task_list_to_payload(task_list_instance),
+        )
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
 
     @transaction.atomic
     def destroy(self, request: Request, *args, **kwargs) -> Response:
@@ -146,6 +170,19 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
         response = super().destroy(request, *args, **kwargs)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             normalize_tasklist_orders_in_event(event_id)
+            notify_event_group_sync(
+                event_id,
+                "tasklist.deleted",
+                task_list_deleted_payload(task_list.id, event_id),
+            )
+            ordered_ids = fetch_ordered_tasklist_ids(event_id)
+            notify_event_group_sync(
+                event_id,
+                "tasklist.reordered",
+                task_list_order_payload(event_id, ordered_ids),
+            )
+            notify_progress_invalidation(event_id)
+            invalidate_cached_progress(event_id)
         return response
 
 
@@ -226,6 +263,13 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
         if updated == 0:
             return Response({"code": "already_assigned"}, status=status.HTTP_409_CONFLICT)
 
+        task.refresh_from_db()
+        payload = task_to_payload(task)
+        event_id = int(task.list.event_id)
+        notify_event_group_sync(event_id, "task.updated", payload)
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
+
         return Response(
             {
                 "message": "taken",
@@ -257,6 +301,13 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
             assignee=participant, updated_at=timezone.now()
         )
 
+        task.refresh_from_db()
+        payload = task_to_payload(task)
+        event_id = int(task.list.event_id)
+        notify_event_group_sync(event_id, "task.updated", payload)
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
+
         return Response({"message": "assigned"})
 
     @action(detail=True, methods=["post"])
@@ -279,8 +330,15 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
 
         if new_status != task.status:
             Task.objects.filter(id=task.id).update(
-                status=new_status, updated_at=timezone.now()
+                status=new_status,
+                updated_at=timezone.now(),
             )
+            task.refresh_from_db()
+            payload = task_to_payload(task)
+            event_id = int(task.list.event_id)
+            notify_event_group_sync(event_id, "task.updated", payload)
+            notify_progress_invalidation(event_id)
+            invalidate_cached_progress(event_id)
 
         return Response({"message": "status_updated", "status": new_status})
 
@@ -289,7 +347,20 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
         max_order = Task.objects.filter(list=task_list).aggregate(max_value=Max("order")).get("max_value")
         if max_order is None:
             max_order = -1
-        serializer.save(order=max_order + 1)
+        task = serializer.save(order=max_order + 1)
+        payload = task_to_payload(task)
+        event_id = int(task.list.event_id)
+        notify_event_group_sync(event_id, "task.created", payload)
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
+
+    def perform_update(self, serializer: TaskSerializer) -> None:
+        task = serializer.save()
+        payload = task_to_payload(task)
+        event_id = int(task.list.event_id)
+        notify_event_group_sync(event_id, "task.updated", payload)
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
 
     @transaction.atomic
     def destroy(self, request: Request, *args, **kwargs) -> Response:
@@ -299,9 +370,17 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
             # Предотвращаем удаление задач участниками без прав владельца.
             return Response(status=status.HTTP_403_FORBIDDEN)
         list_id = int(task.list_id)
+        event_id = int(task.list.event_id)
         response = super().destroy(request, *args, **kwargs)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             normalize_task_orders_in_list(list_id)
+            notify_event_group_sync(
+                event_id,
+                "task.deleted",
+                task_deleted_payload(task.id, list_id),
+            )
+            notify_progress_invalidation(event_id)
+            invalidate_cached_progress(event_id)
         return response
 
 
@@ -342,6 +421,14 @@ class ReorderTaskListsView(APIView):
             task_list.order = index
             task_list.updated_at = now
             task_list.save(update_fields=["order", "updated_at"])
+
+        notify_event_group_sync(
+            event_id,
+            "tasklist.reordered",
+            task_list_order_payload(event_id, ordered_ids),
+        )
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
 
         return Response({"message": "ok", "count": len(ordered_ids)})
 
@@ -387,6 +474,14 @@ class ReorderTasksInListView(APIView):
             task.order = index
             task.updated_at = now
             task.save(update_fields=["order", "updated_at"])
+
+        notify_event_group_sync(
+            task_list.event_id,
+            "task.reordered",
+            task_order_payload(task_list.id, ordered_ids),
+        )
+        notify_progress_invalidation(task_list.event_id)
+        invalidate_cached_progress(task_list.event_id)
 
         return Response({"message": "ok", "count": len(ordered_ids)})
 
@@ -454,3 +549,10 @@ class EventProgressView(APIView):
         payload = compute_event_progress(event_id)
         set_cached_progress(event_id, payload)
         return Response(payload)
+
+
+
+
+
+
+

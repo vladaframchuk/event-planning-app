@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX, type MouseEvent } from 'react';
 
 import type { BoardParticipant, Task, TaskStatus } from '@/types/task';
+
 import ConfirmDialog from './ConfirmDialog';
 
 type TaskCardProps = {

@@ -1,4 +1,4 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -36,12 +36,13 @@ _LEGACY_ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=None)
 ALLOWED_HOSTS: list[str] = (
     _LEGACY_ALLOWED_HOSTS
     if _LEGACY_ALLOWED_HOSTS
-    else env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+    else env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "testserver"])
 )
 
 
 # Подключения приложений
 INSTALLED_APPS = [
+    "channels",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -93,7 +94,33 @@ TEMPLATES = [
 ]
 
 
+ASGI_APPLICATION = "config.asgi.application"
 WSGI_APPLICATION = "config.wsgi.application"
+
+USE_REDIS_CHANNEL_LAYER = env.bool("USE_REDIS_CHANNEL_LAYER", default=False)
+_channel_layer_redis_url = (
+    env("REDIS_URL", default=None)
+    or env("CELERY_BROKER_URL", default=None)
+    or "redis://redis:6379/0"
+)
+
+if USE_REDIS_CHANNEL_LAYER:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [_channel_layer_redis_url],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+
+CHANNELS_WS_MAX_MESSAGE_SIZE = env.int("CHANNELS_WS_MAX_MESSAGE_SIZE", default=64 * 1024)
 
 
 # Database
@@ -185,9 +212,38 @@ CELERY_BROKER_URL = env(
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 REDIS_URL: str = env("REDIS_URL", default=CELERY_BROKER_URL)
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0"),
+USE_REDIS_CACHE = env.bool("USE_REDIS_CACHE", default=False)
+
+if USE_REDIS_CACHE:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": os.environ.get("REDIS_URL", _channel_layer_redis_url),
+        }
     }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "event-planning-app",
+        }
+    }
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django.request": {
+            # 401/403/404 теперь не засоряют консоль предупреждениями при debug-сценариях.
+            "level": "ERROR",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+    },
 }

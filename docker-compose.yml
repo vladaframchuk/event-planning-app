@@ -36,7 +36,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: event_backend
-    command: /app/scripts/init.sh python manage.py runserver 0.0.0.0:8000
+    command: /app/scripts/init.sh
     volumes:
       - ./backend:/app
     ports:

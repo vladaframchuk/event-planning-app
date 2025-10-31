@@ -28,12 +28,7 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [listsOpen, setListsOpen] = useState(false);
 
-  const {
-    data: progress,
-    isLoading,
-    isFetching,
-    error,
-  } = useEventProgress(eventId);
+  const { data: progress, isLoading, error } = useEventProgress(eventId);
 
   useEffect(() => {
     if (error) {
@@ -93,9 +88,6 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
           {summaryText}
-          {progress && isFetching ? (
-            <span className="ml-2 text-xs text-neutral-400 dark:text-neutral-500">обновление…</span>
-          ) : null}
         </div>
       </div>
 
@@ -161,3 +153,6 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
 };
 
 export default EventProgressBar;
+
+
+

@@ -3,7 +3,7 @@
 import {
   type DragEvent,
   type JSX,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
   useEffect,
   useMemo,
@@ -133,7 +133,7 @@ const TaskListColumn = ({
       setContextMenuOpen(false);
     };
 
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         setContextMenuOpen(false);
       }
@@ -244,7 +244,7 @@ const TaskListColumn = ({
     onListDrop(list.id);
   };
 
-  const handleHeaderKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleHeaderKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!isOwner || isSyncing) {
       return;
     }
@@ -313,7 +313,7 @@ const TaskListColumn = ({
     onTaskDrop(list.id, index);
   };
 
-  const handleTaskKeyDown = (task: Task) => (event: KeyboardEvent<HTMLElement>) => {
+  const handleTaskKeyDown = (task: Task) => (event: ReactKeyboardEvent<HTMLElement>) => {
     if (!isOwner || isSyncing) {
       return;
     }
