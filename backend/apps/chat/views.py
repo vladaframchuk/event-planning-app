@@ -14,6 +14,7 @@ from rest_framework.request import Request
 from apps.chat.models import Message
 from apps.chat.permissions import IsEventParticipant
 from apps.chat.serializers import MessageCreateSerializer, MessageSerializer
+from apps.chat.ws_notify import ws_chat_send
 from apps.events.models import Event
 
 MESSAGE_RATE_LIMIT = timedelta(seconds=0.8)
@@ -115,4 +116,17 @@ class EventMessageListCreateView(generics.GenericAPIView):
 
         message = Message.objects.create(event=event, author=user, text=text)
         response_serializer = MessageSerializer(message, context={"request": request})
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        response_data = response_serializer.data
+
+        chat_payload = {
+            "id": response_data["id"],
+            "event": response_data["event"],
+            "author": response_data["author"],
+            "author_name": response_data["author_name"],
+            "author_avatar": response_data["author_avatar"],
+            "text": response_data["text"],
+            "created_at": response_data["created_at"],
+        }
+        ws_chat_send(event.id, "chat.message", chat_payload)
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
