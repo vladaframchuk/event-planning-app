@@ -18,8 +18,13 @@ const EventNavigation = ({ eventId, className = '' }: EventNavigationProps) => {
     return [
       {
         href: basePath,
-        label: 'Основная страница',
+        label: 'Детали события',
         active: currentPath === basePath,
+      },
+      {
+        href: `${basePath}/chat`,
+        label: 'Чат',
+        active: currentPath.startsWith(`${basePath}/chat`),
       },
       {
         href: `${basePath}/polls`,
