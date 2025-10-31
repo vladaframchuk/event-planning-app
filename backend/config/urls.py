@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include("apps.events.urls")),
     path("api/", include("apps.users.urls")),
     path("api/", include("apps.tasks.urls")),
+    path("api/", include("apps.polls.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
