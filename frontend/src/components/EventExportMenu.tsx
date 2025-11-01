@@ -1,8 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { downloadEventPlanPdf } from '@/lib/export';
+import {
+  NOTIFY_EVENT_NAME,
+  type ExportNotificationDetail,
+  exportEventCsv,
+  exportEventPdf,
+  exportEventXls,
+} from '@/lib/export';
 
 type ToastState = {
   id: number;
@@ -14,8 +20,13 @@ type EventExportMenuProps = {
   eventId: number;
 };
 
-const SUCCESS_MESSAGE = 'Экспорт завершён';
-const ERROR_MESSAGE = 'Не удалось выгрузить PDF. Попробуйте позже.';
+type ExportFormat = 'pdf' | 'csv' | 'xls';
+
+const MENU_LABEL = 'Экспорт';
+const PDF_LABEL = 'Экспорт в PDF';
+const CSV_LABEL = 'Экспорт в CSV';
+const XLS_LABEL = 'Экспорт в XLS';
+const ERROR_FALLBACK = 'Не удалось выполнить экспорт.';
 
 const ExportIcon = ({ className }: { className?: string }) => (
   <svg
@@ -44,6 +55,59 @@ const ExportIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const PdfIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9z" />
+    <polyline points="14 2 14 9 21 9" />
+    <text x="9.5" y="17" fontSize="6" fontFamily="Arial, sans-serif" fill="currentColor">
+      PDF
+    </text>
+  </svg>
+);
+
+const TableIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+    <path d="M3 9h18M3 15h18M9 5v14M15 5v14" />
+  </svg>
+);
+
+const ChevronIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
 const LoadingSpinner = () => (
   <svg
     className="h-4 w-4 animate-spin text-white"
@@ -64,9 +128,11 @@ const LoadingSpinner = () => (
 );
 
 const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loadingFormat, setLoadingFormat] = useState<ExportFormat | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const hideToastLater = useCallback(
     (nextToast: ToastState | null) => {
@@ -95,65 +161,148 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
     [],
   );
 
-  const handleClick = useCallback(async () => {
-    if (isLoading) {
+  useEffect(() => {
+    if (typeof window === 'undefined') {
       return;
     }
 
-    setIsLoading(true);
-    hideToastLater(null);
-
-    try {
-      const blob = await downloadEventPlanPdf(eventId);
-      const filename = `event_${eventId}_plan.pdf`;
-
-      const objectUrl = window.URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = filename;
-
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      window.URL.revokeObjectURL(objectUrl);
-
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<ExportNotificationDetail>).detail;
+      if (!detail) {
+        hideToastLater({
+          id: Date.now(),
+          message: ERROR_FALLBACK,
+          tone: 'error',
+        });
+        return;
+      }
       hideToastLater({
         id: Date.now(),
-        message: SUCCESS_MESSAGE,
-        tone: 'success',
+        message: detail.message,
+        tone: detail.tone,
       });
-    } catch (error) {
-      const message = error instanceof Error && error.message.trim().length > 0 ? error.message : ERROR_MESSAGE;
-      hideToastLater({
-        id: Date.now(),
-        message,
-        tone: 'error',
-      });
-    } finally {
-      setIsLoading(false);
+    };
+
+    window.addEventListener(NOTIFY_EVENT_NAME, handler as EventListener);
+    return () => window.removeEventListener(NOTIFY_EVENT_NAME, handler as EventListener);
+  }, [hideToastLater]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
     }
-  }, [eventId, hideToastLater, isLoading]);
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!containerRef.current) {
+        return;
+      }
+      if (!containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const isAnyLoading = loadingFormat !== null;
+
+  const handleToggle = useCallback(() => {
+    if (isAnyLoading) {
+      return;
+    }
+    setIsOpen((current) => !current);
+  }, [isAnyLoading]);
+
+  const handleExport = useCallback(
+    async (format: ExportFormat) => {
+      if (isAnyLoading) {
+        return;
+      }
+
+      const actionMap: Record<ExportFormat, () => Promise<void>> = {
+        pdf: () => exportEventPdf(eventId),
+        csv: () => exportEventCsv(eventId),
+        xls: () => exportEventXls(eventId),
+      };
+
+      setLoadingFormat(format);
+      setIsOpen(false);
+
+      try {
+        await actionMap[format]();
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoadingFormat(null);
+      }
+    },
+    [eventId, isAnyLoading],
+  );
+
+  const menuItems = useMemo(
+    () =>
+      [
+        {
+          format: 'pdf' as const,
+          label: PDF_LABEL,
+          icon: <PdfIcon className="h-4 w-4" />,
+        },
+        {
+          format: 'csv' as const,
+          label: CSV_LABEL,
+          icon: <TableIcon className="h-4 w-4" />,
+        },
+        {
+          format: 'xls' as const,
+          label: XLS_LABEL,
+          icon: <TableIcon className="h-4 w-4" />,
+        },
+      ],
+    [],
+  );
 
   return (
-    <div className="relative flex items-center">
+    <div className="relative inline-block text-left" ref={containerRef}>
       <button
         type="button"
-        onClick={handleClick}
-        disabled={isLoading}
-        aria-busy={isLoading}
+        onClick={handleToggle}
+        disabled={isAnyLoading}
+        aria-expanded={isOpen}
         className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-600 dark:bg-neutral-700 dark:hover:bg-neutral-600"
       >
         <ExportIcon className="h-4 w-4" />
-        <span>Экспорт → PDF</span>
-        {isLoading ? <LoadingSpinner /> : null}
+        <span>{MENU_LABEL}</span>
+        <ChevronIcon className="h-4 w-4" />
       </button>
+
+      {isOpen ? (
+        <div className="absolute left-0 top-full z-10 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
+          <ul className="py-1 text-sm text-neutral-800 dark:text-neutral-200">
+            {menuItems.map(({ format, label, icon }) => (
+              <li key={format}>
+                <button
+                  type="button"
+                  onClick={() => handleExport(format)}
+                  disabled={isAnyLoading}
+                  className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400 dark:hover:bg-neutral-700"
+                >
+                  <span className="flex items-center gap-2">
+                    {icon}
+                    {label}
+                  </span>
+                  {loadingFormat === format ? <LoadingSpinner /> : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {toast ? (
         <div
           className={`absolute left-1/2 top-full mt-2 w-max -translate-x-1/2 rounded-md px-3 py-2 text-xs font-medium shadow-lg ${
-            toast.tone === 'success'
-              ? 'bg-emerald-600 text-white'
-              : 'bg-red-600 text-white'
+            toast.tone === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
           }`}
           role="status"
         >
