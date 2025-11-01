@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.events.apps.EventsConfig",
     "apps.health.apps.HealthConfig",
     "apps.tasks.apps.TasksConfig",
+    "apps.export.apps.ExportConfig",
     "apps.chat.apps.ChatConfig",
     "apps.polls.apps.PollsConfig",
 ]

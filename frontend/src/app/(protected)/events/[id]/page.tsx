@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import EventExportMenu from '@/components/EventExportMenu';
 import EventNavigation from '@/components/EventNavigation';
 import EventProgressBar from '@/components/EventProgressBar';
 import InviteDialog from '@/components/InviteDialog';
@@ -185,6 +186,7 @@ const EventDetailsPage = () => {
                   </button>
                 </>
               ) : null}
+              <EventExportMenu eventId={event.id} />
               <button
                 type="button"
                 onClick={() => setDetailsOpen((current) => !current)}

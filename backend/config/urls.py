@@ -30,6 +30,7 @@ urlpatterns = [
     path("api/", include("apps.tasks.urls")),
     path("api/", include("apps.polls.urls")),
     path("api/", include("apps.chat.urls")),
+    path("api/", include("apps.export.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

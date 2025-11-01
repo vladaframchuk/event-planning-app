@@ -1,11 +1,7 @@
 'use client';
-
 import { useQuery } from '@tanstack/react-query';
-
 import Image from 'next/image';
-
 import { useRouter } from 'next/navigation';
-
 import {
   useCallback,
   useEffect,
@@ -18,11 +14,8 @@ import {
 } from 'react';
 
 import { useEventChannel } from '@/hooks/useEventChannel';
-
 import { listMessages, sendMessage } from '@/lib/chatApi';
-
 import { getMe, type Profile } from '@/lib/profileApi';
-
 import type { ChatMessage } from '@/types/chat';
 
 type ChatPanelProps = {
@@ -267,15 +260,18 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   );
 
   useEffect(() => {
+    const timeoutsRef = typingTimeoutsRef;
+    const debounceRef = typingDebounceRef;
+
     return () => {
-      typingTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      const timeouts = timeoutsRef.current;
+      timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeouts.clear();
 
-      typingTimeoutsRef.current.clear();
-
-      if (typingDebounceRef.current !== null) {
-        window.clearTimeout(typingDebounceRef.current);
-
-        typingDebounceRef.current = null;
+      const debounceId = debounceRef.current;
+      if (debounceId !== null) {
+        window.clearTimeout(debounceId);
+        debounceRef.current = null;
       }
     };
   }, []);
