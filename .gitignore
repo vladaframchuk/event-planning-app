@@ -8,6 +8,7 @@ __pycache__/
 *.log
 venv/
 .venv/
+backend/venv/
 
 # Django / local configs
 .env
@@ -15,6 +16,8 @@ venv/
 backend/.env
 backend/.env.*
 !backend/.env.example
+backend/celerybeat-schedule
+backend/media/
 
 # Node / Next.js
 frontend/node_modules/
@@ -25,6 +28,10 @@ frontend/.env.local
 frontend/.env.*
 !frontend/.env.local.example
 *.tsbuildinfo
+
+# Test caches
+.pytest_cache/
+**/.pytest_cache/
 
 # Docker artifacts
 *.tar
