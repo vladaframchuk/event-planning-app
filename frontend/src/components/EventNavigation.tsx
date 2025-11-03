@@ -18,17 +18,22 @@ const EventNavigation = ({ eventId, className = '' }: EventNavigationProps) => {
     return [
       {
         href: basePath,
-        label: 'Детали события',
+        label: 'Overview',
         active: currentPath === basePath,
       },
       {
+        href: `${basePath}/participants`,
+        label: 'Participants',
+        active: currentPath.startsWith(`${basePath}/participants`),
+      },
+      {
         href: `${basePath}/chat`,
-        label: 'Чат',
+        label: 'Chat',
         active: currentPath.startsWith(`${basePath}/chat`),
       },
       {
         href: `${basePath}/polls`,
-        label: 'Опросы',
+        label: 'Polls',
         active: currentPath.startsWith(`${basePath}/polls`),
       },
     ];
@@ -54,11 +59,11 @@ const EventNavigation = ({ eventId, className = '' }: EventNavigationProps) => {
   return (
     <aside className={containerClassName}>
       <nav
-        aria-label="Навигация по разделам события"
+        aria-label="Event sections navigation"
         className="flex h-full flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
         <p className="hidden px-4 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 lg:block">
-          Разделы события
+          Event sections
         </p>
         <ul className="flex w-full gap-2 overflow-x-auto px-3 pb-3 pt-2 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-4 lg:py-3">
           {links.map((link) => (
@@ -83,4 +88,3 @@ const EventNavigation = ({ eventId, className = '' }: EventNavigationProps) => {
 };
 
 export default EventNavigation;
-

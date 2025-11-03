@@ -6,13 +6,16 @@ from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ParseError
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.schemas.openapi import AutoSchema
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
 
 from apps.chat.models import Message
-from apps.chat.permissions import IsEventParticipant
+from apps.events.permissions import IsEventMember, IsEventOrganizer
 from apps.chat.serializers import MessageCreateSerializer, MessageSerializer
 from apps.chat.ws_notify import ws_chat_send
 from apps.events.models import Event
@@ -29,9 +32,10 @@ class MessagePagination(PageNumberPagination):
 
 
 class EventMessageListCreateView(generics.GenericAPIView):
+    schema = AutoSchema(tags=["Chat"])
     """Просмотр и создание сообщений по событию."""
 
-    permission_classes = [IsEventParticipant]
+    permission_classes = [IsAuthenticated, IsEventMember]
     serializer_class = MessageSerializer
     pagination_class = MessagePagination
 
@@ -130,3 +134,35 @@ class EventMessageListCreateView(generics.GenericAPIView):
         ws_chat_send(event.id, "chat.message", chat_payload)
 
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class EventMessageDetailView(APIView):
+    schema = AutoSchema(tags=["Chat"])
+    permission_classes = [IsAuthenticated, IsEventMember]
+
+    def get_event(self, request: Request, event_id: int) -> Event:
+        event = get_object_or_404(Event, pk=event_id)
+        self.check_object_permissions(request, event)
+        return event
+
+    def delete(self, request: Request, event_id: int, message_id: int) -> Response:
+        event = self.get_event(request, event_id)
+        message = get_object_or_404(
+            Message.objects.select_related("author"),
+            event=event,
+            pk=message_id,
+        )
+
+        if message.author_id != request.user.id:
+            organizer_permission = IsEventOrganizer()
+            if not organizer_permission.has_object_permission(request, self, event):
+                return Response(
+                    {
+                        "code": "forbidden",
+                        "detail": "Only the author or an organizer can delete this message.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        message.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

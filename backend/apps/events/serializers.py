@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.events.models import Event, Invite
+from apps.events.models import Event, Invite, Participant
 
 User = get_user_model()
 
@@ -26,6 +26,7 @@ class EventSerializer(serializers.ModelSerializer):
     """Сериализатор для чтения событий."""
 
     owner = EventOwnerSerializer(read_only=True)
+    viewer_role = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -38,10 +39,28 @@ class EventSerializer(serializers.ModelSerializer):
             "end_at",
             "location",
             "owner",
+            "viewer_role",
             "created_at",
             "updated_at",
         )
         read_only_fields = fields
+
+
+    def get_viewer_role(self, obj: Event) -> str | None:
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is None or not getattr(user, "is_authenticated", False):
+            return None
+        participant_role = (
+            Participant.objects.filter(event=obj, user=user)
+            .values_list("role", flat=True)
+            .first()
+        )
+        if participant_role:
+            return participant_role
+        if obj.owner_id == getattr(user, "id", None):
+            return Participant.Role.ORGANIZER
+        return None
 
 
 class EventCreateUpdateSerializer(serializers.ModelSerializer):
@@ -101,3 +120,47 @@ class InviteReadSerializer(serializers.ModelSerializer):
         """Формирует ссылку для присоединения."""
         base_url = getattr(settings, "SITE_FRONT_URL", "http://localhost:3000").rstrip("/")
         return f"{base_url}/join?token={obj.token}"
+
+
+class ParticipantUserSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ("id", "email", "name", "avatar")
+
+    def get_avatar(self, obj: User) -> str | None:
+        request = self.context.get("request")
+        if obj.avatar_url:
+            return obj.avatar_url
+        avatar_field = getattr(obj, "avatar", None)
+        if avatar_field and getattr(avatar_field, "name", ""):
+            try:
+                url = avatar_field.url
+            except Exception:  # noqa: BLE001
+                return None
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        return None
+
+
+class ParticipantSerializer(serializers.ModelSerializer):
+    user = ParticipantUserSerializer(read_only=True)
+
+    class Meta:
+        model = Participant
+        fields = ("id", "user", "role", "joined_at")
+        read_only_fields = ("id", "user", "role", "joined_at")
+
+
+class ParticipantRoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Participant
+        fields = ("role",)
+
+
+
+
+
+

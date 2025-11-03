@@ -56,7 +56,8 @@ const EventDetailsPage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const isOwner = Boolean(eventQuery.data && profileQuery.data && eventQuery.data.owner.id === profileQuery.data.id);
+  const isOrganizer = (eventQuery.data?.viewerRole === 'organizer') ||
+    (eventQuery.data && profileQuery.data && eventQuery.data.owner.id === profileQuery.data.id);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -142,7 +143,7 @@ const EventDetailsPage = () => {
   } as const;
 
   const handleAddListClick = () => {
-    if (isOwner) {
+    if (isOrganizer) {
       taskBoardRef.current?.openCreateListForm();
       setDetailsOpen(false);
     }
@@ -168,7 +169,7 @@ const EventDetailsPage = () => {
             <EventProgressBar eventId={event.id} />
 
             <div className="flex flex-wrap items-center gap-3">
-              {isOwner ? (
+              {isOrganizer ? (
                 <>
                   <button
                     type="button"
@@ -248,10 +249,11 @@ const EventDetailsPage = () => {
         <TaskBoard ref={taskBoardRef} eventId={event.id} showInlineAddListButton={false} />
       </div>
 
-      {isOwner ? <InviteDialog eventId={event.id} open={isInviteOpen} onClose={() => setInviteOpen(false)} /> : null}
+      {isOrganizer ? <InviteDialog eventId={event.id} open={isInviteOpen} onClose={() => setInviteOpen(false)} /> : null}
     </>
   );
 };
 
 export default EventDetailsPage;
+
 

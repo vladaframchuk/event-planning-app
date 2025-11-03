@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/fetcher';
+import type { Role } from '@/types/event';
 import type { Board, BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
 
 type ApiTask = {
@@ -29,6 +30,7 @@ type ApiBoard = {
   event: { id: number; title: string };
   lists: Array<ApiTaskList & { tasks: ApiTask[] }>;
   is_owner: boolean;
+  viewer_role?: string | null;
   participants: Array<{
     id: number;
     role: string;
@@ -81,9 +83,11 @@ const mapTask = (payload: ApiTask): Task => ({
   updatedAt: payload.updated_at,
 });
 
+const normalizeRole = (value: string): Role => (value === 'organizer' ? 'organizer' : 'member');
+
 const mapParticipant = (payload: ApiBoard['participants'][number]): BoardParticipant => ({
   id: payload.id,
-  role: payload.role,
+  role: normalizeRole(payload.role),
   user: {
     id: payload.user.id,
     email: payload.user.email,
@@ -104,6 +108,7 @@ const mapTaskList = (payload: ApiTaskList): TaskList => ({
 const mapBoard = (payload: ApiBoard): Board => ({
   event: payload.event,
   isOwner: payload.is_owner,
+  viewerRole: payload.viewer_role ? normalizeRole(payload.viewer_role) : null,
   participants: payload.participants.map(mapParticipant),
   lists: payload.lists.map((item) => ({
     ...mapTaskList(item),

@@ -7,12 +7,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.events.models import Event, Participant
-from apps.events.permissions import IsEventOwnerOrReadOnly
+from apps.events.permissions import IsEventOrganizer, ReadOnlyOrEventMember
 from apps.events.serializers import EventCreateUpdateSerializer, EventSerializer
 
 
@@ -27,7 +27,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     queryset = Event.objects.none()
     serializer_class = EventSerializer
-    permission_classes = (IsAuthenticated, IsEventOwnerOrReadOnly)
+    permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filterset_fields = ("category",)
     search_fields = ("title", "description", "location")
@@ -121,3 +121,10 @@ class EventViewSet(viewsets.ModelViewSet):
             .order_by("category")
         )
         return Response({"categories": list(categories_qs)})
+    def get_permissions(self) -> list[BasePermission]:
+        action = getattr(self, "action", None)
+        if action in {"list", "create", "categories"}:
+            return [IsAuthenticated()]
+        if action == "retrieve":
+            return [IsAuthenticated(), ReadOnlyOrEventMember()]
+        return [IsAuthenticated(), IsEventOrganizer()]

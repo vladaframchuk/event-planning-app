@@ -7,7 +7,7 @@ from django.db.models import Max, Prefetch, QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotAuthenticated, PermissionDenied, ValidationError
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.request import Request
@@ -16,13 +16,13 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from apps.events.models import Event, Participant
-from apps.tasks.models import Task, TaskList
-from apps.tasks.permissions import (
-    IsEventOwner,
-    IsEventOwnerWrite,
-    IsEventParticipantReadOnly,
-    IsTaskAssignee,
+from apps.events.permissions import (
+    IsEventMember,
+    IsEventOrganizer,
+    IsTaskEditor,
+    ReadOnlyOrEventMember,
 )
+from apps.tasks.models import Task, TaskList
 from apps.tasks.serializers import (
     BoardSerializer,
     TaskAssignSerializer,
@@ -102,8 +102,8 @@ class EventScopedPermissionMixin:
 
     def get_permissions(self):
         if self.request.method in SAFE_METHODS:
-            return [IsAuthenticated(), IsEventParticipantReadOnly()]
-        return [IsAuthenticated(), IsEventOwnerWrite()]
+            return [IsAuthenticated(), ReadOnlyOrEventMember()]
+        return [IsAuthenticated(), IsEventOrganizer()]
 
 
 class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
@@ -112,11 +112,6 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
     serializer_class = TaskListSerializer
     queryset = TaskList.objects.all()
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
-
-    def get_permissions(self):
-        if getattr(self, "action", None) == "destroy":
-            return [IsAuthenticated()]
-        return super().get_permissions()
 
     def get_queryset(self) -> QuerySet[TaskList]:
         user = self.request.user
@@ -161,28 +156,45 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
 
     @transaction.atomic
     def destroy(self, request: Request, *args, **kwargs) -> Response:
-        task_list = self.get_object()
+        pk = _parse_int(self.kwargs.get(self.lookup_field))
+        if pk is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        task_list = (
+            TaskList.objects.select_related("event")
+            .filter(pk=pk)
+            .first()
+        )
+        if task_list is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
         event = task_list.event
         if event.owner_id != request.user.id:
-            # Проверяем, что удаление выполняет владелец события.
+            # Only event owner can delete the list.
             return Response(status=status.HTTP_403_FORBIDDEN)
+
         event_id = int(task_list.event_id)
-        response = super().destroy(request, *args, **kwargs)
-        if response.status_code == status.HTTP_204_NO_CONTENT:
-            normalize_tasklist_orders_in_event(event_id)
-            notify_event_group_sync(
-                event_id,
-                "tasklist.deleted",
-                task_list_deleted_payload(task_list.id, event_id),
-            )
-            ordered_ids = fetch_ordered_tasklist_ids(event_id)
-            notify_event_group_sync(
-                event_id,
-                "tasklist.reordered",
-                task_list_order_payload(event_id, ordered_ids),
-            )
-            notify_progress_invalidation(event_id)
-            invalidate_cached_progress(event_id)
+        task_list_id = int(task_list.id)
+
+        TaskList.objects.filter(pk=task_list_id).delete()
+
+        normalize_tasklist_orders_in_event(event_id)
+        notify_event_group_sync(
+            event_id,
+            "tasklist.deleted",
+            task_list_deleted_payload(task_list_id, event_id),
+        )
+        ordered_ids = fetch_ordered_tasklist_ids(event_id)
+        notify_event_group_sync(
+            event_id,
+            "tasklist.reordered",
+            task_list_order_payload(event_id, ordered_ids),
+        )
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
         return response
 
 
@@ -197,9 +209,32 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
     ordering_fields = ("due_at", "created_at", "order")
 
     def get_permissions(self):
-        if getattr(self, "action", None) in {"take", "assign", "status", "destroy"}:
-            return [IsAuthenticated()]
-        return super().get_permissions()
+        action = getattr(self, "action", None)
+        if action == "take":
+            return [IsAuthenticated(), IsEventMember()]
+        if action == "assign":
+            return [IsAuthenticated(), IsEventOrganizer()]
+        if action == "status":
+            return [IsAuthenticated(), IsTaskEditor()]
+        if self.request.method in SAFE_METHODS:
+            return [IsAuthenticated(), ReadOnlyOrEventMember()]
+        return [IsAuthenticated(), IsTaskEditor()]
+
+    def permission_denied(
+        self,
+        request: Request,
+        message: str | None = None,
+        code: str | None = None,
+    ) -> None:
+        if request.authenticators and not getattr(request, "successful_authenticator", None):
+            raise NotAuthenticated()
+        if getattr(self, "action", None) == "status":
+            detail = {
+                "code": "forbidden",
+                "detail": message or "You do not have permission to change this task status.",
+            }
+            raise PermissionDenied(detail=detail, code=code)
+        raise PermissionDenied(detail=message, code=code)
 
     def _get_participant(self, task: Task, user) -> Participant | None:
         return (
@@ -287,12 +322,6 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
     @action(detail=True, methods=["post"])
     def assign(self, request: Request, pk: int | None = None) -> Response:
         task = self.get_object()
-        if not IsEventOwner().has_object_permission(request, self, task):
-            return Response(
-                {"detail": "Only event owner can assign tasks."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         serializer = TaskAssignSerializer(data=request.data, context={"task": task})
         serializer.is_valid(raise_exception=True)
         participant: Participant | None = serializer.validated_data["participant"]
@@ -313,16 +342,6 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
     @action(detail=True, methods=["post"])
     def status(self, request: Request, pk: int | None = None) -> Response:
         task = self.get_object()
-        owner_permission = IsEventOwner()
-        assignee_permission = IsTaskAssignee()
-        if not (
-            owner_permission.has_object_permission(request, self, task)
-            or assignee_permission.has_object_permission(request, self, task)
-        ):
-            return Response(
-                {"code": "forbidden", "message": "Недостаточно прав"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         serializer = TaskStatusSerializer(data=request.data, context={"task": task})
         serializer.is_valid(raise_exception=True)
@@ -364,28 +383,43 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
 
     @transaction.atomic
     def destroy(self, request: Request, *args, **kwargs) -> Response:
-        task = self.get_object()
+        pk = _parse_int(self.kwargs.get(self.lookup_field))
+        if pk is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        task = (
+            Task.objects.select_related("list", "list__event")
+            .filter(pk=pk)
+            .first()
+        )
+        if task is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
         event_owner_id = task.list.event.owner_id
         if event_owner_id != request.user.id:
-            # Предотвращаем удаление задач участниками без прав владельца.
+            # Только владелец события может удалять задачи.
             return Response(status=status.HTTP_403_FORBIDDEN)
+
         list_id = int(task.list_id)
         event_id = int(task.list.event_id)
-        response = super().destroy(request, *args, **kwargs)
-        if response.status_code == status.HTTP_204_NO_CONTENT:
-            normalize_task_orders_in_list(list_id)
-            notify_event_group_sync(
-                event_id,
-                "task.deleted",
-                task_deleted_payload(task.id, list_id),
-            )
-            notify_progress_invalidation(event_id)
-            invalidate_cached_progress(event_id)
-        return response
+        task_id = int(task.id)
+
+        Task.objects.filter(pk=task_id).delete()
+
+        normalize_task_orders_in_list(list_id)
+        notify_event_group_sync(
+            event_id,
+            "task.deleted",
+            task_deleted_payload(task_id, list_id),
+        )
+        notify_progress_invalidation(event_id)
+        invalidate_cached_progress(event_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 class ReorderTaskListsView(APIView):
-    permission_classes = [IsAuthenticated, IsEventOwnerWrite]
+    permission_classes = [IsAuthenticated, IsEventOrganizer]
 
     def get_event_id(self, request: Request) -> int | None:
         if hasattr(self, "_cached_event_id"):
@@ -434,7 +468,7 @@ class ReorderTaskListsView(APIView):
 
 
 class ReorderTasksInListView(APIView):
-    permission_classes = [IsAuthenticated, IsEventOwnerWrite]
+    permission_classes = [IsAuthenticated, IsEventOrganizer]
 
     def get_event_id(self, request: Request) -> int | None:
         if hasattr(self, "_cached_event_id"):

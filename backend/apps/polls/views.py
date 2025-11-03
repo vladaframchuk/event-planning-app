@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 
 from apps.events.models import Event
 from apps.polls.models import Poll, PollOption, Vote
-from apps.polls.permissions import IsEventOwner, IsEventParticipant
+from apps.events.permissions import IsEventMember, IsEventOrganizer, ReadOnlyOrEventMember
 from apps.polls.serializers import (
     PollCreateSerializer,
     PollListItemSerializer,
@@ -169,8 +169,8 @@ class EventPollListCreateView(EventScopedMixin, PollQuerysetMixin, generics.List
 
     def get_permissions(self):
         if self.request.method == "GET":
-            return [IsAuthenticated(), IsEventParticipant()]
-        return [IsAuthenticated(), IsEventOwner()]
+            return [IsAuthenticated(), IsEventMember()]
+        return [IsAuthenticated(), IsEventOrganizer()]
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -263,9 +263,9 @@ class PollDetailView(PollDetailBaseView, APIView):
 
     def get_permissions(self):
         if self.request.method == "GET":
-            return [IsAuthenticated(), IsEventParticipant()]
+            return [IsAuthenticated(), ReadOnlyOrEventMember()]
         if self.request.method == "DELETE":
-            return [IsAuthenticated(), IsEventOwner()]
+            return [IsAuthenticated(), IsEventOrganizer()]
         return super().get_permissions()
 
     def get(self, request: Request, poll_id: int) -> Response:
@@ -291,7 +291,7 @@ class PollDetailView(PollDetailBaseView, APIView):
 
 
 class PollVoteView(PollDetailBaseView, APIView):
-    permission_classes = [IsAuthenticated, IsEventParticipant]
+    permission_classes = [IsAuthenticated, IsEventMember]
 
     def post(self, request: Request, poll_id: int) -> Response:
         poll = self.get_object()
@@ -400,7 +400,7 @@ class PollVoteView(PollDetailBaseView, APIView):
 
 
 class PollCloseView(PollDetailBaseView, APIView):
-    permission_classes = [IsAuthenticated, IsEventOwner]
+    permission_classes = [IsAuthenticated, IsEventOrganizer]
 
     def post(self, request: Request, poll_id: int) -> Response:
         poll = self.get_object()

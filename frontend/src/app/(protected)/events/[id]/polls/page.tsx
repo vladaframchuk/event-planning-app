@@ -73,7 +73,11 @@ const PollsPage = () => {
   const pollCount = pollsQuery.data?.count ?? 0;
   const totalPages = pollCount > 0 ? Math.ceil(pollCount / PAGE_SIZE) : 1;
 
-  const isOwner = Boolean(eventQuery.data && profileQuery.data && eventQuery.data.owner.id === profileQuery.data.id);
+  const isOrganizer =
+    eventQuery.data?.viewerRole === 'organizer' ||
+    (eventQuery.data?.owner.id != null &&
+      profileQuery.data?.id != null &&
+      eventQuery.data?.owner.id === profileQuery.data?.id);
 
   const voteMutation = useMutation<Poll, Error, { pollId: number; optionIds: number[] }>({
     mutationFn: ({ pollId, optionIds }) => vote(pollId, optionIds),
@@ -139,7 +143,7 @@ const PollsPage = () => {
               </p>
             ) : null}
           </div>
-          {isOwner ? (
+          {isOrganizer ? (
             <button
               type="button"
               onClick={() => setDialogOpen(true)}
@@ -241,7 +245,7 @@ const PollsPage = () => {
               <PollCard
                 key={poll.id}
                 poll={poll}
-                isOwner={isOwner}
+                canManage={isOrganizer}
                 votePending={voteMutation.isPending && voteMutation.variables?.pollId === poll.id}
                 closePending={closeMutation.isPending && closeMutation.variables?.pollId === poll.id}
                 deletePending={deleteMutation.isPending && deleteMutation.variables?.pollId === poll.id}
@@ -254,7 +258,7 @@ const PollsPage = () => {
         ) : (
           <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-12 text-center text-sm text-neutral-500 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
             Опросов пока нет.{' '}
-            {isOwner
+            {isOrganizer
               ? 'Создайте первый, чтобы узнать мнение команды.'
               : 'Дождитесь, когда организатор поделится опросами.'}
           </div>
@@ -270,7 +274,7 @@ const PollsPage = () => {
           </div>
         ) : null}
 
-        {isOwner ? (
+        {isOrganizer ? (
           <PollCreateDialog
             open={isDialogOpen}
             eventId={eventId}
@@ -288,4 +292,5 @@ const PollsPage = () => {
 };
 
 export default PollsPage;
+
 

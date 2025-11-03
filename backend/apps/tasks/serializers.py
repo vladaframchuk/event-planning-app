@@ -198,6 +198,7 @@ class BoardSerializer(serializers.Serializer):
     event = serializers.SerializerMethodField()
     lists = BoardListSerializer(many=True)
     is_owner = serializers.SerializerMethodField()
+    viewer_role = serializers.SerializerMethodField()
     participants = serializers.SerializerMethodField()
 
     def get_event(self, obj: dict[str, Any]) -> dict[str, Any]:
@@ -208,12 +209,21 @@ class BoardSerializer(serializers.Serializer):
         }
 
     def get_is_owner(self, obj: dict[str, Any]) -> bool:
-        event: Event = obj["event"]
+        return self.get_viewer_role(obj) == Participant.Role.ORGANIZER
+
+    def get_viewer_role(self, obj: dict[str, Any]) -> str | None:
         request = self.context.get("request")
         user = getattr(request, "user", None)
         if user is None or not getattr(user, "is_authenticated", False):
-            return False
-        return event.owner_id == user.id
+            return None
+        participants: list[Participant] = obj.get("participants", [])
+        for participant in participants:
+            if participant.user_id == user.id:
+                return participant.role
+        event: Event = obj["event"]
+        if event.owner_id == user.id:
+            return Participant.Role.ORGANIZER
+        return None
 
     def get_participants(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
         participants: list[Participant] = obj.get("participants", [])

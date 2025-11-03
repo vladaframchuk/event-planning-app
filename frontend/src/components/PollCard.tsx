@@ -6,7 +6,7 @@ import type { Poll, PollOption } from '@/types/poll';
 
 type PollCardProps = {
   poll: Poll;
-  isOwner: boolean;
+  canManage: boolean;
   onVote: (optionIds: number[]) => Promise<void> | void;
   onClose?: () => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
@@ -38,7 +38,7 @@ const formatDeadline = (value: string | null | undefined): string | null => {
 
 const PollCard = ({
   poll,
-  isOwner,
+  canManage,
   onVote,
   onClose,
   onDelete,
@@ -141,7 +141,7 @@ const PollCard = ({
             ) : null}
           </div>
         </div>
-        {isOwner ? (
+        {canManage ? (
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -250,4 +250,5 @@ const PollCard = ({
 };
 
 export default PollCard;
+
 

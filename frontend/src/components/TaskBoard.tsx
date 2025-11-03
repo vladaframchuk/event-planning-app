@@ -105,6 +105,7 @@ const reindexTaskLists = (lists: Array<TaskList & { tasks: Task[] }>): Array<Tas
 const cloneBoard = (board: Board): Board => ({
   event: board.event,
   isOwner: board.isOwner,
+  viewerRole: board.viewerRole,
   participants: board.participants.map((participant) => ({
     ...participant,
     user: { ...participant.user },
@@ -610,6 +611,8 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 
   const board = boardState ?? boardQuery.data ?? null;
   const me = profileQuery.data ?? null;
+  const viewerRole = board?.viewerRole ?? null;
+  const canManageBoard = viewerRole === 'organizer';
 
   const participantsById = useMemo(() => {
     if (!board) {
@@ -642,12 +645,12 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
     for (const list of board.lists) {
       for (const task of list.tasks) {
         const canTake = myParticipantId !== null && task.assignee === null;
-        const canChangeStatus = board.isOwner || (myParticipantId !== null && task.assignee === myParticipantId);
+        const canChangeStatus = canManageBoard || (myParticipantId !== null && task.assignee === myParticipantId);
         permissions.set(task.id, { canTake, canChangeStatus });
       }
     }
     return permissions;
-  }, [board, myParticipantId]);
+  }, [board, myParticipantId, canManageBoard]);
 
   useEffect(() => {
     if (!toast) {
@@ -1005,22 +1008,22 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   );
   const handleListDragStart = useCallback(
     (listId: number, mode: DragMode) => {
-      if (!board?.isOwner || isSyncing) {
+      if (!canManageBoard || isSyncing) {
         return;
       }
       setDragContext({ type: 'list', id: listId, mode });
     },
-    [board?.isOwner, isSyncing],
+    [canManageBoard, isSyncing],
   );
 
   const handleTaskDragStart = useCallback(
     (listId: number, taskId: number, mode: DragMode) => {
-      if (!board?.isOwner || isSyncing) {
+      if (!canManageBoard || isSyncing) {
         return;
       }
       setDragContext({ type: 'task', id: taskId, listId, mode });
     },
-    [board?.isOwner, isSyncing],
+    [canManageBoard, isSyncing],
   );
 
   const handleListDragOver = useCallback(
@@ -1244,23 +1247,23 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 
   const handleBoardDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
-      if (!board?.isOwner || dragContext?.type !== 'list') {
+      if (!canManageBoard || dragContext?.type !== 'list') {
         return;
       }
       event.preventDefault();
     },
-    [board?.isOwner, dragContext],
+    [canManageBoard, dragContext],
   );
 
   const handleBoardDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
-      if (!board?.isOwner || dragContext?.type !== 'list') {
+      if (!canManageBoard || dragContext?.type !== 'list') {
         return;
       }
       event.preventDefault();
       commitListReorder((board?.lists.length ?? 1) - 1);
     },
-    [board, dragContext, commitListReorder],
+    [board, canManageBoard, dragContext, commitListReorder],
   );
 
   const handleListDrop = useCallback(
@@ -1340,8 +1343,8 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const boardData = board;
   const isLoading = boardQuery.isLoading || profileQuery.isLoading;
   const error = boardQuery.error ?? profileQuery.error ?? null;
-  const isOwner = boardData?.isOwner ?? false;
-  const canShowAddListButton = Boolean(isOwner && showInlineAddListButton && !isListFormVisible);
+  const isOrganizer = canManageBoard;
+  const canShowAddListButton = Boolean(isOrganizer && showInlineAddListButton && !isListFormVisible);
 
   const myTasksButtonClassName = [
     'inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
@@ -1429,7 +1432,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
             </div>
           )}
 
-          {isOwner && isListFormVisible ? (
+          {isOrganizer && isListFormVisible ? (
             <form
               onSubmit={handleListSubmit}
               className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:flex-row md:items-end"
@@ -1485,7 +1488,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                 <TaskListColumn
                   key={taskList.id}
                   list={taskList}
-                  isOwner={boardData.isOwner}
+                  canManage={canManageBoard}
                   isSyncing={isSyncing}
                   dragContext={dragContext}
                   dropListId={dropListId}
@@ -1535,6 +1538,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 TaskBoard.displayName = 'TaskBoard';
 
 export default TaskBoard;
+
 
 
 

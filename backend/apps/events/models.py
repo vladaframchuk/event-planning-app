@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime
+from typing import TYPE_CHECKING, Literal
 
 from django.conf import settings
 from django.db import models
@@ -43,6 +44,8 @@ class Event(models.Model):
 class Participant(models.Model):
     """Участник события с фиксированными ролями."""
 
+    RoleLiteral = Literal["organizer", "member"]
+
     class Role(models.TextChoices):
         ORGANIZER = "organizer", "Организатор"
         MEMBER = "member", "Участник"
@@ -64,8 +67,12 @@ class Participant(models.Model):
         max_length=16,
         choices=Role.choices,
         default=Role.MEMBER,
+        db_index=True,
     )
     joined_at = models.DateTimeField("Дата присоединения", auto_now_add=True)
+
+    if TYPE_CHECKING:
+        role: RoleLiteral
 
     class Meta:
         verbose_name = "Участник"

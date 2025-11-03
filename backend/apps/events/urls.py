@@ -10,6 +10,10 @@ from apps.events.views_invites import (
     RevokeInviteView,
     ValidateInviteView,
 )
+from apps.events.views_participants import (
+    EventParticipantDetailView,
+    EventParticipantListView,
+)
 from apps.tasks.views import EventProgressView
 
 router = DefaultRouter()
@@ -17,6 +21,16 @@ router.register(r"events", EventViewSet, basename="event")
 
 urlpatterns = [
     *router.urls,
+    path(
+        "events/<int:event_id>/participants",
+        EventParticipantListView.as_view(),
+        name="event-participants",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>",
+        EventParticipantDetailView.as_view(),
+        name="event-participant-detail",
+    ),
     path(
         "events/<int:event_id>/invites",
         EventInviteCreateView.as_view(),

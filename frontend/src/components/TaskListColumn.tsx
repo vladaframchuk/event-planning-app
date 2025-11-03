@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {
   type DragEvent,
@@ -27,7 +27,7 @@ type DropTaskIndicator = { listId: number | null; index: number | null };
 
 type TaskListColumnProps = {
   list: TaskList & { tasks: Task[] };
-  isOwner: boolean;
+  canManage: boolean;
   isSyncing: boolean;
   dragContext: DragContext;
   dropListId: number | null;
@@ -62,7 +62,7 @@ const DRAG_TYPE_TASK = 'application/x-event-taskboard-task';
 
 const TaskListColumn = ({
   list,
-  isOwner,
+  canManage,
   isSyncing,
   dragContext,
   dropListId,
@@ -153,7 +153,7 @@ const TaskListColumn = ({
   };
 
   const handleContextMenu = (event: MouseEvent<HTMLElement>) => {
-    if (!isOwner) {
+    if (!canManage) {
       return;
     }
     event.preventDefault();
@@ -175,7 +175,7 @@ const TaskListColumn = ({
 
   const handleDeleteListFromMenu = () => {
     closeContextMenu();
-    if (!isOwner || isSyncing || isDeletingList) {
+    if (!canManage || isSyncing || isDeletingList) {
       return;
     }
     setDeleteDialogOpen(true);
@@ -214,7 +214,7 @@ const TaskListColumn = ({
   };
 
   const handleHeaderDragStart = (event: DragEvent<HTMLDivElement>) => {
-    if (!isOwner || isSyncing) {
+    if (!canManage || isSyncing) {
       event.preventDefault();
       return;
     }
@@ -228,7 +228,7 @@ const TaskListColumn = ({
   };
 
   const handleSectionDragOver = (event: DragEvent<HTMLElement>) => {
-    if (!isOwner || dragContext?.type !== 'list' || dragContext.id === list.id) {
+    if (!canManage || dragContext?.type !== 'list' || dragContext.id === list.id) {
       return;
     }
     event.preventDefault();
@@ -237,7 +237,7 @@ const TaskListColumn = ({
   };
 
   const handleSectionDrop = (event: DragEvent<HTMLElement>) => {
-    if (!isOwner || dragContext?.type !== 'list' || dragContext.id === list.id) {
+    if (!canManage || dragContext?.type !== 'list' || dragContext.id === list.id) {
       return;
     }
     event.preventDefault();
@@ -245,7 +245,7 @@ const TaskListColumn = ({
   };
 
   const handleHeaderKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (!isOwner || isSyncing) {
+    if (!canManage || isSyncing) {
       return;
     }
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
@@ -260,7 +260,7 @@ const TaskListColumn = ({
   };
 
   const handleTasksContainerDragOver = (event: DragEvent<HTMLDivElement>) => {
-    if (!isOwner || dragContext?.type !== 'task') {
+    if (!canManage || dragContext?.type !== 'task') {
       return;
     }
     const targetElement = event.target as HTMLElement | null;
@@ -274,7 +274,7 @@ const TaskListColumn = ({
   };
 
   const handleTasksContainerDrop = (event: DragEvent<HTMLDivElement>) => {
-    if (!isOwner || dragContext?.type !== 'task') {
+    if (!canManage || dragContext?.type !== 'task') {
       return;
     }
     const targetElement = event.target as HTMLElement | null;
@@ -287,7 +287,7 @@ const TaskListColumn = ({
   };
 
   const handleTaskDragStart = (task: Task) => (event: DragEvent<HTMLElement>) => {
-    if (!isOwner || isSyncing) {
+    if (!canManage || isSyncing) {
       event.preventDefault();
       return;
     }
@@ -297,7 +297,7 @@ const TaskListColumn = ({
   };
 
   const handleTaskDragOver = (index: number) => (event: DragEvent<HTMLElement>) => {
-    if (!isOwner || dragContext?.type !== 'task') {
+    if (!canManage || dragContext?.type !== 'task') {
       return;
     }
     event.preventDefault();
@@ -306,7 +306,7 @@ const TaskListColumn = ({
   };
 
   const handleTaskDrop = (index: number) => (event: DragEvent<HTMLElement>) => {
-    if (!isOwner || dragContext?.type !== 'task') {
+    if (!canManage || dragContext?.type !== 'task') {
       return;
     }
     event.preventDefault();
@@ -314,7 +314,7 @@ const TaskListColumn = ({
   };
 
   const handleTaskKeyDown = (task: Task) => (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (!isOwner || isSyncing) {
+    if (!canManage || isSyncing) {
       return;
     }
     if (event.key === ' ' || event.key === 'SpaceBar') {
@@ -347,11 +347,11 @@ const TaskListColumn = ({
   const totalTaskCount = tasks.length;
   const taskCountLabel =
     showMyTasksOnly && myParticipantId !== null && visibleTaskCount !== totalTaskCount
-      ? `Задач: ${visibleTaskCount} / ${totalTaskCount}`
-      : `Задач: ${totalTaskCount}`;
+      ? `Р—Р°РґР°С‡: ${visibleTaskCount} / ${totalTaskCount}`
+      : `Р—Р°РґР°С‡: ${totalTaskCount}`;
 
-  const baseEmptyMessage = 'Задач пока нет. Перетащите карточку или создайте новую.';
-  const filteredEmptyMessage = 'Для вас пока нет задач в этой колонке.';
+  const baseEmptyMessage = 'Р—Р°РґР°С‡ РїРѕРєР° РЅРµС‚. РџРµСЂРµС‚Р°С‰РёС‚Рµ РєР°СЂС‚РѕС‡РєСѓ РёР»Рё СЃРѕР·РґР°Р№С‚Рµ РЅРѕРІСѓСЋ.';
+  const filteredEmptyMessage = 'Р”Р»СЏ РІР°СЃ РїРѕРєР° РЅРµС‚ Р·Р°РґР°С‡ РІ СЌС‚РѕР№ РєРѕР»РѕРЅРєРµ.';
   const emptyMessage =
     totalTaskCount === 0 || !showMyTasksOnly || myParticipantId === null ? baseEmptyMessage : filteredEmptyMessage;
 
@@ -406,11 +406,11 @@ const TaskListColumn = ({
       <header className="flex items-center justify-between gap-3 rounded-t-2xl bg-neutral-50 px-4 py-3 dark:bg-neutral-800">
         <div
           className="flex flex-1 cursor-grab select-none flex-col gap-1 focus:outline-none"
-          draggable={isOwner && !isSyncing}
+          draggable={canManage && !isSyncing}
           onDragStart={handleHeaderDragStart}
           onDragEnd={handleHeaderDragEnd}
-          tabIndex={isOwner ? 0 : undefined}
-          role={isOwner ? 'button' : undefined}
+          tabIndex={canManage ? 0 : undefined}
+          role={canManage ? 'button' : undefined}
           aria-grabbed={isListDragging}
           aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
           onKeyDown={handleHeaderKeyDown}
@@ -418,13 +418,13 @@ const TaskListColumn = ({
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{list.title}</h2>
           <span className="text-xs text-neutral-500 dark:text-neutral-400">{taskCountLabel}</span>
         </div>
-        {isOwner ? (
+        {canManage ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onAddTask(list)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label={`Добавить задачу в колонку ${list.title}`}
+              aria-label={`Р”РѕР±Р°РІРёС‚СЊ Р·Р°РґР°С‡Сѓ РІ РєРѕР»РѕРЅРєСѓ ${list.title}`}
               disabled={isSyncing || isDeletingList}
             >
               +
@@ -432,7 +432,7 @@ const TaskListColumn = ({
           </div>
         ) : null}
       </header>
-      {isContextMenuOpen && isOwner ? (
+      {isContextMenuOpen && canManage ? (
         <div
           ref={menuRef}
           className="absolute z-30 min-w-[180px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
@@ -445,7 +445,7 @@ const TaskListColumn = ({
             className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
             role="menuitem"
           >
-            Удалить категорию
+            РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ
           </button>
         </div>
       ) : null}
@@ -453,7 +453,7 @@ const TaskListColumn = ({
       <div
         className="flex flex-1 flex-col gap-3 p-4"
         role="list"
-        aria-label={`Задачи колонки ${list.title}`}
+        aria-label={`Р—Р°РґР°С‡Рё РєРѕР»РѕРЅРєРё ${list.title}`}
         aria-dropeffect={dragContext?.type === 'task' ? 'move' : undefined}
         onDragOver={handleTasksContainerDragOver}
         onDrop={handleTasksContainerDrop}
@@ -493,7 +493,7 @@ const TaskListColumn = ({
                   role="listitem"
                   tabIndex={0}
                   className={taskClasses.join(' ')}
-                  draggable={isOwner && !isSyncing}
+                  draggable={canManage && !isSyncing}
                   onDragStart={handleTaskDragStart(task)}
                   onDragOver={handleTaskDragOver(originalIndex)}
                   onDrop={handleTaskDrop(originalIndex)}
@@ -506,7 +506,7 @@ const TaskListColumn = ({
                     assignee={assigneeParticipant}
                     canTake={permission.canTake}
                     canChangeStatus={permission.canChangeStatus}
-                    canDelete={isOwner}
+                    canDelete={canManage}
                     isBusy={isTaskPending(task.id)}
                     onTake={() => onTakeTask(task.id)}
                     onDelete={() => onDeleteTask(list.id, task.id)}
@@ -524,10 +524,10 @@ const TaskListColumn = ({
     </section>
     <ConfirmDialog
       open={isDeleteDialogOpen}
-      title={`Удалить категорию "${list.title}"?`}
-      message="Будут также удалены все задачи этой категории. Действие необратимо."
-      confirmLabel="Удалить"
-      cancelLabel="Отмена"
+      title={`РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ "${list.title}"?`}
+      message="Р‘СѓРґСѓС‚ С‚Р°РєР¶Рµ СѓРґР°Р»РµРЅС‹ РІСЃРµ Р·Р°РґР°С‡Рё СЌС‚РѕР№ РєР°С‚РµРіРѕСЂРёРё. Р”РµР№СЃС‚РІРёРµ РЅРµРѕР±СЂР°С‚РёРјРѕ."
+      confirmLabel="РЈРґР°Р»РёС‚СЊ"
+      cancelLabel="РћС‚РјРµРЅР°"
       onConfirm={handleDeleteListConfirm}
       onCancel={handleDeleteListCancel}
       isProcessing={isDeletingList}
@@ -537,3 +537,5 @@ const TaskListColumn = ({
 };
 
 export default TaskListColumn;
+
+

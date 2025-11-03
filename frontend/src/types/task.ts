@@ -1,3 +1,5 @@
+import type { Role } from '@/types/event';
+
 export type TaskStatus = 'todo' | 'doing' | 'done';
 
 export type Task = {
@@ -17,7 +19,7 @@ export type Task = {
 
 export type BoardParticipant = {
   id: number;
-  role: string;
+  role: Role;
   user: {
     id: number;
     email: string;
@@ -39,6 +41,7 @@ export type Board = {
   event: { id: number; title: string };
   lists: Array<TaskList & { tasks: Task[] }>;
   isOwner: boolean;
+  viewerRole: Role | null;
   participants: BoardParticipant[];
 };
 

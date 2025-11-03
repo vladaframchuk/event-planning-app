@@ -3,6 +3,22 @@ export type EventOwner = {
   email: string;
 };
 
+export type Role = 'organizer' | 'member';
+
+export type EventParticipantUser = {
+  id: number;
+  email: string;
+  name: string | null;
+  avatar?: string | null;
+};
+
+export type Participant = {
+  id: number;
+  role: Role;
+  joinedAt: string;
+  user: EventParticipantUser;
+};
+
 export type Event = {
   id: number;
   title: string;
@@ -12,6 +28,7 @@ export type Event = {
   endAt: string | null;
   location: string | null;
   owner: EventOwner;
+  viewerRole?: Role | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -18,6 +18,7 @@ type ApiEvent = {
   end_at: string | null;
   location: string | null;
   owner: EventOwner;
+  viewer_role?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -55,18 +56,23 @@ export type EventProgress = {
 
 const EVENT_LIST_PATH = '/api/events/';
 
-const mapEvent = (payload: ApiEvent): Event => ({
-  id: payload.id,
-  title: payload.title,
-  category: payload.category,
-  description: payload.description,
-  startAt: payload.start_at,
-  endAt: payload.end_at,
-  location: payload.location,
-  owner: payload.owner,
-  createdAt: payload.created_at,
-  updatedAt: payload.updated_at,
-});
+const mapEvent = (payload: ApiEvent): Event => {
+  const viewerRole = payload.viewer_role === 'organizer' || payload.viewer_role === 'member' ? payload.viewer_role : null;
+
+  return {
+    id: payload.id,
+    title: payload.title,
+    category: payload.category,
+    description: payload.description,
+    startAt: payload.start_at,
+    endAt: payload.end_at,
+    location: payload.location,
+    owner: payload.owner,
+    viewerRole,
+    createdAt: payload.created_at,
+    updatedAt: payload.updated_at,
+  };
+};
 
 const serializeEventInput = (input: EventInput): ApiEventInput => {
   const payload: ApiEventInput = {};
