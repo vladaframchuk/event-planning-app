@@ -1,32 +1,34 @@
-"use client";
+'use client';
 
 import { useMemo } from 'react';
 
 import { useRealtimeStatus } from '@/context/realtimeStatus';
+import { t } from '@/lib/i18n';
 
 const AppFooter = () => {
   const status = useRealtimeStatus();
 
   const indicator = useMemo(() => {
-    if (status === 'connected') {
-      return {
-        symbol: '✅',
-        label: 'online',
-        className: 'text-emerald-500 dark:text-emerald-400',
-      };
+    switch (status) {
+      case 'connected':
+        return {
+          symbol: t('app.footer.status.connected.symbol'),
+          label: t('app.footer.status.connected.label'),
+          className: 'text-emerald-500 dark:text-emerald-400',
+        };
+      case 'connecting':
+        return {
+          symbol: t('app.footer.status.connecting.symbol'),
+          label: t('app.footer.status.connecting.label'),
+          className: 'text-amber-500 dark:text-amber-400 animate-pulse',
+        };
+      default:
+        return {
+          symbol: t('app.footer.status.disconnected.symbol'),
+          label: t('app.footer.status.disconnected.label'),
+          className: 'text-red-500 dark:text-red-400',
+        };
     }
-    if (status === 'connecting') {
-      return {
-        symbol: '⏳',
-        label: 'reconnecting…',
-        className: 'text-amber-500 dark:text-amber-400 animate-pulse',
-      };
-    }
-    return {
-      symbol: '⚠',
-      label: 'offline',
-      className: 'text-red-500 dark:text-red-400',
-    };
   }, [status]);
 
   return (
@@ -35,7 +37,7 @@ const AppFooter = () => {
         <span className={`text-base ${indicator.className}`} aria-hidden>
           {indicator.symbol}
         </span>
-        <span className="ml-2">realtime: {indicator.label}</span>
+        <span className="ml-2">{t('app.footer.caption', { status: indicator.label })}</span>
       </div>
     </footer>
   );

@@ -1,25 +1,25 @@
-{% load i18n %}
+﻿{% load i18n %}
 <!DOCTYPE html>
 <html lang="ru">
   <body style="font-family: Arial, sans-serif; line-height: 1.4;">
     <p>
-      {% blocktrans with name=user.name|default:_("коллега") %}
-        Привет, {{ name }}!
+      {% blocktrans with name=user.name|default:_("гость") %}
+        Здравствуйте, {{ name }}!
       {% endblocktrans %}
     </p>
     <p>
-      {% trans "Напоминаем: в ближайшие 24 часа подходят дедлайны по следующим задачам:" %}
+      {% trans "В ближайшие 24 часа нужно завершить следующие задачи:" %}
     </p>
     <ul>
       {% for task in tasks %}
         <li>
           <strong>{{ task.title }}</strong>
-          — {% trans "ивент" %}: {{ task.event_title }},
-          {% trans "список" %}: {{ task.list_title }},
-          {% trans "дедлайн" %}: {{ task.due_at|date:"d.m.Y H:i" }}
+          — {% trans "Событие" %}: {{ task.event_title }},
+          {% trans "Список" %}: {{ task.list_title }},
+          {% trans "Дедлайн" %}: {{ task.due_at|date:"d.m.Y H:i" }}
         </li>
       {% endfor %}
     </ul>
-    <p>{% trans "Успейте завершить их вовремя!" %}</p>
+    <p>{% trans "Успешного завершения задач!" %}</p>
   </body>
 </html>

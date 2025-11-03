@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getAccessToken, logout } from '@/lib/authClient';
+import { t } from '@/lib/i18n';
 import { getMe } from '@/lib/profileApi';
 import { PROFILE_AVATAR_UPDATED_EVENT, type ProfileAvatarUpdatedDetail } from '@/lib/profileEvents';
 
@@ -94,14 +95,14 @@ const computeInitials = (fullName: string | null, email: string | null): string 
     return fromEmail;
   }
 
-  return 'U';
+  return t('app.header.defaultInitials');
 };
 
 const buildProfileSummary = (): ProfileSummary => {
   const payload = decodeTokenPayload(getAccessToken());
 
   if (!payload) {
-    return { displayName: 'Гость', initials: 'U' };
+    return { displayName: t('app.header.defaultDisplayName'), initials: t('app.header.defaultInitials') };
   }
 
   const avatarUrl = pickFirstString(payload, ['avatar', 'avatar_url', 'avatarUrl', 'picture']);
@@ -113,7 +114,7 @@ const buildProfileSummary = (): ProfileSummary => {
       .trim();
 
   const email = pickFirstString(payload, ['email', 'preferred_username', 'sub']);
-  const displayName = fullName && fullName.length > 0 ? fullName : email ?? 'Профиль';
+  const displayName = fullName && fullName.length > 0 ? fullName : email ?? t('app.header.defaultDisplayName');
   const initials = computeInitials(fullName ?? null, email ?? null);
 
   return {
@@ -271,7 +272,10 @@ const AppHeader = (): JSX.Element => {
     router.refresh();
   }, [closeMenu, refreshProfile, refreshProfileFromToken, router]);
 
-  const profileButtonLabel = useMemo(() => `Открыть меню профиля: ${profile.displayName}`, [profile.displayName]);
+  const profileButtonLabel = useMemo(
+    () => t('app.header.profileButtonLabel', { name: profile.displayName }),
+    [profile.displayName],
+  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:border-neutral-800 dark:bg-neutral-900/85">
@@ -280,7 +284,7 @@ const AppHeader = (): JSX.Element => {
           href="/events"
           className="text-lg font-semibold text-neutral-900 transition hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-neutral-100 dark:hover:text-blue-400"
         >
-          Event Planning
+          {t('app.header.brand')}
         </Link>
 
         <div className="relative" ref={menuRef}>
@@ -318,13 +322,13 @@ const AppHeader = (): JSX.Element => {
                 {profile.displayName}
               </p>
               <button type="button" className={menuClasses} role="menuitem" onClick={handleProfileNavigation}>
-                Профиль
+                {t('app.header.menu.profile')}
               </button>
               <button type="button" className={menuClasses} role="menuitem" onClick={handleSwitchAccount}>
-                Сменить аккаунт
+                {t('app.header.menu.switchAccount')}
               </button>
               <button type="button" className={menuClasses} role="menuitem" onClick={handleLogout}>
-                Выйти
+                {t('app.header.menu.logout')}
               </button>
             </div>
           ) : null}

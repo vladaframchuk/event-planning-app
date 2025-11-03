@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 User = get_user_model()
@@ -18,8 +19,6 @@ class MeSerializer(serializers.ModelSerializer):
             "email",
             "name",
             "avatar_url",
-            "locale",
-            "timezone",
             "date_joined",
             "email_notifications_enabled",
         )
@@ -40,12 +39,10 @@ class MeSerializer(serializers.ModelSerializer):
 class MeUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("name", "avatar_url", "locale", "timezone")
+        fields = ("name", "avatar_url")
         extra_kwargs = {
             "name": {"required": False, "allow_null": True, "allow_blank": True},
             "avatar_url": {"required": False, "allow_null": True, "allow_blank": True},
-            "locale": {"required": False, "allow_null": True, "allow_blank": True},
-            "timezone": {"required": False, "allow_null": True, "allow_blank": True},
         }
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
@@ -58,7 +55,7 @@ class MeUpdateSerializer(serializers.ModelSerializer):
                 instance.avatar = None
                 changed_fields.add("avatar")
 
-        for field in ("name", "locale", "timezone"):
+        for field in ("name",):
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
                 changed_fields.add(field)
@@ -77,13 +74,14 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate_old_password(self, value: str) -> str:
         user = self.context.get("request").user  # type: ignore[assignment]
         if not user.check_password(value):
-            raise serializers.ValidationError("Current password is incorrect.", code="invalid")
+            raise serializers.ValidationError(_("Текущий пароль указан неверно."), code="invalid")
         return value
 
     def validate_new_password(self, value: str) -> str:
         if len(value) < self.MIN_LENGTH:
             raise serializers.ValidationError(
-                f"New password must be at least {self.MIN_LENGTH} characters long.",
+                _("Новый пароль должен содержать не менее %(min_length)d символов.")
+                % {"min_length": self.MIN_LENGTH},
                 code="min_length",
             )
 
@@ -92,7 +90,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
         if not (has_letter and has_digit):
             raise serializers.ValidationError(
-                "New password must contain at least one letter and one digit.",
+                _("Новый пароль должен содержать хотя бы одну букву и одну цифру."),
                 code="weak_password",
             )
 
@@ -101,7 +99,7 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate(self, attrs: dict[str, str]) -> dict[str, str]:
         if attrs["old_password"] == attrs["new_password"]:
             raise serializers.ValidationError(
-                {"new_password": "New password must be different from the current password."},
+                {"new_password": _("Новый пароль должен отличаться от текущего.")},
                 code="password_same",
             )
         return attrs
@@ -122,19 +120,19 @@ class EmailChangeRequestSerializer(serializers.Serializer):
         normalized = value.strip().lower()
         if normalized == user.email.lower():
             raise serializers.ValidationError(
-                "New email must be different from the current email.",
+                _("Новый email должен отличаться от текущего."),
                 code="same_email",
             )
         if User.objects.filter(email__iexact=normalized).exclude(pk=user.pk).exists():
             raise serializers.ValidationError(
-                "This email is already in use.",
+                _("Этот email уже используется."),
                 code="email_in_use",
             )
         return normalized
 
 
 class NotificationSettingsSerializer(serializers.Serializer):
-    """Сериализатор для управления настройками email-уведомлений пользователя."""
+    """Настройки уведомлений по электронной почте."""
 
     email_notifications_enabled = serializers.BooleanField()
 

@@ -8,6 +8,7 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 from django.utils import timezone as django_timezone
+from django.utils.translation import gettext_lazy as _
 
 
 def user_avatar_upload_to(instance: "User", filename: str) -> str:
@@ -50,14 +51,12 @@ class UserManager(BaseUserManager["User"]):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """User model based on email authentication."""
-
     email = models.EmailField("Email", unique=True)
     name = models.CharField("Name", max_length=255, null=True, blank=True)
     email_notifications_enabled = models.BooleanField(
-        "Email notifications enabled",
+        _('Уведомления на email включены'),
         default=True,
-        help_text="Флаг согласия на получение уведомлений по электронной почте.",
+        help_text=_('Получайте напоминания и обновления о событиях на электронную почту.'),
     )
     avatar = models.ImageField(
         "Avatar",
@@ -71,8 +70,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         blank=True,
     )
-    locale = models.CharField("Locale", max_length=32, null=True, blank=True)
-    timezone = models.CharField("Timezone", max_length=64, null=True, blank=True)
     is_active = models.BooleanField("Active", default=True)
     is_staff = models.BooleanField("Staff", default=False)
     date_joined = models.DateTimeField("Date joined", default=django_timezone.now)

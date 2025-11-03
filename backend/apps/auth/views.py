@@ -64,7 +64,7 @@ class LoginView(TokenObtainPairView):
                     pass
                 else:
                     if not user.is_active:
-                        message = _("Аккаунт ещё не подтверждён. Проверьте почту.")
+                        message = _("Учётная запись ещё не активирована. Проверьте почту.")
                         return Response(
                             {"detail": message},
                             status=status.HTTP_400_BAD_REQUEST,

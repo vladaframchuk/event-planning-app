@@ -8,6 +8,7 @@ import EventNavigation from '@/components/EventNavigation';
 import ParticipantsTable from '@/components/participants/ParticipantsTable';
 import { getParticipants, removeParticipant, updateParticipantRole } from '@/lib/api/participants';
 import { getEventById } from '@/lib/eventsApi';
+import { t } from '@/lib/i18n';
 import { createInvite } from '@/lib/invitesApi';
 import { getMe, type Profile } from '@/lib/profileApi';
 import type { Event, Participant, Role } from '@/types/event';
@@ -80,7 +81,7 @@ const ParticipantsPage = () => {
   const roleMutation = useMutation<void, Error, { participantId: number; role: Role }, { previous?: Participant[] }>({
     mutationFn: ({ participantId, role }) => {
       if (eventId === null) {
-        throw new Error('Событие не найдено.');
+        throw new Error(t('event.participants.errors.eventMissing'));
       }
       return updateParticipantRole(eventId, participantId, role);
     },
@@ -98,11 +99,11 @@ const ParticipantsPage = () => {
       if (context?.previous) {
         queryClient.setQueryData(participantsQueryKey, context.previous);
       }
-      const message = error instanceof Error ? error.message : 'Не удалось изменить роль участника.';
+      const message = error instanceof Error ? error.message : t('event.participants.errors.roleUpdateGeneric');
       setToast({ id: Date.now(), message, type: 'error' });
     },
     onSuccess: () => {
-      setToast({ id: Date.now(), message: 'Роль участника обновлена.', type: 'success' });
+      setToast({ id: Date.now(), message: t('event.participants.toast.roleUpdated'), type: 'success' });
     },
     onSettled: () => {
       setRoleChangingId(null);
@@ -113,7 +114,7 @@ const ParticipantsPage = () => {
   const removeMutation = useMutation<void, Error, { participantId: number }, { previous?: Participant[] }>({
     mutationFn: ({ participantId }) => {
       if (eventId === null) {
-        throw new Error('Событие не найдено.');
+        throw new Error(t('event.participants.errors.eventMissing'));
       }
       return removeParticipant(eventId, participantId);
     },
@@ -131,11 +132,11 @@ const ParticipantsPage = () => {
       if (context?.previous) {
         queryClient.setQueryData(participantsQueryKey, context.previous);
       }
-      const message = error instanceof Error ? error.message : 'Не удалось удалить участника.';
+      const message = error instanceof Error ? error.message : t('event.participants.errors.removeParticipant');
       setToast({ id: Date.now(), message, type: 'error' });
     },
     onSuccess: () => {
-      setToast({ id: Date.now(), message: 'Участник удалён.', type: 'success' });
+      setToast({ id: Date.now(), message: t('event.participants.toast.participantRemoved'), type: 'success' });
     },
     onSettled: () => {
       setRemovingId(null);
@@ -164,12 +165,16 @@ const ParticipantsPage = () => {
       const invite = await createInvite(eventId, { expiresInHours: 48, maxUses: 0 });
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(invite.invite_url);
-        setToast({ id: Date.now(), message: 'Ссылка приглашения скопирована.', type: 'success' });
+        setToast({ id: Date.now(), message: t('event.participants.toast.inviteCopied'), type: 'success' });
       } else {
-        setToast({ id: Date.now(), message: invite.invite_url, type: 'success' });
+        setToast({
+          id: Date.now(),
+          message: t('event.participants.toast.inviteReady', { url: invite.invite_url }),
+          type: 'success',
+        });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Не удалось скопировать ссылку.';
+      const message = error instanceof Error ? error.message : t('event.participants.errors.inviteCreate');
       setToast({ id: Date.now(), message, type: 'error' });
     } finally {
       setCopyPending(false);
@@ -179,8 +184,8 @@ const ParticipantsPage = () => {
   if (eventId === null) {
     return (
       <section className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-        <h1 className="text-xl font-semibold">Не удалось определить событие.</h1>
-        <p className="mt-2 text-sm">Проверьте ссылку и попробуйте снова.</p>
+        <h1 className="text-xl font-semibold">{t('event.participants.eventMissing.title')}</h1>
+        <p className="mt-2 text-sm">{t('event.participants.eventMissing.description')}</p>
       </section>
     );
   }
@@ -188,19 +193,19 @@ const ParticipantsPage = () => {
   if (eventQuery.isLoading || profileQuery.isLoading) {
     return (
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:flex-row">
-        <EventNavigation eventId={eventId} />
+        <EventNavigation eventId={eventId} isOrganizer />
         <section className="flex-1 rounded-2xl border border-neutral-200 bg-white p-6 text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-          Загрузка данных...
+          {t('event.participants.loading')}
         </section>
       </main>
     );
   }
 
   if (eventQuery.isError || !eventQuery.data) {
-    const message = eventQuery.error?.message ?? 'Не удалось загрузить событие.';
+    const message = eventQuery.error?.message ?? t('event.participants.errors.eventLoad');
     return (
       <section className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-        <h1 className="text-xl font-semibold">Ошибка загрузки события</h1>
+        <h1 className="text-xl font-semibold">{t('event.participants.errors.eventLoadTitle')}</h1>
         <p className="mt-2 text-sm">{message}</p>
       </section>
     );
@@ -211,7 +216,7 @@ const ParticipantsPage = () => {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:flex-row">
-      <EventNavigation eventId={eventId} />
+      <EventNavigation eventId={eventId} isOrganizer />
       <section className="flex-1 space-y-6">
         {toast ? (
           <div
@@ -226,15 +231,17 @@ const ParticipantsPage = () => {
               onClick={() => setToast(null)}
               className="ml-4 text-xs font-semibold uppercase tracking-wide text-white/80 hover:text-white"
             >
-              Закрыть
+              {t('event.participants.toast.close')}
             </button>
           </div>
         ) : null}
 
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">Участники</h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">Управляйте ролями и приглашениями.</p>
+            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+              {t('event.participants.heading')}
+            </h1>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('event.participants.subtitle')}</p>
           </div>
           {isOrganizer ? (
             <button
@@ -243,25 +250,27 @@ const ParticipantsPage = () => {
               disabled={isCopyPending}
               className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:bg-blue-600/70"
             >
-              {isCopyPending ? 'Ссылка...' : 'Скопировать ссылку'}
+              {isCopyPending
+                ? t('event.participants.buttons.copyInviteLoading')
+                : t('event.participants.buttons.copyInvite')}
             </button>
           ) : null}
         </header>
 
         {!isOrganizer ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-            Только организаторы могут управлять участниками события.
+            {t('event.participants.noAccess')}
           </div>
         ) : participantsError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600 shadow-sm dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-            <h2 className="text-lg font-semibold">Ошибка загрузки участников</h2>
+            <h2 className="text-lg font-semibold">{t('event.participants.errors.listTitle')}</h2>
             <p className="mt-2">{participantsError.message}</p>
             <button
               type="button"
               onClick={() => participantsQuery.refetch()}
               className="mt-4 inline-flex items-center rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900/30"
             >
-              Повторить попытку
+              {t('event.participants.buttons.retry')}
             </button>
           </div>
         ) : (

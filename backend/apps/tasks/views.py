@@ -6,6 +6,7 @@ from django.db import transaction
 from django.db.models import Max, Prefetch, QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied, ValidationError
 from rest_framework.decorators import action
@@ -82,7 +83,7 @@ def _get_task_event_id(task_id: int | None) -> int | None:
 def _validate_ordered_ids(raw_value: Any) -> list[int]:
     """Validate that ordered_ids is a list of unique integers."""
     if not isinstance(raw_value, list):
-        raise ValidationError({"ordered_ids": ["ordered_ids must be provided as a list of integers."]})
+        raise ValidationError({"ordered_ids": [_("Поле ordered_ids должно быть списком целых чисел.")]})
     if not raw_value:
         return []
 

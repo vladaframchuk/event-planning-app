@@ -1,18 +1,18 @@
-{% load i18n %}
+﻿{% load i18n %}
 <!DOCTYPE html>
 <html lang="ru">
   <body style="font-family: Arial, sans-serif; line-height: 1.4;">
     <p>
-      {% blocktrans with name=user.name|default:_("коллега") %}
-        Здравствуйте, {{ name }}!
+      {% blocktrans with name=user.name|default:_("гость") %}
+        Привет, {{ name }}!
       {% endblocktrans %}
     </p>
     <p>
-      {% trans "Спасибо за регистрацию в Event Planner. Чтобы активировать аккаунт, перейдите по ссылке:" %}
+      {% trans "Вы зарегистрировались в Event planning app. Чтобы активировать учётную запись, подтвердите электронную почту по ссылке ниже." %}
     </p>
     <p>
       <a href="{{ confirmation_link }}">{{ confirmation_link }}</a>
     </p>
-    <p>{% trans "Если вы не регистрировались, просто проигнорируйте это письмо." %}</p>
+    <p>{% trans "Если вы не создавали аккаунт, просто проигнорируйте это письмо." %}</p>
   </body>
 </html>

@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { t } from '@/lib/i18n';
 import * as profileApi from '@/lib/profileApi';
 
 import ProfileAccountPanel from '../ProfileAccountPanel';
@@ -33,15 +34,15 @@ describe('ProfileAccountPanel', () => {
       />,
     );
 
-    const input = screen.getByLabelText(/New email/i);
+    const input = screen.getByLabelText(t('profile.account.field.newEmail'));
     fireEvent.change(input, { target: { value: 'new@example.com' } });
 
-    const button = screen.getByRole('button', { name: /Send confirmation/i });
+    const button = screen.getByRole('button', { name: t('profile.account.action.sendConfirmation') });
     fireEvent.click(button);
 
     expect(requestEmailChangeMock).toHaveBeenCalledWith({ new_email: 'new@example.com' });
 
-    await screen.findByText(/Confirmation email sent to new@example.com/i);
+    await screen.findByText(t('profile.account.emailChange.status', { email: 'new@example.com' }));
   });
 
   it('toggles email notifications', async () => {
@@ -57,12 +58,12 @@ describe('ProfileAccountPanel', () => {
       />,
     );
 
-    const toggle = screen.getByRole('button', { name: /Toggle email reminders/i });
+    const toggle = screen.getByRole('button', { name: t('profile.account.notifications.toggleAria') });
     fireEvent.click(toggle);
 
     expect(updateEmailNotificationsMock).toHaveBeenCalledWith({ email_notifications_enabled: true });
     await waitFor(() => {
-      expect(notify).toHaveBeenCalledWith('success', 'Email reminders enabled.');
+      expect(notify).toHaveBeenCalledWith('success', t('profile.account.notifications.enabled'));
       expect(onEmailNotificationsChange).toHaveBeenCalledWith(true);
     });
   });

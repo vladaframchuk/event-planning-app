@@ -241,7 +241,7 @@ const EventDetailsPage = () => {
               </div>
             </div>
           </div>
-          <EventNavigation eventId={event.id} className="lg:mt-0" />
+          <EventNavigation eventId={event.id} className="lg:mt-0" isOrganizer={isOrganizer} />
         </div>
       </section>
 

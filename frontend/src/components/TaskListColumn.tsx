@@ -347,11 +347,11 @@ const TaskListColumn = ({
   const totalTaskCount = tasks.length;
   const taskCountLabel =
     showMyTasksOnly && myParticipantId !== null && visibleTaskCount !== totalTaskCount
-      ? `Р—Р°РґР°С‡: ${visibleTaskCount} / ${totalTaskCount}`
-      : `Р—Р°РґР°С‡: ${totalTaskCount}`;
+      ? `Задач: ${visibleTaskCount} / ${totalTaskCount}`
+      : `Задач: ${totalTaskCount}`;
 
-  const baseEmptyMessage = 'Р—Р°РґР°С‡ РїРѕРєР° РЅРµС‚. РџРµСЂРµС‚Р°С‰РёС‚Рµ РєР°СЂС‚РѕС‡РєСѓ РёР»Рё СЃРѕР·РґР°Р№С‚Рµ РЅРѕРІСѓСЋ.';
-  const filteredEmptyMessage = 'Р”Р»СЏ РІР°СЃ РїРѕРєР° РЅРµС‚ Р·Р°РґР°С‡ РІ СЌС‚РѕР№ РєРѕР»РѕРЅРєРµ.';
+  const baseEmptyMessage = 'Задач пока нет. Перетащите карточку или создайте новую.';
+  const filteredEmptyMessage = 'Для вас пока нет задач в этой колонке.';
   const emptyMessage =
     totalTaskCount === 0 || !showMyTasksOnly || myParticipantId === null ? baseEmptyMessage : filteredEmptyMessage;
 
@@ -424,7 +424,7 @@ const TaskListColumn = ({
               type="button"
               onClick={() => onAddTask(list)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label={`Р”РѕР±Р°РІРёС‚СЊ Р·Р°РґР°С‡Сѓ РІ РєРѕР»РѕРЅРєСѓ ${list.title}`}
+              aria-label={`Добавить задачу в колонку ${list.title}`}
               disabled={isSyncing || isDeletingList}
             >
               +
@@ -445,7 +445,7 @@ const TaskListColumn = ({
             className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
             role="menuitem"
           >
-            РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ
+            Удалить категорию
           </button>
         </div>
       ) : null}
@@ -453,7 +453,7 @@ const TaskListColumn = ({
       <div
         className="flex flex-1 flex-col gap-3 p-4"
         role="list"
-        aria-label={`Р—Р°РґР°С‡Рё РєРѕР»РѕРЅРєРё ${list.title}`}
+        aria-label={`Задачи колонки ${list.title}`}
         aria-dropeffect={dragContext?.type === 'task' ? 'move' : undefined}
         onDragOver={handleTasksContainerDragOver}
         onDrop={handleTasksContainerDrop}
@@ -524,10 +524,10 @@ const TaskListColumn = ({
     </section>
     <ConfirmDialog
       open={isDeleteDialogOpen}
-      title={`РЈРґР°Р»РёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ "${list.title}"?`}
-      message="Р‘СѓРґСѓС‚ С‚Р°РєР¶Рµ СѓРґР°Р»РµРЅС‹ РІСЃРµ Р·Р°РґР°С‡Рё СЌС‚РѕР№ РєР°С‚РµРіРѕСЂРёРё. Р”РµР№СЃС‚РІРёРµ РЅРµРѕР±СЂР°С‚РёРјРѕ."
-      confirmLabel="РЈРґР°Р»РёС‚СЊ"
-      cancelLabel="РћС‚РјРµРЅР°"
+      title={`Удалить категорию "${list.title}"?`}
+      message="Будут также удалены все задачи этой категории. Действие необратимо."
+      confirmLabel="Удалить"
+      cancelLabel="Отмена"
       onConfirm={handleDeleteListConfirm}
       onCancel={handleDeleteListCancel}
       isProcessing={isDeletingList}

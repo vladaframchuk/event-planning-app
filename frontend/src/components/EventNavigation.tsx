@@ -4,40 +4,47 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 
+import { t } from '@/lib/i18n';
+
 type EventNavigationProps = {
   eventId: number;
   className?: string;
+  isOrganizer?: boolean;
 };
 
-const EventNavigation = ({ eventId, className = '' }: EventNavigationProps) => {
+const EventNavigation = ({ eventId, className = '', isOrganizer = false }: EventNavigationProps) => {
   const pathname = usePathname() ?? '';
   const basePath = `/events/${eventId}`;
 
   const links = useMemo(() => {
     const currentPath = pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
-    return [
+    const allLinks = [
       {
         href: basePath,
-        label: 'Overview',
+        label: t('event.navigation.overview'),
         active: currentPath === basePath,
       },
       {
         href: `${basePath}/participants`,
-        label: 'Participants',
+        label: t('event.navigation.participants'),
         active: currentPath.startsWith(`${basePath}/participants`),
       },
       {
         href: `${basePath}/chat`,
-        label: 'Chat',
+        label: t('event.navigation.chat'),
         active: currentPath.startsWith(`${basePath}/chat`),
       },
       {
         href: `${basePath}/polls`,
-        label: 'Polls',
+        label: t('event.navigation.polls'),
         active: currentPath.startsWith(`${basePath}/polls`),
       },
     ];
-  }, [basePath, pathname]);
+    if (!isOrganizer) {
+      return allLinks.filter((link) => link.href !== `${basePath}/participants`);
+    }
+    return allLinks;
+  }, [basePath, isOrganizer, pathname]);
 
   const containerClassName = [
     'w-full',
@@ -59,11 +66,11 @@ const EventNavigation = ({ eventId, className = '' }: EventNavigationProps) => {
   return (
     <aside className={containerClassName}>
       <nav
-        aria-label="Event sections navigation"
+        aria-label={t('event.navigation.ariaLabel')}
         className="flex h-full flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
         <p className="hidden px-4 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 lg:block">
-          Event sections
+          {t('event.navigation.sectionTitle')}
         </p>
         <ul className="flex w-full gap-2 overflow-x-auto px-3 pb-3 pt-2 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-4 lg:py-3">
           {links.map((link) => (

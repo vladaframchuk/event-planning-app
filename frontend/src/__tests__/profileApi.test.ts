@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { apiFetch } from '@/lib/fetcher';
 import { changePassword, getMe, requestEmailChange, updateMe, uploadAvatar } from '@/lib/profileApi';
@@ -14,15 +14,14 @@ describe('profileApi', () => {
     vi.clearAllMocks();
   });
 
-  it('getMe получает профиль текущего пользователя', async () => {
+  it('getMe fetches profile data', async () => {
     const profile = {
       id: 1,
       email: 'user@example.com',
       name: 'User',
       avatar_url: 'https://example.com/avatar.png',
-      locale: 'ru-RU',
-      timezone: 'Europe/Moscow',
       date_joined: '2024-01-01T00:00:00Z',
+      email_notifications_enabled: true,
     };
 
     mockedApiFetch.mockResolvedValueOnce(profile);
@@ -33,16 +32,15 @@ describe('profileApi', () => {
     expect(result).toEqual(profile);
   });
 
-  it('updateMe отправляет изменения профиля в JSON-формате', async () => {
-    const payload = { name: 'Alice', locale: 'en-US' };
+  it('updateMe sends JSON payload', async () => {
+    const payload = { name: 'Alice' };
     const updatedProfile = {
       id: 1,
       email: 'user@example.com',
       name: 'Alice',
       avatar_url: null,
-      locale: 'en-US',
-      timezone: 'UTC',
       date_joined: '2024-01-01T00:00:00Z',
+      email_notifications_enabled: false,
     };
 
     mockedApiFetch.mockResolvedValueOnce(updatedProfile);
@@ -57,7 +55,7 @@ describe('profileApi', () => {
     expect(result).toEqual(updatedProfile);
   });
 
-  it('changePassword отправляет старый и новый пароль', async () => {
+  it('changePassword posts credentials', async () => {
     mockedApiFetch.mockResolvedValueOnce(null);
 
     await changePassword({ old_password: 'OldPass123', new_password: 'NewPass456' });
@@ -69,7 +67,7 @@ describe('profileApi', () => {
     });
   });
 
-  it('requestEmailChange отправляет запрос на смену e-mail', async () => {
+  it('requestEmailChange posts new email', async () => {
     mockedApiFetch.mockResolvedValueOnce(null);
 
     await requestEmailChange({ new_email: 'new@example.com' });
@@ -81,7 +79,7 @@ describe('profileApi', () => {
     });
   });
 
-  it('uploadAvatar упаковывает файл в FormData и отправляет его', async () => {
+  it('uploadAvatar sends FormData payload', async () => {
     const originalFormData = globalThis.FormData;
     const appendSpy = vi.fn();
 
@@ -89,7 +87,7 @@ describe('profileApi', () => {
       public append = appendSpy;
     }
 
-    // @ts-expect-error: подменяем реализацию только в тестах
+    // @ts-expect-error: явно переопределяем реализацию для теста
     globalThis.FormData = MockFormData;
 
     const response = { avatar_url: 'http://localhost:8000/media/users/1/avatar.png' };
@@ -110,4 +108,3 @@ describe('profileApi', () => {
     }
   });
 });
-

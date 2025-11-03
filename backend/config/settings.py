@@ -6,6 +6,7 @@ import os
 import environ
 from celery.schedules import crontab
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.translation import gettext_lazy as _
 
 """
 ������� ��������� Django-�������: ����������� ���������, CORS � ��������� ��������.
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -155,10 +157,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-LANGUAGE_CODE = "ru-ru"
-TIME_ZONE = "Europe/Berlin"
+LANGUAGE_CODE = "ru"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
+LANGUAGES = [("ru", _('Русский'))]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", default="")
@@ -198,6 +202,7 @@ REST_FRAMEWORK: dict[str, Any] = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "EXCEPTION_HANDLER": "apps.common.exceptions.localized_exception_handler",
 }
 
 

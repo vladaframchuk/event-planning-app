@@ -76,6 +76,7 @@ const EventChatPage = () => {
   }
 
   const event = eventQuery.data;
+  const isOrganizer = event.viewerRole === 'organizer';
 
   return (
     <section className="flex w-full flex-col gap-6 lg:flex-row">
@@ -88,7 +89,7 @@ const EventChatPage = () => {
         </header>
         <ChatPanel eventId={event.id} />
       </div>
-      <EventNavigation eventId={event.id} className="lg:mt-0" />
+      <EventNavigation eventId={event.id} className="lg:mt-0" isOrganizer={isOrganizer} />
     </section>
   );
 };

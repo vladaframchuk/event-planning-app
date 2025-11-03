@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 
@@ -11,7 +11,6 @@ from apps.users.models import User
 
 
 def _post_json(client, path: str, payload: dict[str, object]) -> object:
-    """Утилита для отправки POST-запросов с JSON-телом."""
     return client.post(path, data=json.dumps(payload), content_type="application/json")
 
 
@@ -21,7 +20,7 @@ def test_register_sends_email_and_creates_inactive_user(client) -> None:
     response = _post_json(
         client,
         "/api/auth/register",
-        {"email": "new_user@example.com", "password": "Password123", "name": "Новый пользователь"},
+        {"email": "new_user@example.com", "password": "Password123", "name": "Пользователь"},
     )
 
     assert response.status_code == 201
@@ -39,7 +38,7 @@ def test_register_sends_email_and_creates_inactive_user(client) -> None:
 @pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 def test_resend_confirmation_sends_email(client) -> None:
-    user = User.objects.create_user(email="pending@example.com", password="Password123", is_active=False)
+    User.objects.create_user(email="pending@example.com", password="Password123", is_active=False)
 
     response = _post_json(client, "/api/auth/resend-confirmation", {"email": "pending@example.com"})
 
@@ -56,7 +55,9 @@ def test_resend_confirmation_rejects_active_user(client) -> None:
     response = _post_json(client, "/api/auth/resend-confirmation", {"email": "active@example.com"})
 
     assert response.status_code == 400
-    assert response.json()["email"][0] == "Email уже подтверждён."
+    payload = response.json()
+    assert payload["detail"] == "Некорректные данные."
+    assert payload["errors"]["email"] == ["Email уже подтверждён."]
 
 
 @pytest.mark.django_db
@@ -74,17 +75,17 @@ def test_confirm_activates_user_valid_token(client) -> None:
 
 @pytest.mark.django_db
 def test_confirm_rejects_expired_or_bad_token(client, monkeypatch) -> None:
-    bad_response = client.get("/api/auth/confirm?token=невалидный")
+    bad_response = client.get("/api/auth/confirm")
     assert bad_response.status_code == 400
-    assert "token" in bad_response.json()
+    assert bad_response.json()["token"][0] == "Токен обязателен."
 
     def fake_verify(token: str, max_age_seconds: int = 172_800) -> int:  # noqa: ARG001
-        raise EmailConfirmationTokenError("Токен подтверждения истёк.")
+        raise EmailConfirmationTokenError("Срок действия токена подтверждения истёк.")
 
     monkeypatch.setattr("apps.auth.views.verify_email_confirmation_token", fake_verify)
     expired_response = client.get("/api/auth/confirm?token=fake")
     assert expired_response.status_code == 400
-    assert expired_response.json()["token"][0] == "Токен подтверждения истёк."
+    assert expired_response.json()["token"][0] == "Срок действия токена подтверждения истёк."
 
 
 @pytest.mark.django_db
@@ -98,9 +99,8 @@ def test_login_fails_if_inactive(client) -> None:
     )
 
     assert response.status_code == 400
-    body = response.json()
-    message = body.get("detail") if isinstance(body.get("detail"), str) else ""
-    assert "Аккаунт ещё не подтверждён" in message
+    payload = response.json()
+    assert payload["detail"] == "Учётная запись ещё не активирована. Проверьте почту."
 
 
 @pytest.mark.django_db

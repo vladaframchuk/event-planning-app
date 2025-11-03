@@ -5,16 +5,12 @@ export type Profile = {
   email: string;
   name: string | null;
   avatar_url: string | null;
-  locale: string | null;
-  timezone: string | null;
   date_joined: string;
   email_notifications_enabled: boolean;
 };
 
 export type UpdateProfilePayload = {
   name?: string | null;
-  locale?: string | null;
-  timezone?: string | null;
 };
 
 export type ChangePasswordPayload = {

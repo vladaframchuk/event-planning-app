@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useMemo, type JSX } from 'react';
 
+import { t } from '@/lib/i18n';
 import type { Participant, Role } from '@/types/event';
 
 type ParticipantsTableProps = {
@@ -19,9 +20,9 @@ type ParticipantsTableProps = {
 const formatJoinedAt = (value: string): string => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return '—';
+    return t('event.participants.table.dateUnknown');
   }
-  return parsed.toLocaleDateString('ru-RU', { dateStyle: 'medium' });
+  return parsed.toLocaleDateString('ru', { dateStyle: 'medium' });
 };
 
 const computeInitials = (name: string | null, email: string): string => {
@@ -34,13 +35,8 @@ const computeInitials = (name: string | null, email: string): string => {
       return initials;
     }
   }
-  return email.charAt(0).toUpperCase() || 'U';
+  return email.charAt(0).toUpperCase() || t('app.header.defaultInitials');
 };
-
-const roleOptions: Array<{ value: Role; label: string }> = [
-  { value: 'organizer', label: 'Организатор' },
-  { value: 'member', label: 'Участник' },
-];
 
 const ParticipantsTable = ({
   participants,
@@ -55,25 +51,30 @@ const ParticipantsTable = ({
   const organizerIds = useMemo(() => participants.filter((item) => item.role === 'organizer').map((item) => item.id), [participants]);
   const soleOrganizerId = organizerIds.length === 1 ? organizerIds[0] : null;
 
+  const roleOptions: Array<{ value: Role; label: string }> = [
+    { value: 'organizer', label: t('event.participants.table.role.organizer') },
+    { value: 'member', label: t('event.participants.table.role.member') },
+  ];
+
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
       <table className="min-w-full divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
         <thead className="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
           <tr>
             <th scope="col" className="px-4 py-3 text-left">
-              Пользователь
+              {t('event.participants.table.headers.name')}
             </th>
             <th scope="col" className="px-4 py-3 text-left">
-              Email
+              {t('event.participants.table.headers.email')}
             </th>
             <th scope="col" className="px-4 py-3 text-left">
-              Роль
+              {t('event.participants.table.headers.role')}
             </th>
             <th scope="col" className="px-4 py-3 text-left">
-              В команде с
+              {t('event.participants.table.headers.joinedAt')}
             </th>
             <th scope="col" className="px-4 py-3 text-right">
-              Действия
+              {t('event.participants.table.headers.actions')}
             </th>
           </tr>
         </thead>
@@ -81,14 +82,14 @@ const ParticipantsTable = ({
           {isLoading ? (
             <tr>
               <td colSpan={5} className="px-4 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-                Загрузка участников...
+                {t('event.participants.table.loading')}
               </td>
             </tr>
           ) : null}
           {!isLoading && participants.length === 0 ? (
             <tr>
               <td colSpan={5} className="px-4 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-                В событии пока нет участников.
+                {t('event.participants.table.empty')}
               </td>
             </tr>
           ) : null}
@@ -114,6 +115,7 @@ const ParticipantsTable = ({
                               fill
                               sizes="40px"
                               className="object-cover"
+                              unoptimized
                             />
                           ) : (
                             <span className="flex h-full w-full items-center justify-center">{avatarInitials}</span>
@@ -123,9 +125,10 @@ const ParticipantsTable = ({
                           <p className="font-semibold text-neutral-900 dark:text-neutral-100">
                             {participant.user.name?.trim() || participant.user.email}
                           </p>
-                          {isCurrentUser ? <p className="text-xs text-blue-600 dark:text-blue-400">Это вы</p> : null}
-                          {isSoleOrganizer ? (
-                            <p className="text-xs text-amber-600 dark:text-amber-400">Последний организатор</p>
+                          {isCurrentUser ? (
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              {t('event.participants.table.badge.current')}
+                            </p>
                           ) : null}
                         </div>
                       </div>
@@ -154,7 +157,9 @@ const ParticipantsTable = ({
                         disabled={removeDisabled}
                         className="inline-flex items-center rounded-lg border border-red-500 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-400 disabled:opacity-70 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/30 dark:disabled:border-neutral-700 dark:disabled:text-neutral-500"
                       >
-                        {removingId === participant.id ? 'Удаление...' : 'Удалить'}
+                        {removingId === participant.id
+                          ? t('event.participants.table.actions.removing')
+                          : t('event.participants.table.actions.remove')}
                       </button>
                     </td>
                   </tr>

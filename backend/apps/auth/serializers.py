@@ -21,7 +21,7 @@ class RegistrationSerializer(serializers.Serializer):
         """Проверяет, что email ещё не занят."""
         normalized = value.strip().lower()
         if User.objects.filter(email__iexact=normalized).exists():
-            raise serializers.ValidationError(_("Пользователь с таким email уже существует."), code="duplicate")
+            raise serializers.ValidationError(_("Пользователь с таким email уже зарегистрирован."), code="duplicate")
         return normalized
 
     def validate_password(self, value: str) -> str:
@@ -49,7 +49,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     default_error_messages = {
         **TokenObtainPairSerializer.default_error_messages,
-        "inactive": _("Аккаунт ещё не подтверждён. Проверьте почту."),
+        "inactive": _("Учётная запись ещё не активирована. Проверьте почту."),
     }
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
@@ -68,7 +68,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class ResendConfirmationSerializer(serializers.Serializer):
-    """Валидирует email для повторной отправки письма подтверждения."""
+    """Повторная отправка письма с подтверждением email."""
 
     email = serializers.EmailField()
 
@@ -94,5 +94,5 @@ class ResendConfirmationSerializer(serializers.Serializer):
     def user(self) -> User:
         stored_user = self.context.get("user")
         if stored_user is None:
-            raise AttributeError("Сначала вызовите is_valid(), чтобы получить пользователя.")
+            raise AttributeError("Вызовите is_valid() перед доступом к пользователю.")
         return stored_user

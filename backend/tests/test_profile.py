@@ -24,8 +24,6 @@ def test_get_and_update_me() -> None:
         email="me@example.com",
         password="Password123",
         name="Alice",
-        locale="ru-RU",
-        timezone="Europe/Moscow",
         avatar_url="https://cdn.example.com/avatars/alice.png",
         email_notifications_enabled=False,
     )
@@ -36,30 +34,28 @@ def test_get_and_update_me() -> None:
     payload = response.json()
     assert payload["email"] == "me@example.com"
     assert payload["name"] == "Alice"
-    assert payload["locale"] == "ru-RU"
-    assert payload["timezone"] == "Europe/Moscow"
     assert payload["avatar_url"] == "https://cdn.example.com/avatars/alice.png"
     assert payload["email_notifications_enabled"] is False
+    assert "locale" not in payload
+    assert "timezone" not in payload
 
     new_data = {
         "name": "Alice Updated",
         "avatar_url": "https://cdn.example.com/avatars/alice-new.png",
-        "locale": "en-US",
-        "timezone": "UTC",
     }
     response = client.patch("/api/me", new_data, format="json")
     assert response.status_code == 200
     updated = response.json()
     assert updated["name"] == "Alice Updated"
     assert updated["avatar_url"] == "https://cdn.example.com/avatars/alice-new.png"
-    assert updated["locale"] == "en-US"
-    assert updated["timezone"] == "UTC"
+    assert "locale" not in updated
+    assert "timezone" not in updated
 
     user.refresh_from_db()
     assert user.name == "Alice Updated"
     assert user.avatar_url == "https://cdn.example.com/avatars/alice-new.png"
-    assert user.locale == "en-US"
-    assert user.timezone == "UTC"
+    assert not hasattr(user, "locale")
+    assert not hasattr(user, "timezone")
 
 
 def test_change_password_success_and_fail() -> None:
@@ -76,12 +72,16 @@ def test_change_password_success_and_fail() -> None:
     wrong_old_payload = {"old_password": "Wrong123", "new_password": "Another789"}
     response = client.post("/api/me/change-password", wrong_old_payload, format="json")
     assert response.status_code == 400
-    assert "old_password" in response.json()
+    wrong_payload = response.json()
+    assert wrong_payload["detail"] == "Некорректные данные."
+    assert wrong_payload["errors"]["old_password"] == ["Текущий пароль указан неверно."]
 
     same_password_payload = {"old_password": "Newpass456", "new_password": "Newpass456"}
     response = client.post("/api/me/change-password", same_password_payload, format="json")
     assert response.status_code == 400
-    assert "new_password" in response.json()
+    same_payload = response.json()
+    assert same_payload["detail"] == "Некорректные данные."
+    assert same_payload["errors"]["new_password"] == ["Новый пароль должен отличаться от текущего."]
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -97,7 +97,9 @@ def test_change_email_flow() -> None:
         format="json",
     )
     assert response.status_code == 400
-    assert response.json()["new_email"][0].startswith("This email")
+    conflict_payload = response.json()
+    assert conflict_payload["detail"] == "Некорректные данные."
+    assert conflict_payload["errors"]["new_email"] == ["Этот email уже используется."]
 
     response = client.post(
         "/api/account/email/change-init",
@@ -105,7 +107,7 @@ def test_change_email_flow() -> None:
         format="json",
     )
     assert response.status_code == 200
-    assert response.json()["detail"].startswith("Письмо с подтверждением")
+    assert response.json()["detail"] == "Письмо с подтверждением отправлено на новый адрес."
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
     assert email.to == ["new@example.com"]
@@ -117,7 +119,7 @@ def test_change_email_flow() -> None:
     unauthenticated_client = APIClient()
     confirm_response = unauthenticated_client.get(f"/api/account/email/change-confirm?token={token}")
     assert confirm_response.status_code == 200
-    assert confirm_response.json()["detail"].startswith("Email успешно обновлён")
+    assert confirm_response.json()["detail"] == "Email успешно обновлён. Пожалуйста, войдите заново."
 
     user.refresh_from_db()
     assert user.email == "new@example.com"

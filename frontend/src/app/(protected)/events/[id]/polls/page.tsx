@@ -286,7 +286,7 @@ const PollsPage = () => {
           />
         ) : null}
       </div>
-      <EventNavigation eventId={eventId} className="lg:mt-0" />
+      <EventNavigation eventId={eventId} className="lg:mt-0" isOrganizer={isOrganizer} />
     </section>
   );
 };

@@ -1,12 +1,12 @@
-{% load i18n %}
+﻿{% load i18n %}
 <!DOCTYPE html>
 <html lang="ru">
   <body style="font-family: Arial, sans-serif; line-height: 1.4;">
     <p>
-      {% blocktrans with name=user.name|default:_("коллега") %}
-        Привет, {{ name }}!
+      {% blocktrans with name=user.name|default:_("гость") %}
+        Здравствуйте, {{ name }}!
       {% endblocktrans %}
     </p>
-    <p>{% trans "Это тестовое письмо из Event Planner. Значит, SMTP настроен корректно." %}</p>
+    <p>{% trans "Это тестовое письмо от Event planning app. Почтовая отправка настроена корректно." %}</p>
   </body>
 </html>

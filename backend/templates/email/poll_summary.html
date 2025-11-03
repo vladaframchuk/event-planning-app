@@ -1,15 +1,15 @@
-{% load i18n %}
+﻿{% load i18n %}
 <!DOCTYPE html>
 <html lang="ru">
   <body style="font-family: Arial, sans-serif; line-height: 1.4;">
     <p>
-      {% blocktrans with name=user.name|default:_("коллега") %}
-        Здравствуйте, {{ name }}!
+      {% blocktrans with name=user.name|default:_("гость") %}
+        Привет, {{ name }}!
       {% endblocktrans %}
     </p>
     <p>
       {% blocktrans with event_title=event.title %}
-        Голосование в событии «{{ event_title }}» завершено. Ниже — результаты опроса.
+        Опрос в событии «{{ event_title }}» завершён. Вот результаты.
       {% endblocktrans %}
     </p>
     <p>
@@ -19,7 +19,7 @@
       <thead>
         <tr>
           <th>{% trans "Вариант" %}</th>
-          <th>{% trans "Голосов" %}</th>
+          <th>{% trans "Голоса" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -46,9 +46,9 @@
     </p>
     <p>
       {% if is_final %}
-        {% trans "Опрос закрыт. Спасибо за участие!" %}
+        {% trans "Опрос закрыт. Спасибо, что проголосовали!" %}
       {% else %}
-        {% trans "Голосование скоро завершится — успейте проголосовать!" %}
+        {% trans "Голосование ещё продолжается — напомните участникам участвовать." %}
       {% endif %}
     </p>
   </body>
