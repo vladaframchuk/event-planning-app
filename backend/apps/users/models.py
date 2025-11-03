@@ -54,6 +54,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     email = models.EmailField("Email", unique=True)
     name = models.CharField("Name", max_length=255, null=True, blank=True)
+    email_notifications_enabled = models.BooleanField(
+        "Email notifications enabled",
+        default=True,
+        help_text="Флаг согласия на получение уведомлений по электронной почте.",
+    )
     avatar = models.ImageField(
         "Avatar",
         upload_to=user_avatar_upload_to,

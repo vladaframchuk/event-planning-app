@@ -11,6 +11,8 @@ from apps.events.models import Event
 
 
 class Poll(models.Model):
+    """Опрос внутри события."""
+
     class Type(models.TextChoices):
         DATE = "date", "date"
         PLACE = "place", "place"
@@ -34,6 +36,8 @@ class Poll(models.Model):
     allow_change_vote = models.BooleanField(default=True)
     is_closed = models.BooleanField(default=False)
     end_at = models.DateTimeField(null=True, blank=True)
+    closing_notification_sent_at = models.DateTimeField(null=True, blank=True)
+    closing_notification_for_end_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     version = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,6 +46,7 @@ class Poll(models.Model):
         indexes = [
             models.Index(fields=["event", "is_closed"], name="idx_poll_event_closed"),
             models.Index(fields=["end_at"], name="idx_poll_end_at"),
+            models.Index(fields=["closing_notification_sent_at"], name="idx_poll_closing_notified"),
         ]
         ordering = ("-created_at", "id")
 
@@ -57,6 +62,8 @@ class Poll(models.Model):
 
 
 class PollOption(models.Model):
+    """Вариант ответа в опросе."""
+
     id = models.BigAutoField(primary_key=True)
     poll = models.ForeignKey(
         Poll,
@@ -89,6 +96,8 @@ class PollOption(models.Model):
 
 
 class Vote(models.Model):
+    """Голос пользователя за конкретный вариант опроса."""
+
     id = models.BigAutoField(primary_key=True)
     poll = models.ForeignKey(
         Poll,

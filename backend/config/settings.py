@@ -1,35 +1,36 @@
-﻿from datetime import timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 import os
 import environ
+from celery.schedules import crontab
 from django.core.exceptions import ImproperlyConfigured
 
 """
-Базовые настройки Django-проекта: подключение окружения, CORS и сторонних сервисов.
+������� ��������� Django-�������: ����������� ���������, CORS � ��������� ��������.
 """
 
-# Базовая директория проекта для поиска вспомогательных файлов.
+# ������� ���������� ������� ��� ������ ��������������� ������.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Читаем переменные окружения один раз при старте приложения.
+# ������ ���������� ��������� ���� ��� ��� ������ ����������.
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / ".env")
 
 
 def _get_secret_key() -> str:
-    """Извлекает секретный ключ с безопасной обработкой отсутствия значения."""
+    """��������� ��������� ���� � ���������� ���������� ���������� ��������."""
     secret_key = env("DJANGO_SECRET_KEY", default=env("SECRET_KEY", default=None))
     if secret_key is None:
         message = (
-            "Не найден секретный ключ. Убедитесь, что DJANGO_SECRET_KEY задан в backend/.env."
+            "�� ������ ��������� ����. ���������, ��� DJANGO_SECRET_KEY ����� � backend/.env."
         )
         raise ImproperlyConfigured(message)
     return str(secret_key)
 
 
-# Основные служебные настройки
+# �������� ��������� ���������
 SECRET_KEY = _get_secret_key()
 DEBUG = env.bool("DEBUG", default=False)
 _LEGACY_ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=None)
@@ -40,7 +41,7 @@ ALLOWED_HOSTS: list[str] = (
 )
 
 
-# Подключения приложений
+# ����������� ����������
 INSTALLED_APPS = [
     "channels",
     "django.contrib.admin",
@@ -49,12 +50,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Сторонние приложения
+    # ��������� ����������
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "corsheaders",
-    # Локальные приложения
+    # ��������� ����������
     "apps.users",
     "apps.events.apps.EventsConfig",
     "apps.health.apps.HealthConfig",
@@ -62,6 +64,7 @@ INSTALLED_APPS = [
     "apps.export.apps.ExportConfig",
     "apps.chat.apps.ChatConfig",
     "apps.polls.apps.PollsConfig",
+    "apps.notifications",
 ]
 
 
@@ -83,7 +86,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -130,10 +133,9 @@ CHANNELS_WS_MAX_MESSAGE_SIZE = env.int("CHANNELS_WS_MAX_MESSAGE_SIZE", default=6
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default="postgres://postgres:postgres@localhost:5432/postgres",
+        default="postgres://event_user:event_password@postgres:5432/event_db",
     )
 }
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -158,9 +160,16 @@ TIME_ZONE = "Europe/Berlin"
 USE_I18N = True
 USE_TZ = True
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-SITE_URL: str = env("SITE_URL", default="http://localhost:8000")
-SITE_FRONT_URL: str = env("SITE_FRONT_URL", default="http://localhost:3000")
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=25)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Event Planner <no-reply@event-planner.local>")
+SITE_URL: str = env("SITE_URL", default="http://localhost:3000")
+SITE_FRONT_URL: str = env("SITE_FRONT_URL", default=SITE_URL)
 
 
 # Static files (CSS, JavaScript, Images)
@@ -213,6 +222,26 @@ CELERY_BROKER_URL = env(
     default=env("REDIS_URL", default="redis://localhost:6379/0"),
 )
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_BEAT_SCHEDULE: dict[str, Any] = {
+    "send_deadline_reminders": {
+        "task": "apps.notifications.tasks.send_deadline_reminders",
+        "schedule": timedelta(hours=1),
+    },
+    "send_poll_closing_notifications": {
+        "task": "apps.notifications.tasks.send_poll_closing_notifications",
+        "schedule": timedelta(minutes=30),
+    },
+}
+
+if env.bool("ENABLE_DAILY_DIGEST", default=False):
+    CELERY_BEAT_SCHEDULE["send_daily_digest"] = {
+        "task": "apps.notifications.tasks.send_daily_digest",
+        "schedule": crontab(hour=9, minute=0, timezone=TIME_ZONE),
+    }
+
 REDIS_URL: str = env("REDIS_URL", default=CELERY_BROKER_URL)
 
 USE_REDIS_CACHE = env.bool("USE_REDIS_CACHE", default=False)
@@ -243,10 +272,12 @@ LOGGING = {
     },
     "loggers": {
         "django.request": {
-            # 401/403/404 теперь не засоряют консоль предупреждениями при debug-сценариях.
+            # 401/403/404 ������ �� �������� ������� ���������������� ��� debug-���������.
             "level": "ERROR",
             "handlers": ["console"],
             "propagate": False,
         },
     },
 }
+
+

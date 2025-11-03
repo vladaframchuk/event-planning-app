@@ -13,8 +13,17 @@ class MeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "email", "name", "avatar_url", "locale", "timezone", "date_joined")
-        read_only_fields = ("id", "email", "date_joined")
+        fields = (
+            "id",
+            "email",
+            "name",
+            "avatar_url",
+            "locale",
+            "timezone",
+            "date_joined",
+            "email_notifications_enabled",
+        )
+        read_only_fields = ("id", "email", "date_joined", "email_notifications_enabled")
 
     def get_avatar_url(self, obj: User) -> str | None:
         request = self.context.get("request")
@@ -122,3 +131,17 @@ class EmailChangeRequestSerializer(serializers.Serializer):
                 code="email_in_use",
             )
         return normalized
+
+
+class NotificationSettingsSerializer(serializers.Serializer):
+    """Сериализатор для управления настройками email-уведомлений пользователя."""
+
+    email_notifications_enabled = serializers.BooleanField()
+
+    def save(self, **kwargs) -> User:
+        user: User = self.context["request"].user  # type: ignore[assignment]
+        email_notifications_enabled = self.validated_data["email_notifications_enabled"]
+        if user.email_notifications_enabled != email_notifications_enabled:
+            user.email_notifications_enabled = email_notifications_enabled
+            user.save(update_fields=["email_notifications_enabled"])
+        return user

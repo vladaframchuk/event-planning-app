@@ -134,7 +134,16 @@ const ProfilePage = (): JSX.Element => {
       case 'security':
         return <ProfileSecurityForm onNotify={showToast} />;
       case 'account':
-        return <ProfileAccountPanel email={profile.email} onNotify={showToast} />;
+        return (
+          <ProfileAccountPanel
+            email={profile.email}
+            emailNotificationsEnabled={profile.email_notifications_enabled}
+            onNotify={showToast}
+            onEmailNotificationsChange={(value) =>
+              setProfile((current) => (current ? { ...current, email_notifications_enabled: value } : current))
+            }
+          />
+        );
       default:
         return null;
     }
@@ -187,3 +196,4 @@ const ProfilePage = (): JSX.Element => {
 };
 
 export default ProfilePage;
+

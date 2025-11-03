@@ -1,0 +1,22 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="ru">
+  <body style="font-family: Arial, sans-serif; line-height: 1.4;">
+    <p>
+      {% blocktrans with name=user.name|default:_("коллега") %}
+        Здравствуйте, {{ name }}!
+      {% endblocktrans %}
+    </p>
+    <p>
+      {% blocktrans with new_email=new_email %}
+        Вы запросили смену адреса электронной почты в Event Planner на {{ new_email }}.
+        Чтобы подтвердить действие, перейдите по ссылке:
+      {% endblocktrans %}
+    </p>
+    <p>token={{ token }} </p>
+    <p>
+      <a href="{{ confirmation_link }}">{{ confirmation_link }}</a>
+    </p>
+    <p>{% trans "Если запрос отправили не вы, просто проигнорируйте письмо." %}</p>
+  </body>
+</html>

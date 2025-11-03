@@ -7,7 +7,7 @@ from apps.events.models import Event, Participant
 
 
 class TaskList(models.Model):
-    """Колонка канбана внутри события."""
+    """Колонка доски задач внутри события."""
 
     id = models.BigAutoField(primary_key=True)
     event = models.ForeignKey(
@@ -35,12 +35,12 @@ class TaskList(models.Model):
 
 
 class Task(models.Model):
-    """Задача внутри выбранной колонки."""
+    """Задача, находящаяся в конкретном списке доски."""
 
     class Status(models.TextChoices):
-        TODO = "todo", "Нужно сделать"
-        DOING = "doing", "В работе"
-        DONE = "done", "Готово"
+        TODO = "todo", "К выполнению"
+        DOING = "doing", "В процессе"
+        DONE = "done", "Завершена"
 
     id = models.BigAutoField(primary_key=True)
     list = models.ForeignKey(
@@ -65,8 +65,18 @@ class Task(models.Model):
         null=True,
         blank=True,
     )
-    start_at = models.DateTimeField("Начать", null=True, blank=True)
+    start_at = models.DateTimeField("Начало", null=True, blank=True)
     due_at = models.DateTimeField("Дедлайн", null=True, blank=True)
+    deadline_reminder_sent_at = models.DateTimeField(
+        "Когда отправлено напоминание о дедлайне",
+        null=True,
+        blank=True,
+    )
+    deadline_reminder_for_due_at = models.DateTimeField(
+        "Дедлайн, для которого отправлено напоминание",
+        null=True,
+        blank=True,
+    )
     order = models.IntegerField("Порядок", default=0)
     created_at = models.DateTimeField("Создано", auto_now_add=True)
     updated_at = models.DateTimeField("Обновлено", auto_now=True)
@@ -88,11 +98,15 @@ class Task(models.Model):
             models.Index(fields=["list", "id"], name="idx_task_list_id"),
             models.Index(fields=["id"], name="idx_task_id"),
             models.Index(fields=["list", "due_at"], name="idx_task_list_due"),
+            models.Index(
+                fields=["due_at", "deadline_reminder_sent_at"],
+                name="idx_task_deadline_reminders",
+            ),
         ]
 
     def clean(self) -> None:
         if self.start_at and self.due_at and self.due_at < self.start_at:
-            raise ValidationError("Дата дедлайна не может быть раньше даты начала.")
+            raise ValidationError("Дедлайн не может быть раньше даты начала задачи.")
 
     def save(self, *args, **kwargs) -> None:
         self.full_clean()
@@ -100,4 +114,3 @@ class Task(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title} (list={self.list_id})"
-

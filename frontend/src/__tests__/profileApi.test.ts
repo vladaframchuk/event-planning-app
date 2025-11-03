@@ -74,7 +74,7 @@ describe('profileApi', () => {
 
     await requestEmailChange({ new_email: 'new@example.com' });
 
-    expect(mockedApiFetch).toHaveBeenCalledWith('/api/me/change-email/request', {
+    expect(mockedApiFetch).toHaveBeenCalledWith('/api/account/email/change-init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ new_email: 'new@example.com' }),
@@ -110,3 +110,4 @@ describe('profileApi', () => {
     }
   });
 });
+

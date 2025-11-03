@@ -5,6 +5,7 @@ import re
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.test.utils import override_settings
 from rest_framework.test import APIClient
 
 pytestmark = pytest.mark.django_db
@@ -26,6 +27,7 @@ def test_get_and_update_me() -> None:
         locale="ru-RU",
         timezone="Europe/Moscow",
         avatar_url="https://cdn.example.com/avatars/alice.png",
+        email_notifications_enabled=False,
     )
     client = _auth_client(user)
 
@@ -37,6 +39,7 @@ def test_get_and_update_me() -> None:
     assert payload["locale"] == "ru-RU"
     assert payload["timezone"] == "Europe/Moscow"
     assert payload["avatar_url"] == "https://cdn.example.com/avatars/alice.png"
+    assert payload["email_notifications_enabled"] is False
 
     new_data = {
         "name": "Alice Updated",
@@ -81,15 +84,15 @@ def test_change_password_success_and_fail() -> None:
     assert "new_password" in response.json()
 
 
-def test_change_email_flow(settings) -> None:
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+def test_change_email_flow() -> None:
     user = User.objects.create_user(email="old@example.com", password="Password123")
     User.objects.create_user(email="used@example.com", password="Password123")
 
     client = _auth_client(user)
 
     response = client.post(
-        "/api/me/change-email/request",
+        "/api/account/email/change-init",
         {"new_email": "used@example.com"},
         format="json",
     )
@@ -97,11 +100,12 @@ def test_change_email_flow(settings) -> None:
     assert response.json()["new_email"][0].startswith("This email")
 
     response = client.post(
-        "/api/me/change-email/request",
+        "/api/account/email/change-init",
         {"new_email": "new@example.com"},
         format="json",
     )
-    assert response.status_code == 204
+    assert response.status_code == 200
+    assert response.json()["detail"].startswith("Письмо с подтверждением")
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
     assert email.to == ["new@example.com"]
@@ -111,13 +115,29 @@ def test_change_email_flow(settings) -> None:
     token = match.group(1)
 
     unauthenticated_client = APIClient()
-    confirm_response = unauthenticated_client.get(f"/api/me/change-email/confirm?token={token}")
+    confirm_response = unauthenticated_client.get(f"/api/account/email/change-confirm?token={token}")
     assert confirm_response.status_code == 200
-    assert confirm_response.json()["detail"] == "Email updated successfully."
+    assert confirm_response.json()["detail"].startswith("Email успешно обновлён")
 
     user.refresh_from_db()
     assert user.email == "new@example.com"
 
-    reused_token_response = unauthenticated_client.get(f"/api/me/change-email/confirm?token={token}")
+    reused_token_response = unauthenticated_client.get(f"/api/account/email/change-confirm?token={token}")
     assert reused_token_response.status_code == 400
-    assert reused_token_response.json()["detail"] == "Email already confirmed."
+    assert reused_token_response.json()["detail"] == "Адрес уже подтверждён ранее."
+
+
+def test_notification_settings_toggle() -> None:
+    user = User.objects.create_user(email="notify@example.com", password="Password123", email_notifications_enabled=True)
+    client = _auth_client(user)
+
+    response = client.patch(
+        "/api/account/notifications",
+        {"email_notifications_enabled": False},
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json() == {"email_notifications_enabled": False}
+
+    user.refresh_from_db()
+    assert user.email_notifications_enabled is False

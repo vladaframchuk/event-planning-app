@@ -8,6 +8,7 @@ export type Profile = {
   locale: string | null;
   timezone: string | null;
   date_joined: string;
+  email_notifications_enabled: boolean;
 };
 
 export type UpdateProfilePayload = {
@@ -50,8 +51,20 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<vo
 }
 
 export async function requestEmailChange(payload: RequestEmailChangePayload): Promise<void> {
-  await apiFetch<null>('/api/me/change-email/request', {
+  await apiFetch<null>('/api/account/email/change-init', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateEmailNotifications(payload: {
+  email_notifications_enabled: boolean;
+}): Promise<{ email_notifications_enabled: boolean }> {
+  return apiFetch<{ email_notifications_enabled: boolean }>('/api/account/notifications', {
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
     },

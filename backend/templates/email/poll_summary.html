@@ -1,0 +1,55 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="ru">
+  <body style="font-family: Arial, sans-serif; line-height: 1.4;">
+    <p>
+      {% blocktrans with name=user.name|default:_("коллега") %}
+        Здравствуйте, {{ name }}!
+      {% endblocktrans %}
+    </p>
+    <p>
+      {% blocktrans with event_title=event.title %}
+        Голосование в событии «{{ event_title }}» завершено. Ниже — результаты опроса.
+      {% endblocktrans %}
+    </p>
+    <p>
+      <strong>{{ poll.question }}</strong>
+    </p>
+    <table cellpadding="6" cellspacing="0" border="1" style="border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th>{% trans "Вариант" %}</th>
+          <th>{% trans "Голосов" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for option in options %}
+          <tr>
+            <td>
+              {% if option.label %}
+                {{ option.label }}
+              {% elif option.date_value %}
+                {{ option.date_value|date:"d.m.Y" }}
+              {% else %}
+                {% trans "Без названия" %}
+              {% endif %}
+            </td>
+            <td style="text-align: center;">{{ option.votes }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p>
+      {% blocktrans with total=total_votes %}
+        Всего голосов: {{ total }}.
+      {% endblocktrans %}
+    </p>
+    <p>
+      {% if is_final %}
+        {% trans "Опрос закрыт. Спасибо за участие!" %}
+      {% else %}
+        {% trans "Голосование скоро завершится — успейте проголосовать!" %}
+      {% endif %}
+    </p>
+  </body>
+</html>

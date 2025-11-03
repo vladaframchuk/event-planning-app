@@ -31,6 +31,17 @@ services:
       retries: 5
       start_period: 5s
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: event_mailhog
+    ports:
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1025"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
   backend:
     build:
       context: ./backend
@@ -48,12 +59,24 @@ services:
       DATABASE_URL: postgres://event_user:event_password@postgres:5432/event_db
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: mailhog
+      EMAIL_PORT: "1025"
+      EMAIL_HOST_USER: ""
+      EMAIL_HOST_PASSWORD: ""
+      EMAIL_USE_TLS: "0"
+      EMAIL_USE_SSL: "0"
+      DEFAULT_FROM_EMAIL: "Event Planner <no-reply@event-planner.local>"
       CORS_ALLOWED_ORIGINS: http://localhost:3000
       CSRF_TRUSTED_ORIGINS: http://localhost:3000
+      SITE_URL: http://localhost:3000
+      SITE_FRONT_URL: http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mailhog:
         condition: service_healthy
     healthcheck:
       test:
@@ -65,6 +88,78 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: event_celery_worker
+    command: ["celery", "-A", "config.celery_app", "worker", "--loglevel=info"]
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_SECRET_KEY: dev-secret
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      DATABASE_URL: postgres://event_user:event_password@postgres:5432/event_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: mailhog
+      EMAIL_PORT: "1025"
+      EMAIL_HOST_USER: ""
+      EMAIL_HOST_PASSWORD: ""
+      EMAIL_USE_TLS: "0"
+      EMAIL_USE_SSL: "0"
+      DEFAULT_FROM_EMAIL: "Event Planner <no-reply@event-planner.local>"
+      SITE_URL: http://localhost:3000
+      SITE_FRONT_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: event_celery_beat
+    command: ["celery", "-A", "config.celery_app", "beat", "--loglevel=info"]
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_SECRET_KEY: dev-secret
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      DATABASE_URL: postgres://event_user:event_password@postgres:5432/event_db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: mailhog
+      EMAIL_PORT: "1025"
+      EMAIL_HOST_USER: ""
+      EMAIL_HOST_PASSWORD: ""
+      EMAIL_USE_TLS: "0"
+      EMAIL_USE_SSL: "0"
+      DEFAULT_FROM_EMAIL: "Event Planner <no-reply@event-planner.local>"
+      SITE_URL: http://localhost:3000
+      SITE_FRONT_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -99,3 +194,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
