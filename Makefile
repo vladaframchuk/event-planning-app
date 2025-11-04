@@ -1,6 +1,8 @@
 PYTHON ?= python
+COMPOSE ?= docker compose
+PROD_COMPOSE = $(COMPOSE) -f docker-compose.prod.yml
 
-.PHONY: init lint fmt up down logs check backend-lint backend-fmt
+.PHONY: init lint fmt up down logs check prod-build prod-up prod-down prod-restart createsuperuser
 
 init:
 	$(PYTHON) -m pip install -r backend/requirements.txt
@@ -18,16 +20,31 @@ fmt:
 	cd frontend && npm run fmt
 
 up:
-	docker compose up -d --build
+	$(COMPOSE) up -d --build
 
 down:
-	docker compose down
+	$(COMPOSE) down
 
 logs:
-	docker compose logs -f
+	$(PROD_COMPOSE) logs -f
 
 check:
 	$(MAKE) -C backend test
 	cd frontend && npm run lint
 	cd frontend && npm run typecheck
 	cd frontend && npm run test
+
+prod-build:
+	$(PROD_COMPOSE) build --pull
+
+prod-up:
+	$(PROD_COMPOSE) up -d
+
+prod-down:
+	$(PROD_COMPOSE) down
+
+prod-restart:
+	$(PROD_COMPOSE) up -d --force-recreate
+
+createsuperuser:
+	$(PROD_COMPOSE) run --rm backend python manage.py createsuperuser
