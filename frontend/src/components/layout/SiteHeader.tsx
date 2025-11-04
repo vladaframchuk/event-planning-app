@@ -9,7 +9,7 @@ import { t } from '@/lib/i18n';
 type LinkProps = ComponentPropsWithoutRef<typeof Link>;
 
 const navLinkBase =
-  'rounded-full px-4 py-2 text-sm font-semibold leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
+  'inline-flex min-h-[48px] items-center rounded-full px-4 text-sm font-semibold leading-none transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 
 const ghostLinkClasses =
   `${navLinkBase} text-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary-strong)] focus-visible:outline-[var(--color-accent-primary)]`;
@@ -22,9 +22,13 @@ const primaryLinkStyle: LinkProps['style'] = { color: '#ffffff' };
 const mutedLinkClasses =
   `${navLinkBase} bg-[var(--color-background-subtle)] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary-strong)] focus-visible:outline-[var(--color-accent-primary)]`;
 
-const containerPaddingStyle = {
-  paddingTop: 'calc(env(safe-area-inset-top) + var(--space-sm))',
+const headerWrapperStyle = {
+  paddingTop: 'calc(var(--safe-top) + var(--space-sm))',
   paddingBottom: 'var(--space-sm)',
+} as const;
+
+const headerInnerStyle = {
+  minHeight: 'var(--header-height)',
 } as const;
 
 const buildLinkSet = (status: 'authenticated' | 'guest'): LinkProps[] => {
@@ -75,12 +79,15 @@ const SiteHeader = (): JSX.Element => {
     <header
       role="banner"
       className="sticky top-0 z-50 w-full border-b border-[color:var(--color-border-subtle)] bg-[color:var(--color-background-elevated)]/90 backdrop-blur supports-[backdrop-filter]:bg-[color:var(--color-background-elevated)]/80"
-      style={containerPaddingStyle}
+      style={headerWrapperStyle}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div
+        className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
+        style={headerInnerStyle}
+      >
         <Link
           href="/"
-          className="text-base font-semibold tracking-[-0.01em] text-[color:var(--color-text-primary)] transition hover:text-[color:var(--color-accent-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)]"
+          className="inline-flex min-h-[48px] items-center rounded-full px-3 text-base font-semibold tracking-[-0.01em] text-[color:var(--color-text-primary)] transition hover:text-[color:var(--color-accent-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)]"
         >
           {t('landing.header.brand')}
         </Link>

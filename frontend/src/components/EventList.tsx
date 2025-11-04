@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, type JSX } from 'react';
+import { useMemo, type JSX, type KeyboardEvent } from 'react';
 
 import { t } from '@/lib/i18n';
 import type { Event } from '@/types/event';
@@ -71,6 +71,13 @@ const EventList = ({
     void router.push(`/events/${event.id}`);
   };
 
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>, current: Event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleOpenEvent(current);
+    }
+  };
+
   const skeletons = useMemo(
     () =>
       Array.from({ length: 4 }).map((_, index) => (
@@ -80,19 +87,32 @@ const EventList = ({
   );
 
   if (isLoading) {
-    return <div className="grid gap-6 md:grid-cols-2">{skeletons}</div>;
+    return (
+      <div
+        className="grid w-full gap-6 md:grid-cols-2"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '480px', touchAction: 'pan-y' }}
+      >
+        {skeletons}
+      </div>
+    );
   }
 
   if (!events.length) {
     return (
-      <div className="rounded-[28px] border border-dashed border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-10 py-16 text-center text-sm text-[var(--color-text-secondary)] shadow-sm">
+      <div
+        className="rounded-[28px] border border-dashed border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-10 py-16 text-center text-sm text-[var(--color-text-secondary)] shadow-sm"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '320px', touchAction: 'pan-y' }}
+      >
         {t('events.list.empty')}
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div
+      className="grid w-full gap-6 md:grid-cols-2"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: '480px', touchAction: 'pan-y' }}
+    >
       {events.map((event) => {
         const isOwner = currentUserId === event.owner.id;
         const isDeletePending = pendingDeleteId === event.id;
@@ -101,7 +121,12 @@ const EventList = ({
           <article
             key={event.id}
             onClick={() => handleOpenEvent(event)}
-            className="group flex h-full cursor-pointer flex-col gap-6 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm transition-all duration-[var(--transition-medium)] ease-[var(--easing-standard)] hover:-translate-y-1 hover:shadow-[var(--shadow-md)] sm:px-8 sm:py-8"
+            onKeyDown={(keyboardEvent) => handleCardKeyDown(keyboardEvent, event)}
+            tabIndex={0}
+            role="button"
+            aria-label={t('events.list.cardAria', { title: event.title })}
+            className="group flex h-full min-h-[268px] cursor-pointer flex-col gap-6 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm transition-all duration-[var(--transition-medium)] ease-[var(--easing-standard)] hover:-translate-y-1 hover:shadow-[var(--shadow-md)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-primary)] sm:px-8 sm:py-8"
+            style={{ touchAction: 'manipulation' }}
           >
             <header className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-4">

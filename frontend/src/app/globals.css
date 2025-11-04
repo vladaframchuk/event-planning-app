@@ -1,21 +1,35 @@
 @import "../../styles/tokens.css";
 @import "tailwindcss";
 
+:root,
+:where(:root) {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --app-shell-min-height: calc(100svh - var(--safe-top) - var(--safe-bottom));
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
 html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
   color-scheme: light dark;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100svh;
   margin: 0;
   background: var(--bg1);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   line-height: var(--line-height-base);
+  overflow-x: hidden;
   position: relative;
   transition: background var(--transition-slow) var(--easing-standard), color var(--transition-medium) var(--easing-standard);
 }
@@ -396,4 +410,41 @@ button, input, textarea, select {
 [data-board-zoom-content="true"] {
   transform: scale(var(--board-scale, 1));
   transform-origin: top left;
+}
+
+.docs-redoc-shell {
+  height: calc(100svh - var(--header-height) - var(--safe-top) - var(--safe-bottom));
+  max-height: calc(100svh - var(--header-height) - var(--safe-top) - var(--safe-bottom));
+}
+
+.docs-redoc-container {
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding-bottom: calc(var(--safe-bottom) + var(--space-md));
+}
+
+.docs-redoc-container .redoc-wrap {
+  max-width: 100%;
+  padding: clamp(16px, 4vw, 32px);
+}
+
+.docs-redoc-container .menu-content,
+.docs-redoc-container .redoc-markdown,
+.docs-redoc-container .api-content {
+  max-width: min(var(--content-max-width), 100%);
+}
+
+@media (max-width: 768px) {
+  .docs-redoc-shell {
+    height: auto;
+    max-height: none;
+  }
+
+  .docs-redoc-container {
+    padding-bottom: calc(var(--safe-bottom) + var(--space-lg));
+  }
+
+  .docs-redoc-container .menu-content {
+    width: 100%;
+  }
 }

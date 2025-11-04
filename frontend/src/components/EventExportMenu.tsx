@@ -262,8 +262,10 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
     [],
   );
 
+  const triggerLabel = t('event.header.actions.export');
+
   return (
-    <div className="relative inline-flex text-left" ref={containerRef}>
+    <div className="relative inline-flex text-left max-[379px]:flex-1" ref={containerRef}>
       <button
         type="button"
         onClick={handleToggle}
@@ -271,15 +273,17 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
         aria-expanded={isOpen}
         aria-haspopup="menu"
         className={[
-          'btn btn--dark btn--pill min-w-[168px] justify-center',
+          'btn btn--dark btn--pill inline-flex min-h-[48px] min-w-[168px] items-center justify-center gap-2 px-4 text-sm font-semibold max-[379px]:min-w-[48px] max-[379px]:flex-1 max-[379px]:px-3',
           isAnyLoading ? 'opacity-80' : '',
         ]
           .filter(Boolean)
           .join(' ')}
+        aria-label={triggerLabel}
+        title={triggerLabel}
       >
-        <ExportIcon className="h-4 w-4 text-inherit" />
-        <span>{t('event.header.actions.export')}</span>
-        <ChevronIcon className="h-4 w-4 text-inherit" />
+        <ExportIcon className="h-5 w-5 text-inherit" />
+        <span className="max-[379px]:hidden">{triggerLabel}</span>
+        <ChevronIcon className="hidden h-4 w-4 text-inherit min-[380px]:inline-block" />
       </button>
 
       {isOpen ? (

@@ -240,6 +240,7 @@ const TaskCard = ({
         ref={cardRef}
         className="group relative flex h-[var(--card-h)] w-full max-w-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-4 shadow-sm transition-transform duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:-translate-y-[1px]"
         onContextMenu={handleContextMenu}
+        style={{ touchAction: 'manipulation' }}
       >
         <div className="flex flex-col gap-3 overflow-hidden">
           <div className="flex items-start justify-between gap-3">
@@ -304,7 +305,7 @@ const TaskCard = ({
               type="button"
               onClick={handleTakeClick}
               disabled={isBusy}
-              className="inline-flex items-center rounded-full bg-[var(--color-success)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-success)]/90 disabled:opacity-60"
+              className="inline-flex min-h-[48px] items-center rounded-full bg-[var(--color-success)] px-4 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-success)]/90 disabled:opacity-60"
               aria-label={t('event.board.card.takeAria')}
             >
               {t('event.board.card.take')}
@@ -313,13 +314,13 @@ const TaskCard = ({
             <span className="text-xs text-[var(--color-text-muted)]">{t('event.board.card.free')}</span>
           )}
 
-          <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+          <label className="flex min-h-[48px] items-center gap-2 text-sm text-[var(--color-text-secondary)]">
             <span>{t('event.board.card.statusLabel')}</span>
             <select
               value={task.status}
               onChange={handleStatusChange}
               disabled={isBusy}
-              className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-primary)] focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)] disabled:opacity-60"
+              className="min-h-[48px] rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)] disabled:opacity-60"
               aria-label={t('event.board.card.statusAria')}
             >
               {TASK_STATUS_OPTIONS.map((status) => (

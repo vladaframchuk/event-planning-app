@@ -12,12 +12,22 @@ type ProtectedLayoutProps = {
 };
 
 const ProtectedLayout = ({ children }: ProtectedLayoutProps): ReactElement => {
+  const shellStyle = {
+    minHeight: 'calc(var(--app-shell-min-height) + var(--safe-top) + var(--safe-bottom))',
+  } as const;
+
+  const mainStyle = {
+    paddingBottom: 'calc(var(--safe-bottom) + var(--space-xl))',
+  } as const;
+
   return (
     <AuthGuard>
       <RealtimeStatusProvider>
-        <div className="flex min-h-screen flex-col text-neutral-900 dark:text-neutral-50">
+        <div className="flex flex-col text-neutral-900 dark:text-neutral-50" style={shellStyle}>
           <AppHeader />
-          <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+          <main className="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-8" style={mainStyle}>
+            {children}
+          </main>
           <AppFooter />
         </div>
       </RealtimeStatusProvider>

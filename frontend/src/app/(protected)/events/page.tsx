@@ -41,7 +41,7 @@ const EventsPage = (): JSX.Element => {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const fieldClassName =
-    'w-full rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm font-medium text-[var(--color-text-primary)] shadow-sm transition focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]';
+    'w-full min-h-[48px] rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm font-medium text-[var(--color-text-primary)] shadow-sm transition focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]';
 
   const eventsQueryKey = useMemo(
     () => [
@@ -202,10 +202,15 @@ const EventsPage = (): JSX.Element => {
   const filtersPanelId = 'events-filters-panel';
   const eventsSubtitle = t('events.header.subtitle').trim();
 
+  const sectionStyle = {
+    paddingBottom: 'calc(var(--safe-bottom) + var(--space-xl))',
+    touchAction: 'pan-y',
+  } as const;
+
   return (
-    <section className="w-full px-4 pb-16 pt-10 sm:px-8 lg:px-16 xl:px-24">
+    <section className="w-full px-4 pt-10 sm:px-8 lg:px-16 xl:px-24" style={sectionStyle}>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <header className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-8 py-10 shadow-[var(--shadow-md)] sm:px-12 sm:py-12">
+        <header className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-8 shadow-[var(--shadow-md)] sm:px-12 sm:py-12">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex max-w-3xl flex-col gap-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
@@ -218,13 +223,21 @@ const EventsPage = (): JSX.Element => {
                 <p className="text-base text-[var(--color-text-secondary)]">{eventsSubtitle}</p>
               ) : null}
             </div>
-            <button type="button" onClick={handleOpenCreate} className="btn btn--primary btn--pill self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="btn btn--primary btn--pill self-start sm:self-auto"
+              aria-label={t('events.actions.create')}
+            >
               {t('events.actions.create')}
             </button>
           </div>
         </header>
 
-        <div className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-[var(--shadow-sm)] sm:px-10 sm:py-8">
+        <div
+          className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-[var(--shadow-sm)] sm:px-10 sm:py-8"
+          style={{ touchAction: 'pan-y' }}
+        >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -233,11 +246,12 @@ const EventsPage = (): JSX.Element => {
                 aria-expanded={filtersOpen}
                 aria-controls={filtersPanelId}
                 className={[
-                  'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)]',
+                  'inline-flex min-h-[48px] items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)]',
                   filtersOpen
                     ? 'border-[var(--color-accent-primary)] bg-[var(--color-background-primary)] text-[var(--color-accent-primary)]'
                     : 'border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] hover:border-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)]',
                 ].join(' ')}
+                title={filtersOpen ? t('events.filters.toggle.hide') : t('events.filters.toggle.show')}
               >
                 {filtersOpen ? t('events.filters.toggle.hide') : t('events.filters.toggle.show')}
                 {hasActiveFilters ? (
@@ -247,18 +261,30 @@ const EventsPage = (): JSX.Element => {
                   />
                 ) : null}
               </button>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]" aria-live="polite" aria-atomic="true">
                 {t('events.filters.results', { count: totalCount })}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="btn btn--ghost btn--pill" onClick={handlePrevPage} disabled={page === 1}>
+              <button
+                type="button"
+                className="btn btn--ghost btn--pill"
+                onClick={handlePrevPage}
+                disabled={page === 1}
+                aria-label={t('events.pagination.prev')}
+              >
                 {t('events.pagination.prev')}
               </button>
               <span className="text-sm font-semibold text-[var(--color-text-secondary)]">
                 {t('events.pagination.page', { page, total: totalPages })}
               </span>
-              <button type="button" className="btn btn--ghost btn--pill" onClick={handleNextPage} disabled={page >= totalPages}>
+              <button
+                type="button"
+                className="btn btn--ghost btn--pill"
+                onClick={handleNextPage}
+                disabled={page >= totalPages}
+                aria-label={t('events.pagination.next')}
+              >
                 {t('events.pagination.next')}
               </button>
             </div>
@@ -275,6 +301,8 @@ const EventsPage = (): JSX.Element => {
                     onChange={handleSearchChange}
                     placeholder={t('events.filters.searchPlaceholder')}
                     className={fieldClassName}
+                    inputMode="search"
+                    enterKeyHint="search"
                   />
                 </label>
 

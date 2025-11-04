@@ -129,10 +129,22 @@ const AUTH_STORAGE_KEYS = new Set([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
 const HEADER_ID = 'app-header-profile-button';
 
 const menuClasses =
-  'block w-full rounded-md px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-100 focus:outline-none dark:text-neutral-200 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700';
+  'block w-full rounded-xl px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-100 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700';
 
 const avatarBaseClasses =
-  'flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-transparent bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400';
+  'flex h-12 w-12 min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center rounded-full border border-transparent bg-blue-600 text-base font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400';
+
+const headerWrapperStyle = {
+  paddingTop: 'calc(var(--safe-top) + 0.25rem)',
+  paddingBottom: '0.25rem',
+} as const;
+
+const headerInnerStyle = {
+  minHeight: 'var(--header-height)',
+} as const;
+
+const brandLinkClasses =
+  'inline-flex min-h-[48px] items-center rounded-full px-3 text-base font-semibold tracking-[-0.01em] text-neutral-900 transition-colors hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-neutral-100 dark:hover:text-blue-400';
 
 const dispatchAuthEvent = (): void => {
   if (typeof window === 'undefined') {
@@ -278,13 +290,16 @@ const AppHeader = (): JSX.Element => {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:border-neutral-800 dark:bg-neutral-900/85">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/events"
-          className="text-lg font-semibold text-neutral-900 transition hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-neutral-100 dark:hover:text-blue-400"
-        >
-          {t('app.header.brand')}
+    <header
+      className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:border-neutral-800 dark:bg-neutral-900/85"
+      style={headerWrapperStyle}
+    >
+      <div
+        className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8"
+        style={headerInnerStyle}
+      >
+        <Link href="/" className={brandLinkClasses} aria-label={t('app.header.brand')}>
+          <span className="whitespace-nowrap text-base sm:text-lg">{t('app.header.brand')}</span>
         </Link>
 
         <div className="relative" ref={menuRef}>

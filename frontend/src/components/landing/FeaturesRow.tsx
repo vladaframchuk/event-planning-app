@@ -91,12 +91,19 @@ const buildFeatures = (): Feature[] => [
   },
 ];
 
+const sectionStyle = {
+  paddingBottom: 'calc(var(--safe-bottom) + var(--space-xl))',
+} as const;
+
 const FeaturesRow = (): JSX.Element => {
   const features = buildFeatures();
 
   return (
-    <section className="w-full bg-transparent px-4 pb-16 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+    <section className="w-full bg-transparent px-4 pb-16 sm:px-6 lg:px-8" style={sectionStyle}>
+      <div
+        className="mx-auto flex w-full max-w-6xl flex-col gap-8"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '480px' }}
+      >
         <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[color:var(--color-text-primary)] sm:text-3xl">
           {t('landing.features.heading')}
         </h2>
@@ -121,4 +128,3 @@ const FeaturesRow = (): JSX.Element => {
 };
 
 export default FeaturesRow;
-

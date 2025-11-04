@@ -1087,7 +1087,16 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   );
 
   return (
-    <section className="flex h-[var(--chat-h)] flex-col overflow-hidden rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm">
+    <section
+      className="flex h-[var(--chat-h)] flex-col overflow-hidden rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm"
+      style={{
+        minHeight:
+          'calc(100svh - var(--header-height) - var(--safe-top) - var(--safe-bottom) - var(--bottom-nav-height))',
+        maxHeight:
+          'calc(100svh - var(--header-height) - var(--safe-top) - var(--safe-bottom) - var(--bottom-nav-height))',
+        touchAction: 'pan-y',
+      }}
+    >
       <header className="flex items-center justify-between border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-muted)] px-6 py-4">
         <div>
           <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
@@ -1124,20 +1133,27 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
           <button
             type="button"
             onClick={() => loadInitial()}
-            className="mt-3 inline-flex items-center rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
+            className="mt-4 btn btn--ghost btn--pill"
           >
             {t('event.chat.panel.retry')}
           </button>
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col gap-3 px-6 py-4 overflow-hidden">
+      <div className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pb-4 pt-4 sm:px-6">
         <div
           ref={listRef}
           className="relative flex-1 overflow-y-auto rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-muted)] p-4"
           role="log"
           aria-live="polite"
           aria-relevant="additions"
+          style={{
+            touchAction: 'pan-y',
+            overscrollBehaviorY: 'contain',
+            scrollBehavior: 'smooth',
+            contentVisibility: 'auto',
+            containIntrinsicSize: '720px',
+          }}
         >
           {initialLoading ? (
             <div className="flex h-full items-center justify-center text-sm text-[var(--color-text-secondary)]">
@@ -1172,7 +1188,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             <button
               type="button"
               onClick={() => scrollToBottom()}
-              className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-inverse)] shadow-lg transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)]"
+              className="absolute bottom-4 left-1/2 flex min-h-[48px] -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-inverse)] shadow-lg transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)]"
               aria-live="polite"
             >
               {t('event.chat.panel.unread', { count: unreadCount })}
@@ -1182,7 +1198,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
         {typingIndicatorText ? (
           <div
-            className="flex items-center gap-2 rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm"
+            className="flex min-h-[48px] items-center gap-2 rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] shadow-sm"
             aria-live="polite"
             role="status"
           >
@@ -1198,7 +1214,8 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
       <form
         onSubmit={handleComposerSubmitEvent}
-        className="border-t border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-4"
+        className="border-t border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-4 sm:px-6"
+        style={{ paddingBottom: 'calc(var(--safe-bottom) + var(--space-sm))' }}
       >
         <label
           htmlFor="chat-message-input"
@@ -1220,13 +1237,14 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
           onKeyDown={handleComposerKeyDown}
           placeholder={t('event.chat.panel.input.placeholder')}
           rows={3}
-          className="w-full resize-none rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm text-[var(--color-text-primary)] shadow-sm focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]"
+          className="w-full min-h-[108px] resize-none rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm text-[var(--color-text-primary)] shadow-sm focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]"
           aria-label={t('event.chat.panel.input.ariaLabel')}
+          enterKeyHint="send"
           disabled={profileQuery.isLoading || sendPending}
         />
 
-        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]">
-          <span>{t('event.chat.panel.input.helper')}</span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-text-muted)]">
+          <span className="max-w-full">{t('event.chat.panel.input.helper')}</span>
 
           <div className="flex items-center gap-2">
             {sendError ? <span className="text-red-500 dark:text-red-400">{sendError}</span> : null}
@@ -1244,7 +1262,13 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       </form>
 
       {toast ? (
-        <div className="pointer-events-none fixed bottom-6 right-6 z-50">
+        <div
+          className="pointer-events-none fixed z-50"
+          style={{
+            bottom: 'calc(var(--safe-bottom) + 1.5rem)',
+            right: 'calc(var(--safe-right) + 1.5rem)',
+          }}
+        >
           <div className="pointer-events-auto rounded-xl bg-neutral-900/90 px-4 py-3 text-sm font-medium text-white shadow-lg dark:bg-neutral-800/90">
             {toast.message}
           </div>

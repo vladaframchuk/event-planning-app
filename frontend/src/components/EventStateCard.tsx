@@ -36,6 +36,7 @@ const EventStateCard = ({ tone, title, description, actions }: EventStateCardPro
     <section
       className={`w-full rounded-3xl border ${styles.border} ${styles.background} px-6 py-7 shadow-sm sm:px-8 sm:py-9`}
       aria-live="polite"
+      style={{ touchAction: 'pan-y' }}
     >
       <div className="flex flex-col gap-4">
         <h2 className={`text-xl font-semibold text-[var(--color-text-primary)]`}>{title}</h2>

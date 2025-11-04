@@ -369,5 +369,6 @@
   "event.board.zoom.decrease": "Уменьшить масштаб доски",
   "event.board.zoom.increase": "Увеличить масштаб доски",
   "event.board.zoom.reset": "Сброс",
-  "event.board.zoom.resetAria": "Сбросить масштаб доски"
+  "event.board.zoom.resetAria": "Сбросить масштаб доски",
+  "events.list.cardAria": "Открыть событие {{title}}"
 }

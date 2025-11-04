@@ -1485,7 +1485,12 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       {isLoading ? (
         <div
           className="h-[var(--board-height)] w-full overflow-auto rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm"
-          style={boardStyle}
+          style={{
+            ...boardStyle,
+            touchAction: 'pan-x',
+            overscrollBehaviorX: 'contain',
+            overscrollBehaviorY: 'contain',
+          }}
           data-board-zoom-wrap="true"
         >
           <div
@@ -1629,7 +1634,12 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 
           <div
             className="h-[var(--board-height)] w-full overflow-auto rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm"
-            style={boardStyle}
+            style={{
+              ...boardStyle,
+              touchAction: 'pan-x',
+              overscrollBehaviorX: 'contain',
+              overscrollBehaviorY: 'contain',
+            }}
             data-board-zoom-wrap="true"
           >
             <div

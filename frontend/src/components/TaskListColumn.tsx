@@ -427,7 +427,7 @@ const TaskListColumn = ({
             <button
               type="button"
               onClick={() => onAddTask(list)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent-primary)] text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-12 w-12 min-h-[48px] min-w-[48px] items-center justify-center rounded-full bg-[var(--color-accent-primary)] text-base font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               aria-label={t('event.board.aria.addTask', { title: list.title })}
               disabled={isSyncing || isDeletingList}
             >
@@ -455,12 +455,18 @@ const TaskListColumn = ({
       ) : null}
 
       <div
-        className="flex w-full flex-col gap-4 overflow-visible px-4 pb-4 pt-3"
+        className="flex w-full flex-col gap-4 overflow-y-auto px-4 pb-4 pt-3"
         role="list"
         aria-label={t('event.board.aria.list', { title: list.title })}
         aria-dropeffect={dragContext?.type === 'task' ? 'move' : undefined}
         onDragOver={handleTasksContainerDragOver}
         onDrop={handleTasksContainerDrop}
+        style={{
+          maxHeight: 'calc(var(--board-height) - 140px)',
+          touchAction: 'pan-y',
+          overscrollBehaviorY: 'contain',
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         {visibleTaskCount === 0 ? (
           <>

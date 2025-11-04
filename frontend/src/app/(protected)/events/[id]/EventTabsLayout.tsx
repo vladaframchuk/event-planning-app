@@ -63,12 +63,19 @@ const EventTabsLayout = ({
   const pathname = usePathname();
   const [isInviteOpen, setInviteOpen] = useState(false);
 
+  const sectionStyle = {
+    paddingBottom: `calc(var(--safe-bottom) + var(--space-2xl) + var(--bottom-nav-height))`,
+  } as const;
+
   const content = useMemo(
     () => (isLoading ? skeleton ?? defaultSkeleton : children ?? null),
     [children, isLoading, skeleton],
   );
 
-  const navigation = isLoading ? navigationSkeleton : <EventNavigation eventId={eventId} isOrganizer={isOrganizer} />;
+  const navigationSidebar = isLoading ? navigationSkeleton : <EventNavigation eventId={eventId} isOrganizer={isOrganizer} variant="sidebar" />;
+  const navigationMobile = isLoading ? null : (
+    <EventNavigation eventId={eventId} isOrganizer={isOrganizer} variant="mobile" />
+  );
 
   const handleInviteOpen = () => {
     if (!isOrganizer) {
@@ -79,11 +86,12 @@ const EventTabsLayout = ({
 
   return (
     <>
-      <section className="w-full px-4 pb-16 pt-10 sm:px-8 lg:px-16 xl:px-24">
+      <section className="w-full px-4 pb-16 pt-8 sm:px-8 lg:px-16 xl:px-24" style={sectionStyle}>
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-10">
           <header
             className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-8 shadow-[var(--shadow-md)] sm:px-10 sm:py-10"
             role="banner"
+            style={{ touchAction: 'pan-y' }}
           >
             <div className="flex flex-col gap-8">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -118,14 +126,20 @@ const EventTabsLayout = ({
           </header>
 
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="min-w-0 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-5 pb-9 pt-7 shadow-sm sm:px-10 sm:pb-11 sm:pt-9">
+            <div
+              className="min-w-0 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-5 pb-9 pt-7 shadow-sm sm:px-10 sm:pb-11 sm:pt-9"
+              style={{
+                minHeight: 'calc(100svh - var(--header-height) - var(--safe-top) - var(--safe-bottom) - var(--bottom-nav-height))',
+                touchAction: 'pan-y',
+              }}
+            >
               <div key={pathname} className="event-tab-transition flex flex-col gap-8">
                 {content}
               </div>
             </div>
 
-            <aside className="flex flex-col gap-6 lg:sticky lg:top-28">
-              {navigation}
+            <aside className="hidden flex-col gap-6 lg:sticky lg:top-28 lg:flex">
+              {navigationSidebar}
               {sidePanel ? (
                 <div className="rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-6 shadow-sm">
                   {sidePanel}
@@ -133,6 +147,27 @@ const EventTabsLayout = ({
               ) : null}
             </aside>
           </div>
+
+          {sidePanel ? (
+            <div className="lg:hidden">
+              <div className="rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-6 shadow-sm">
+                {sidePanel}
+              </div>
+            </div>
+          ) : null}
+
+          {navigationMobile ? (
+            <div
+              className="lg:hidden"
+              style={{
+                position: 'sticky',
+                bottom: 'calc(var(--safe-bottom) + 0.75rem)',
+                zIndex: 40,
+              }}
+            >
+              {navigationMobile}
+            </div>
+          ) : null}
         </div>
       </section>
 
