@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
     "django_filters",
     "corsheaders",
     # ��������� ����������
@@ -202,9 +204,16 @@ REST_FRAMEWORK: dict[str, Any] = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.common.exceptions.localized_exception_handler",
 }
 
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Event Planning App API",
+    "DESCRIPTION": "Документация REST API для Event Planning App",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),

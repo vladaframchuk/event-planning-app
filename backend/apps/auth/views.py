@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.schemas.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -21,7 +21,7 @@ class RegistrationView(APIView):
     """Создаёт нового пользователя и отправляет письмо для подтверждения email."""
 
     permission_classes = [AllowAny]
-    schema = AutoSchema(tags=["Аутентификация"])
+    schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
         serializer = RegistrationSerializer(data=request.data)
@@ -35,7 +35,7 @@ class ResendConfirmationView(APIView):
     """Повторно отправляет письмо подтверждения на указанный email."""
 
     permission_classes = [AllowAny]
-    schema = AutoSchema(tags=["Аутентификация"])
+    schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
         serializer = ResendConfirmationSerializer(data=request.data)
@@ -50,7 +50,7 @@ class LoginView(TokenObtainPairView):
 
     permission_classes = [AllowAny]
     serializer_class = EmailTokenObtainPairSerializer
-    schema = AutoSchema(tags=["Аутентификация"])
+    schema = AutoSchema()
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         """Возвращает понятное сообщение, если пользователь ещё не подтвердил email."""
@@ -76,14 +76,14 @@ class RefreshView(TokenRefreshView):
     """Выдаёт новый access-токен по refresh."""
 
     permission_classes = [AllowAny]
-    schema = AutoSchema(tags=["Аутентификация"])
+    schema = AutoSchema()
 
 
 class EmailConfirmView(APIView):
     """Подтверждает email по токену из письма."""
 
     permission_classes = [AllowAny]
-    schema = AutoSchema(tags=["Аутентификация"])
+    schema = AutoSchema()
 
     def get(self, request: Request) -> Response:
         token = request.query_params.get("token")

@@ -11,7 +11,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.schemas.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 
 from apps.events.models import Event, Participant
@@ -32,7 +32,7 @@ class EventParticipantListView(generics.ListAPIView):
     serializer_class = ParticipantSerializer
     pagination_class = EventParticipantPagination
     permission_classes = [IsAuthenticated, IsEventOrganizer]
-    schema = AutoSchema(tags=["Events"])
+    schema = AutoSchema()
 
     ordering_map = {
         "name": "user__name",
@@ -84,7 +84,7 @@ class EventParticipantListView(generics.ListAPIView):
 
 class EventParticipantDetailView(APIView):
     permission_classes = [IsAuthenticated, IsEventOrganizer]
-    schema = AutoSchema(tags=["Events"])
+    schema = AutoSchema()
 
     def get_event(self) -> Event:
         if not hasattr(self, "_event"):

@@ -9,7 +9,7 @@ from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.schemas.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 
 from apps.events.models import Event, Participant
@@ -44,7 +44,7 @@ class EventPdfExportView(APIView):
 
     permission_classes = [IsAuthenticated]
     content_negotiation_class = IgnoreAcceptContentNegotiation
-    schema = AutoSchema(tags=["Экспорт"])
+    schema = AutoSchema()
 
     def get(self, request: Request, event_id: int) -> HttpResponse | Response:
         event, allowed = _fetch_event_and_membership(event_id, request.user)
@@ -62,7 +62,7 @@ class EventExportCSVView(APIView):
 
     permission_classes = [IsAuthenticated]
     content_negotiation_class = IgnoreAcceptContentNegotiation
-    schema = AutoSchema(tags=["Экспорт"])
+    schema = AutoSchema()
 
     def get(self, request: Request, event_id: int) -> HttpResponse | Response:
         event, allowed = _fetch_event_and_membership(event_id, request.user)
@@ -80,7 +80,7 @@ class EventExportXLSView(APIView):
 
     permission_classes = [IsAuthenticated]
     content_negotiation_class = IgnoreAcceptContentNegotiation
-    schema = AutoSchema(tags=["Экспорт"])
+    schema = AutoSchema()
 
     def get(self, request: Request, event_id: int) -> HttpResponse | Response:
         event, allowed = _fetch_event_and_membership(event_id, request.user)

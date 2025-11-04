@@ -9,7 +9,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ParseError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.schemas.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -32,7 +32,7 @@ class MessagePagination(PageNumberPagination):
 
 
 class EventMessageListCreateView(generics.GenericAPIView):
-    schema = AutoSchema(tags=["Chat"])
+    schema = AutoSchema()
     """Просмотр и создание сообщений по событию."""
 
     permission_classes = [IsAuthenticated, IsEventMember]
@@ -137,7 +137,7 @@ class EventMessageListCreateView(generics.GenericAPIView):
 
 
 class EventMessageDetailView(APIView):
-    schema = AutoSchema(tags=["Chat"])
+    schema = AutoSchema()
     permission_classes = [IsAuthenticated, IsEventMember]
 
     def get_event(self, request: Request, event_id: int) -> Event:

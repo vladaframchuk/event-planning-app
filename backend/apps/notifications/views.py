@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.schemas.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 
 from apps.common.emailing import send_templated_email
@@ -15,7 +15,7 @@ class NotificationTestView(APIView):
     """Отправляет авторизованному пользователю тестовое письмо."""
 
     permission_classes = [IsAuthenticated]
-    schema = AutoSchema(tags=["Уведомления"])
+    schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
         user: User = request.user  # type: ignore[assignment]

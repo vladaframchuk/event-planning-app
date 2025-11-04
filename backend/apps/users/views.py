@@ -12,7 +12,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.schemas.openapi import AutoSchema
+from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 
 from apps.common.emailing import send_templated_email
@@ -52,7 +52,7 @@ class MeView(APIView):
     """Возвращает и обновляет профиль текущего пользователя."""
 
     permission_classes = [IsAuthenticated]
-    schema = AutoSchema(tags=["Профиль"])
+    schema = AutoSchema()
 
     def get(self, request: Request) -> Response:
         serializer = MeSerializer(request.user, context={"request": request})
@@ -76,7 +76,7 @@ class AvatarUploadView(APIView):
 
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
-    schema = AutoSchema(tags=["Профиль"])
+    schema = AutoSchema()
 
     ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -130,7 +130,7 @@ class ChangePasswordView(APIView):
     """Обновляет пароль аутентифицированного пользователя."""
 
     permission_classes = [IsAuthenticated]
-    schema = AutoSchema(tags=["Профиль"])
+    schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
@@ -143,7 +143,7 @@ class EmailChangeInitView(APIView):
     """Запускает процесс смены email: генерирует токен и отправляет письмо на новый адрес."""
 
     permission_classes = [IsAuthenticated]
-    schema = AutoSchema(tags=["Профиль"])
+    schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
         serializer = EmailChangeRequestSerializer(data=request.data, context={"request": request})
@@ -177,7 +177,7 @@ class EmailChangeConfirmView(APIView):
     """Подтверждает смену email по токену и отзывает refresh-токены."""
 
     permission_classes = [AllowAny]
-    schema = AutoSchema(tags=["Профиль"])
+    schema = AutoSchema()
 
     def get(self, request: Request) -> Response:
         token = request.query_params.get("token")
@@ -224,7 +224,7 @@ class NotificationSettingsView(APIView):
     """Позволяет включать или отключать email-уведомления пользователя."""
 
     permission_classes = [IsAuthenticated]
-    schema = AutoSchema(tags=["Профиль"])
+    schema = AutoSchema()
 
     def patch(self, request: Request) -> Response:
         serializer = NotificationSettingsSerializer(data=request.data, context={"request": request})

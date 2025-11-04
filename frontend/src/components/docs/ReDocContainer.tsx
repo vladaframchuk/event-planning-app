@@ -8,10 +8,13 @@ type RedocGlobal = typeof window & {
   };
 };
 
+const backendBaseUrl =
+  process.env['NEXT_PUBLIC_BACKEND_URL']?.replace(/\/+$/, '') ?? 'http://localhost:8000';
+
 const DEFAULT_SPEC_URL =
   process.env.NEXT_PUBLIC_API_SCHEMA_URL ??
   process.env.NEXT_PUBLIC_DOCS_SPEC_URL ??
-  '/api/openapi.json';
+  `${backendBaseUrl}/doc/schema/`;
 
 const REDOC_SCRIPT_SRC = 'https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js';
 
