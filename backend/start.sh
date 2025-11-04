@@ -1,6 +1,6 @@
 #!/bin/sh
-set -o errexit
-set -o pipefail
+set -e
+set -u
 
 echo "Waiting for database..."
 python <<'PY'
