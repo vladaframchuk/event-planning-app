@@ -113,11 +113,10 @@ const EventDetailsPage = (): JSX.Element => {
 
   if (eventQuery.isLoading) {
     return (
-      <EventTabsLayout
+    <EventTabsLayout
         eventId={eventId}
         isOrganizer
         title={t('event.tabs.loadingTitle')}
-        subtitle={t('event.overview.header.subtitle')}
         description={t('event.overview.header.description')}
         isLoading
         skeleton={overviewSkeleton}
@@ -222,11 +221,10 @@ const EventDetailsPage = (): JSX.Element => {
         </div>
       ) : null}
 
-      <EventTabsLayout
+    <EventTabsLayout
         eventId={event.id}
         isOrganizer={isOrganizer}
         title={event.title}
-        subtitle={t('event.overview.header.subtitle')}
         description={description}
         sidePanel={sidePanel}
         skeleton={overviewSkeleton}

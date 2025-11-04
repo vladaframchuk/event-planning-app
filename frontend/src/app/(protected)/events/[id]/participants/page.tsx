@@ -217,8 +217,6 @@ const ParticipantsPage = (): JSX.Element => {
         eventId={eventId}
         isOrganizer
         title={t('event.tabs.loadingTitle')}
-        subtitle={t('event.participants.header.subtitle')}
-        description={t('event.participants.subtitle')}
         isLoading
         skeleton={participantsSkeleton}
       />
@@ -270,6 +268,10 @@ const ParticipantsPage = (): JSX.Element => {
   const event = eventQuery.data;
   const currentUserId = profileQuery.data.id ?? null;
   const participantsError = participantsQuery.error ?? null;
+  const description =
+    event.description && event.description.trim().length > 0
+      ? event.description
+      : t('event.overview.details.descriptionFallback');
 
   const copyInviteButton = isOrganizer ? (
     <button
@@ -334,12 +336,11 @@ const ParticipantsPage = (): JSX.Element => {
 
   return (
     <>
-      <EventTabsLayout
+    <EventTabsLayout
         eventId={event.id}
         isOrganizer={isOrganizer}
         title={event.title}
-        subtitle={t('event.participants.header.subtitle')}
-        description={t('event.participants.subtitle')}
+        description={description}
         sidePanel={sidePanel}
         skeleton={participantsSkeleton}
       >
@@ -348,9 +349,6 @@ const ParticipantsPage = (): JSX.Element => {
             <h2 className="text-[clamp(1.5rem,2.4vw,1.875rem)] font-semibold text-[var(--color-text-primary)]">
               {t('event.participants.heading')}
             </h2>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              {t('event.participants.header.description')}
-            </p>
           </div>
           {copyInviteButton}
         </header>

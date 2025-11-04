@@ -77,8 +77,6 @@ const EventChatPage = (): JSX.Element => {
         eventId={eventId}
         isOrganizer
         title={t('event.tabs.loadingTitle')}
-        subtitle={t('event.chat.header.subtitle')}
-        description={t('event.chat.header.description')}
         isLoading
         skeleton={chatSkeleton}
       />
@@ -116,6 +114,10 @@ const EventChatPage = (): JSX.Element => {
 
   const event = eventQuery.data;
   const isOrganizer = event.viewerRole === 'organizer';
+  const description =
+    event.description && event.description.trim().length > 0
+      ? event.description
+      : t('event.overview.details.descriptionFallback');
 
   const infoPanel = (
     <dl className="flex flex-col gap-5 text-sm text-[var(--color-text-secondary)]">
@@ -145,8 +147,7 @@ const EventChatPage = (): JSX.Element => {
       eventId={event.id}
       isOrganizer={isOrganizer}
       title={event.title}
-      subtitle={t('event.chat.header.subtitle')}
-      description={t('event.chat.header.description')}
+      description={description}
       sidePanel={infoPanel}
       skeleton={chatSkeleton}
     >

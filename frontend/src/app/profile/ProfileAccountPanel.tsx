@@ -44,6 +44,8 @@ const ProfileAccountPanel = ({
   const labelClassName = 'text-sm font-semibold text-[var(--color-text-primary)]';
   const cardClassName =
     'flex flex-col gap-4 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm sm:px-8 sm:py-8';
+  const accountSubtitle = t('profile.account.subtitle').trim();
+  const notificationsDescription = t('profile.account.notifications.description').trim();
 
   useEffect(() => {
     setNotificationsEnabled(emailNotificationsEnabled);
@@ -124,7 +126,9 @@ const ProfileAccountPanel = ({
         <h2 id="profile-account-heading" className="text-lg font-semibold text-[var(--color-text-primary)]">
           {t('profile.account.title')}
         </h2>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{t('profile.account.subtitle')}</p>
+        {accountSubtitle.length > 0 ? (
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{accountSubtitle}</p>
+        ) : null}
       </header>
 
       <div className="flex flex-col gap-6">
@@ -141,9 +145,9 @@ const ProfileAccountPanel = ({
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                 {t('profile.account.notifications.title')}
               </p>
-              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                {t('profile.account.notifications.description')}
-              </p>
+              {notificationsDescription.length > 0 ? (
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{notificationsDescription}</p>
+              ) : null}
             </div>
             <button
               aria-label={t('profile.account.notifications.toggleAria')}

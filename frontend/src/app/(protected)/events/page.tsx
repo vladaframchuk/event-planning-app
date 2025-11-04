@@ -200,6 +200,7 @@ const EventsPage = (): JSX.Element => {
   const hasActiveFilters =
     search.trim().length > 0 || category.trim().length > 0 || timeFilter !== 'all' || ordering !== 'start_at';
   const filtersPanelId = 'events-filters-panel';
+  const eventsSubtitle = t('events.header.subtitle').trim();
 
   return (
     <section className="w-full px-4 pb-16 pt-10 sm:px-8 lg:px-16 xl:px-24">
@@ -213,9 +214,9 @@ const EventsPage = (): JSX.Element => {
               <h1 className="text-[clamp(2rem,3vw,2.8rem)] font-semibold leading-[1.08] text-[var(--color-text-primary)]">
                 {t('events.header.title')}
               </h1>
-              <p className="text-base text-[var(--color-text-secondary)]">
-                {t('events.header.subtitle')}
-              </p>
+              {eventsSubtitle.length > 0 ? (
+                <p className="text-base text-[var(--color-text-secondary)]">{eventsSubtitle}</p>
+              ) : null}
             </div>
             <button type="button" onClick={handleOpenCreate} className="btn btn--primary btn--pill self-start sm:self-auto">
               {t('events.actions.create')}

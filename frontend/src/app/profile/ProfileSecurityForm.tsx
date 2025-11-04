@@ -54,7 +54,6 @@ const ProfileSecurityForm = ({ onNotify }: ProfileSecurityFormProps): JSX.Elemen
     <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
       <header>
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t('profile.security.title')}</h2>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{t('profile.security.description')}</p>
       </header>
 
       <section className={cardClassName}>

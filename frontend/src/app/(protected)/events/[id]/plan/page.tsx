@@ -58,15 +58,13 @@ const EventPlanPage = (): JSX.Element => {
 
   if (eventQuery.isLoading) {
     return (
-      <EventTabsLayout
-        eventId={eventId}
-        isOrganizer
-        title={t('event.tabs.loadingTitle')}
-        subtitle={t('event.plan.header.subtitle')}
-        description={t('event.plan.header.description')}
-        isLoading
-        skeleton={boardSkeleton}
-      />
+    <EventTabsLayout
+      eventId={eventId}
+      isOrganizer
+      title={t('event.tabs.loadingTitle')}
+      isLoading
+      skeleton={boardSkeleton}
+    />
     );
   }
 
@@ -101,14 +99,17 @@ const EventPlanPage = (): JSX.Element => {
 
   const event = eventQuery.data;
   const isOrganizer = event.viewerRole === 'organizer';
+  const description =
+    event.description && event.description.trim().length > 0
+      ? event.description
+      : t('event.overview.details.descriptionFallback');
 
   return (
     <EventTabsLayout
       eventId={event.id}
       isOrganizer={isOrganizer}
       title={event.title}
-      subtitle={t('event.plan.header.subtitle')}
-      description={t('event.plan.header.description')}
+      description={description}
       skeleton={boardSkeleton}
     >
       <TaskBoard eventId={event.id} />

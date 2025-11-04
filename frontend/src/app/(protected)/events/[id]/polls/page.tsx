@@ -155,8 +155,6 @@ const PollsPage = (): JSX.Element => {
         eventId={eventId}
         isOrganizer
         title={t('event.tabs.loadingTitle')}
-        subtitle={t('event.polls.header.subtitle')}
-        description={t('event.polls.header.description')}
         isLoading
         skeleton={pollsSkeleton}
       />
@@ -197,6 +195,10 @@ const PollsPage = (): JSX.Element => {
   const isOrganizer =
     event.viewerRole === 'organizer' ||
     (event.owner.id != null && viewerId != null && event.owner.id === viewerId);
+  const description =
+    event.description && event.description.trim().length > 0
+      ? event.description
+      : t('event.overview.details.descriptionFallback');
 
   const polls: Poll[] = pollsQuery.data?.results ?? [];
   const pollCount = pollsQuery.data?.count ?? 0;
@@ -349,12 +351,11 @@ const PollsPage = (): JSX.Element => {
 
   return (
     <>
-      <EventTabsLayout
+    <EventTabsLayout
         eventId={event.id}
         isOrganizer={isOrganizer}
         title={event.title}
-        subtitle={t('event.polls.header.subtitle')}
-        description={t('event.polls.header.description')}
+        description={description}
         sidePanel={sidePanel}
         skeleton={pollsSkeleton}
       >

@@ -30,6 +30,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        <div className="app-animated-bg" aria-hidden="true" />
         <QueryClientProvider>{children}</QueryClientProvider>
       </body>
     </html>

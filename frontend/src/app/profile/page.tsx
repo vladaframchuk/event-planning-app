@@ -138,9 +138,6 @@ const ProfilePage = (): JSX.Element => {
           <h1 className="mt-3 text-[clamp(2rem,3vw,2.8rem)] font-semibold leading-[1.08] text-[var(--color-text-primary)]">
             {t('profile.header.title')}
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-[var(--line-height-relaxed)] text-[var(--color-text-secondary)]">
-            {t('profile.header.subtitle')}
-          </p>
         </header>
 
         <div className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-[var(--shadow-sm)]">

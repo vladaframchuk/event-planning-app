@@ -1094,9 +1094,6 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             {t('event.chat.panel.title')}
           </h2>
 
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {t('event.chat.panel.subtitle')}
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

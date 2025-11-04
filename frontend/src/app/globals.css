@@ -12,7 +12,7 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background: var(--gradient-solid);
+  background: var(--bg1);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   line-height: var(--line-height-base);
@@ -20,24 +20,27 @@ body {
   transition: background var(--transition-slow) var(--easing-standard), color var(--transition-medium) var(--easing-standard);
 }
 
-body::before {
-  content: "";
+.app-animated-bg {
   position: fixed;
   inset: 0;
-  background: var(--gradient-background);
-  opacity: 1;
-  z-index: -2;
-  animation: gradientFloat 28s var(--easing-standard) infinite;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 40%, rgba(255, 255, 255, 0.94) 100%);
-  mix-blend-mode: lighten;
   z-index: -1;
   pointer-events: none;
+  background-color: var(--bg1);
+  background-image: var(--app-background-layers);
+  background-repeat: no-repeat;
+  background-size:
+    160% 160%,
+    150% 150%,
+    180% 180%,
+    100% 100%;
+  background-position:
+    18% 18%,
+    78% 22%,
+    52% 82%,
+    50% 50%;
+  animation: ambientShift 48s ease-in-out infinite;
+  will-change: transform, background-position, background-size;
+  transform: translateZ(0);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -46,34 +49,68 @@ body::after {
     color: var(--color-text-primary);
   }
 
-  body::before {
-    background: var(--gradient-background-dark);
-  }
-
-  body::after {
-    background: linear-gradient(180deg, rgba(12, 16, 36, 0.82) 0%, rgba(12, 16, 36, 0.74) 45%, rgba(12, 16, 36, 0.88) 100%);
-    mix-blend-mode: normal;
+  .app-animated-bg {
+    background-color: var(--color-background-primary);
+    background-image: var(--app-background-layers-dark);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before {
+  .app-animated-bg {
     animation: none;
+    background-position:
+      18% 18%,
+      78% 22%,
+      52% 82%,
+      50% 50%;
+    background-size:
+      160% 160%,
+      150% 150%,
+      180% 180%,
+      100% 100%;
   }
 }
 
-@keyframes gradientFloat {
+body.no-anim .app-animated-bg {
+  animation: none;
+}
+
+@keyframes ambientShift {
   0% {
-    transform: scale(1) translate3d(0, 0, 0);
+    background-position:
+      18% 18%,
+      78% 22%,
+      52% 82%,
+      50% 50%;
+    background-size:
+      160% 160%,
+      150% 150%,
+      180% 180%,
+      100% 100%;
   }
-  35% {
-    transform: scale(1.05) translate3d(-3%, -2%, 0);
-  }
-  70% {
-    transform: scale(1.08) translate3d(2%, 3%, 0);
+  45% {
+    background-position:
+      22% 24%,
+      74% 28%,
+      48% 78%,
+      52% 52%;
+    background-size:
+      170% 168%,
+      158% 158%,
+      188% 188%,
+      102% 102%;
   }
   100% {
-    transform: scale(1) translate3d(0, 0, 0);
+    background-position:
+      18% 18%,
+      78% 22%,
+      52% 82%,
+      50% 50%;
+    background-size:
+      160% 160%,
+      150% 150%,
+      180% 180%,
+      100% 100%;
   }
 }
 
