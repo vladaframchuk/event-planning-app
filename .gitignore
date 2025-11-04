@@ -13,6 +13,7 @@ backend/venv/
 # Django / local configs
 .env
 .env.*
+!.env.example
 backend/.env
 backend/.env.*
 !backend/.env.example

@@ -50,8 +50,7 @@ Event Planning App
 
 2. Клонирование репозитория
    ```bash
-   git clone git@github.com:your-org/event-planning-app.git
-   cd event-planning-app
+   git clone https://github.com/vladaframchuk/event-planning-app.git
    cp .env.example .env.prod
    ```
    Заполните .env.prod боевыми значениями (секретный ключ, параметры БД, пароль от Yandex SMTP и т. д.).
