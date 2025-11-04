@@ -39,6 +39,12 @@ const ProfileAccountPanel = ({
   const [notificationsEnabled, setNotificationsEnabled] = useState(emailNotificationsEnabled);
   const [emailChangeStatus, setEmailChangeStatus] = useState<string | null>(null);
 
+  const fieldClassName =
+    'w-full rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm font-medium text-[var(--color-text-primary)] shadow-sm transition focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]';
+  const labelClassName = 'text-sm font-semibold text-[var(--color-text-primary)]';
+  const cardClassName =
+    'flex flex-col gap-4 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm sm:px-8 sm:py-8';
+
   useEffect(() => {
     setNotificationsEnabled(emailNotificationsEnabled);
   }, [emailNotificationsEnabled]);
@@ -113,83 +119,108 @@ const ProfileAccountPanel = ({
   };
 
   return (
-    <section className="space-y-6" aria-labelledby="profile-account-heading">
-      <div>
-        <h2 id="profile-account-heading" className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+    <section className="flex flex-col gap-6" aria-labelledby="profile-account-heading">
+      <header>
+        <h2 id="profile-account-heading" className="text-lg font-semibold text-[var(--color-text-primary)]">
           {t('profile.account.title')}
         </h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-          {t('profile.account.subtitle')}
-        </p>
-      </div>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{t('profile.account.subtitle')}</p>
+      </header>
 
-      <div className="space-y-6 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div>
-          <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">{t('profile.account.currentEmail')}</p>
-          <p className="mt-1 text-sm text-neutral-900 dark:text-neutral-100">{email}</p>
-        </div>
-
-        <div className="flex items-start justify-between gap-4 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
+      <div className="flex flex-col gap-6">
+        <section className={cardClassName}>
           <div>
-            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-              {t('profile.account.notifications.title')}
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              {t('profile.account.currentEmail')}
             </p>
-            <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-              {t('profile.account.notifications.description')}
-            </p>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{email}</p>
           </div>
-          <button
-            aria-label={t('profile.account.notifications.toggleAria')}
-            type="button"
-            onClick={handleToggleNotifications}
-            disabled={isUpdatingNotifications}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition ${
-              notificationsEnabled ? 'bg-blue-600' : 'bg-neutral-300 dark:bg-neutral-700'
-            } ${isUpdatingNotifications ? 'opacity-70' : ''}`}
-            aria-pressed={notificationsEnabled}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                notificationsEnabled ? 'translate-x-5' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
 
-        <form className="space-y-3" onSubmit={handleRequestEmailChange}>
-          <label className="flex flex-col gap-1 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-            {t('profile.account.field.newEmail')}
-            <input
-              type="email"
-              autoComplete="email"
-              value={newEmail}
-              onChange={(event) => setNewEmail(event.target.value)}
-              placeholder={t('profile.account.field.newEmail.placeholder')}
-              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-            />
-          </label>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? t('profile.account.action.sendConfirmation.loading') : t('profile.account.action.sendConfirmation')}
-          </button>
+          <div className="flex flex-col gap-3 rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-primary)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-md">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                {t('profile.account.notifications.title')}
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                {t('profile.account.notifications.description')}
+              </p>
+            </div>
+            <button
+              aria-label={t('profile.account.notifications.toggleAria')}
+              type="button"
+              onClick={handleToggleNotifications}
+              disabled={isUpdatingNotifications}
+              className={[
+                'relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)]',
+                notificationsEnabled
+                  ? 'bg-[var(--color-accent-primary)]'
+                  : 'bg-[var(--color-border-subtle)]',
+                isUpdatingNotifications ? 'opacity-70' : '',
+              ].join(' ')}
+              aria-pressed={notificationsEnabled}
+            >
+              <span
+                className={[
+                  'inline-block h-6 w-6 rounded-full bg-[var(--color-background-elevated)] shadow-sm transition-transform duration-[var(--transition-fast)] ease-[var(--easing-standard)]',
+                  notificationsEnabled ? 'translate-x-5' : 'translate-x-1',
+                ].join(' ')}
+              />
+            </button>
+          </div>
+        </section>
+
+        <section className={cardClassName}>
+          <form className="flex flex-col gap-4" onSubmit={handleRequestEmailChange} noValidate>
+            <label className={`${labelClassName} flex flex-col gap-2`}>
+              {t('profile.account.field.newEmail')}
+              <input
+                type="email"
+                autoComplete="email"
+                value={newEmail}
+                onChange={(event) => setNewEmail(event.target.value)}
+                placeholder={t('profile.account.field.newEmail.placeholder')}
+                className={fieldClassName}
+              />
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <button type="submit" className="btn btn--primary btn--pill" disabled={isSubmitting}>
+                {isSubmitting ? t('profile.account.action.sendConfirmation.loading') : t('profile.account.action.sendConfirmation')}
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--pill"
+                onClick={() => setNewEmail('')}
+                disabled={isSubmitting}
+              >
+                {t('profile.account.action.clear')}
+              </button>
+            </div>
+          </form>
           {emailChangeStatus ? (
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">{emailChangeStatus}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">{emailChangeStatus}</p>
           ) : null}
-        </form>
+        </section>
 
-        <div className="border-t border-dashed border-neutral-200 pt-4 dark:border-neutral-700">
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-            onClick={handleSwitchAccount}
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? t('profile.account.switch.loading') : t('profile.account.switch.label')}
-          </button>
-        </div>
+        <section className={cardClassName}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                {t('profile.account.switch.heading')}
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                {t('profile.account.switch.description')}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn--ghost btn--pill"
+              onClick={handleSwitchAccount}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? t('profile.account.switch.loading') : t('profile.account.switch.label')}
+            </button>
+          </div>
+        </section>
       </div>
     </section>
   );

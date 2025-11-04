@@ -9,6 +9,7 @@ import {
   exportEventPdf,
   exportEventXls,
 } from '@/lib/export';
+import { t } from '@/lib/i18n';
 
 type ToastState = {
   id: number;
@@ -22,7 +23,6 @@ type EventExportMenuProps = {
 
 type ExportFormat = 'pdf' | 'csv' | 'xls';
 
-const MENU_LABEL = 'Экспорт';
 const PDF_LABEL = 'Экспорт в PDF';
 const CSV_LABEL = 'Экспорт в CSV';
 const XLS_LABEL = 'Экспорт в XLS';
@@ -110,7 +110,7 @@ const ChevronIcon = ({ className }: { className?: string }) => (
 
 const LoadingSpinner = () => (
   <svg
-    className="h-4 w-4 animate-spin text-white"
+    className="h-4 w-4 animate-spin text-current"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -263,17 +263,23 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
   );
 
   return (
-    <div className="relative inline-block text-left" ref={containerRef}>
+    <div className="relative inline-flex text-left" ref={containerRef}>
       <button
         type="button"
         onClick={handleToggle}
         disabled={isAnyLoading}
         aria-expanded={isOpen}
-        className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-600 dark:bg-neutral-700 dark:hover:bg-neutral-600"
+        aria-haspopup="menu"
+        className={[
+          'btn btn--dark btn--pill min-w-[168px] justify-center',
+          isAnyLoading ? 'opacity-80' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
-        <ExportIcon className="h-4 w-4" />
-        <span>{MENU_LABEL}</span>
-        <ChevronIcon className="h-4 w-4" />
+        <ExportIcon className="h-4 w-4 text-inherit" />
+        <span>{t('event.header.actions.export')}</span>
+        <ChevronIcon className="h-4 w-4 text-inherit" />
       </button>
 
       {isOpen ? (
@@ -302,7 +308,9 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
       {toast ? (
         <div
           className={`absolute left-1/2 top-full mt-2 w-max -translate-x-1/2 rounded-md px-3 py-2 text-xs font-medium shadow-lg ${
-            toast.tone === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            toast.tone === 'success'
+              ? 'bg-[var(--button-success-bg)] text-[var(--button-success-text)]'
+              : 'bg-[var(--color-error)] text-[var(--color-text-inverse)]'
           }`}
           role="status"
         >

@@ -5,6 +5,7 @@ import React from 'react';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 
 import { confirmRegistration, resendConfirmationEmail } from '@/lib/authApi';
+import { t } from '@/lib/i18n';
 
 import ConfirmPage from '../page';
 
@@ -29,7 +30,7 @@ describe('ConfirmPage', () => {
 
     render(<ConfirmPage />);
 
-    expect(screen.getByText(/Confirming email/i)).toBeInTheDocument();
+    expect(screen.getByText(t('auth.confirm.loading'))).toBeInTheDocument();
     await screen.findByText(/email_confirmed/i);
   });
 
@@ -38,7 +39,7 @@ describe('ConfirmPage', () => {
 
     render(<ConfirmPage />);
 
-    await screen.findByText(/token is missing/i);
+    await screen.findByText(t('auth.confirm.error.missingToken'));
   });
 
   it('allows resending confirmation email', async () => {
@@ -52,7 +53,7 @@ describe('ConfirmPage', () => {
     const emailInput = screen.getByLabelText(/Email/i);
     fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
 
-    const submit = screen.getByRole('button', { name: /Resend confirmation/i });
+    const submit = screen.getByRole('button', { name: t('auth.confirm.resend.submit') });
     fireEvent.click(submit);
 
     await waitFor(() => {

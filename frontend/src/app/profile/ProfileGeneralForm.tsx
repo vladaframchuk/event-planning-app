@@ -40,6 +40,12 @@ const ProfileGeneralForm = ({ profile, onProfileUpdate, onNotify }: ProfileGener
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const fieldClassName =
+    'w-full rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm font-medium text-[var(--color-text-primary)] shadow-sm transition focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]';
+  const labelClassName = 'text-sm font-semibold text-[var(--color-text-primary)]';
+  const cardClassName =
+    'rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm sm:px-8 sm:py-8';
+
   useEffect(() => {
     setName(profile.name ?? '');
   }, [profile.name]);
@@ -96,15 +102,15 @@ const ProfileGeneralForm = ({ profile, onProfileUpdate, onNotify }: ProfileGener
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div>
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{t('profile.general.title')}</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{t('profile.general.description')}</p>
-      </div>
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <header>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t('profile.general.title')}</h2>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{t('profile.general.description')}</p>
+      </header>
 
-      <div className="space-y-6">
+      <section className={cardClassName}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-200 text-lg font-semibold text-neutral-600 dark:bg-neutral-700 dark:text-neutral-100">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-surface-muted)] text-lg font-semibold text-[var(--color-text-secondary)]">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatar_url} alt={profile.name ?? profile.email} className="h-full w-full object-cover" />
@@ -113,7 +119,7 @@ const ProfileGeneralForm = ({ profile, onProfileUpdate, onNotify }: ProfileGener
             )}
           </div>
           <div className="flex flex-1 flex-col gap-2">
-            <label className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+            <label className={labelClassName}>
               {t('profile.general.avatar.label')}
               <input
                 ref={fileInputRef}
@@ -121,44 +127,40 @@ const ProfileGeneralForm = ({ profile, onProfileUpdate, onNotify }: ProfileGener
                 accept="image/*"
                 onChange={handleAvatarChange}
                 disabled={isUploading}
-                className="mt-1 block w-full text-sm text-neutral-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700 disabled:cursor-not-allowed disabled:file:bg-blue-300 dark:text-neutral-200"
+                className="mt-2 block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-accent-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--color-text-inverse)] transition hover:file:bg-[var(--color-accent-primary-strong)] disabled:cursor-not-allowed disabled:file:opacity-70"
               />
             </label>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">{t('profile.general.avatar.help')}</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{t('profile.general.avatar.help')}</p>
             {isUploading ? (
-              <p className="text-xs text-blue-600 dark:text-blue-400" role="status">
+              <p className="text-xs text-[var(--color-accent-primary)]" role="status">
                 {t('profile.general.avatar.uploading')}
               </p>
             ) : null}
           </div>
         </div>
+      </section>
 
-        <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-            {t('profile.general.field.name')}
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={t('profile.general.field.namePlaceholder')}
-              autoComplete="name"
-              className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-            />
-          </label>
-        </div>
-      </div>
+      <section className={cardClassName}>
+        <label className={`${labelClassName} flex flex-col gap-2`}>
+          {t('profile.general.field.name')}
+          <input
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={t('profile.general.field.namePlaceholder')}
+            autoComplete="name"
+            className={fieldClassName}
+          />
+        </label>
+      </section>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-          disabled={isSaving}
-        >
+        <button type="submit" className="btn btn--primary btn--pill" disabled={isSaving}>
           {isSaving ? t('profile.general.actions.saving') : t('profile.general.actions.save')}
         </button>
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          className="btn btn--ghost btn--pill"
           onClick={() => setName(profile.name ?? '')}
           disabled={isSaving}
         >

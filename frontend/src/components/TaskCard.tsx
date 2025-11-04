@@ -1,6 +1,18 @@
-import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX, type MouseEvent } from 'react';
+'use client';
 
+import Image from 'next/image';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+  type JSX,
+  type MouseEvent,
+} from 'react';
+
+import { t } from '@/lib/i18n';
 import type { BoardParticipant, Task, TaskStatus } from '@/types/task';
 
 import ConfirmDialog from './ConfirmDialog';
@@ -19,24 +31,15 @@ type TaskCardProps = {
   onTaskChanged?: () => void;
 };
 
-const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  todo: 'В очереди',
-  doing: 'В работе',
-  done: 'Готово',
-};
-
 const TASK_STATUS_BADGE_CLASSES: Record<TaskStatus, string> = {
-  todo:
-    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
-  doing:
-    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-  done:
-    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+  todo: 'bg-[var(--color-accent-soft)] text-[var(--color-accent-primary)]',
+  doing: 'bg-[var(--color-warning-soft)] text-[var(--color-warning)]',
+  done: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
 };
 
 const TASK_STATUS_OPTIONS: TaskStatus[] = ['todo', 'doing', 'done'];
 
-const dateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
@@ -97,6 +100,15 @@ const TaskCard = ({
     return { displayName, initials, avatarUrl: user.avatarUrl };
   }, [assignee]);
 
+  const statusLabels = useMemo<Record<TaskStatus, string>>(
+    () => ({
+      todo: t('event.board.status.todo'),
+      doing: t('event.board.status.doing'),
+      done: t('event.board.status.done'),
+    }),
+    [],
+  );
+
   const handleStatusChange = async (event: ChangeEvent<HTMLSelectElement>) => {
     const selectElement = event.currentTarget;
     const nextStatus = selectElement.value as TaskStatus;
@@ -132,6 +144,21 @@ const TaskCard = ({
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const succeeded = await onDelete();
+      if (succeeded) {
+        setDeleteDialogOpen(false);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleDeleteCancel = () => {
     if (isDeleting) {
       return;
@@ -139,41 +166,17 @@ const TaskCard = ({
     setDeleteDialogOpen(false);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!onDelete) {
-      return;
-    }
-    setDeleting(true);
-    const succeeded = await onDelete().catch(() => false);
-    setDeleting(false);
-    if (succeeded) {
-      setDeleteDialogOpen(false);
-      onTaskChanged?.();
-    }
-  };
-
   const closeContextMenu = () => {
     setContextMenuOpen(false);
   };
 
   const handleContextMenu = (event: MouseEvent<HTMLDivElement>) => {
-    if (!canDelete) {
+    if (!canDelete || isBusy) {
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
-    if (isBusy) {
-      return;
-    }
-    const card = cardRef.current;
-    if (!card) {
-      return;
-    }
-    const rect = card.getBoundingClientRect();
-    setMenuPosition({
-      top: event.clientY - rect.top,
-      left: event.clientX - rect.left,
-    });
+    const { clientX, clientY } = event;
+    setMenuPosition({ left: clientX, top: clientY });
     setContextMenuOpen(true);
   };
 
@@ -188,7 +191,6 @@ const TaskCard = ({
       }
       const cardNode = cardRef.current;
       if (cardNode && cardNode.contains(event.target as Node)) {
-        // Клик по карточке за пределами меню — просто закрываем меню.
         setContextMenuOpen(false);
         return;
       }
@@ -218,120 +220,141 @@ const TaskCard = ({
     setDeleteDialogOpen(true);
   };
 
+  const titleClampStyle: CSSProperties = {
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  };
+
+  const descriptionClampStyle: CSSProperties = {
+    display: '-webkit-box',
+    WebkitLineClamp: 4,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  };
+
   return (
     <>
       <div
         ref={cardRef}
-        className="relative flex flex-col gap-3"
+        className="group relative flex h-[var(--card-h)] w-full max-w-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-4 shadow-sm transition-transform duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:-translate-y-[1px]"
         onContextMenu={handleContextMenu}
       >
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{task.title}</h3>
-          <span
-            className={`inline-flex min-w-[88px] justify-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${TASK_STATUS_BADGE_CLASSES[task.status]}`}
-          >
-            {TASK_STATUS_LABELS[task.status]}
-          </span>
-        </div>
-
-        {task.description ? (
-          <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">{task.description}</p>
-        ) : null}
-
-      <div className="flex flex-wrap gap-3 text-xs text-neutral-500 dark:text-neutral-400">
-        {startDate ? (
-          <span>
-            <span className="font-medium text-neutral-600 dark:text-neutral-300">Начало:</span> {startDate}
-          </span>
-        ) : null}
-        {dueDate ? (
-          <span>
-            <span className="font-medium text-neutral-600 dark:text-neutral-300">Дедлайн:</span> {dueDate}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {assigneeDisplay ? (
-          <div className="flex items-center gap-2">
-            {assigneeDisplay.avatarUrl ? (
-              <Image
-                src={assigneeDisplay.avatarUrl}
-                alt={"Ответственный " + assigneeDisplay.displayName}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full object-cover"
-                sizes="32px"
-                unoptimized
-              />
-            ) : (
-              <span
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white dark:bg-blue-500"
-                aria-hidden="true"
-              >
-                {assigneeDisplay.initials}
-              </span>
-            )}
-            <div className="flex flex-col leading-tight">
-              <span className="text-xs font-medium text-neutral-700 dark:text-neutral-200">Ответственный</span>
-              <span className="text-xs text-neutral-600 dark:text-neutral-400">{assigneeDisplay.displayName}</span>
-            </div>
+        <div className="flex flex-col gap-3 overflow-hidden">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]" style={titleClampStyle}>
+              {task.title}
+            </h3>
+            <span
+              className={`inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.2em] ${TASK_STATUS_BADGE_CLASSES[task.status]}`}
+            >
+              {statusLabels[task.status]}
+            </span>
           </div>
-        ) : canTake ? (
-          <button
-            type="button"
-            onClick={handleTakeClick}
-            disabled={isBusy}
-            className="inline-flex items-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:opacity-60"
-            aria-label="Взять задачу на себя"
-          >
-            Беру на себя
-          </button>
-        ) : (
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">Ответственный не назначен</span>
-        )}
 
-        <label className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-300">
-          <span>Статус:</span>
-          <select
-            value={task.status}
-            onChange={handleStatusChange}
-            disabled={isBusy}
-            className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-            aria-label="Изменить статус задачи"
-          >
-            {TASK_STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {TASK_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {isContextMenuOpen && canDelete ? (
-        <div
-          ref={menuRef}
-          className="absolute z-20 min-w-[160px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none dark:border-neutral-700 dark:bg-neutral-900"
-          style={{ top: menuPosition.top, left: menuPosition.left }}
-          role="menu"
-        >
-          <button
-            type="button"
-            onClick={handleDeleteFromMenu}
-            className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
-            role="menuitem"
-          >
-            Удалить задачу
-          </button>
+          {task.description ? (
+            <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]" style={descriptionClampStyle}>
+              {task.description}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3 text-xs text-[var(--color-text-muted)]">
+            {startDate ? (
+              <span>
+                <span className="font-medium text-[var(--color-text-secondary)]">{t('event.board.card.start')}</span> {startDate}
+              </span>
+            ) : null}
+            {dueDate ? (
+              <span>
+                <span className="font-medium text-[var(--color-text-secondary)]">{t('event.board.card.due')}</span> {dueDate}
+              </span>
+            ) : null}
+          </div>
         </div>
-      ) : null}
+
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3">
+          {assigneeDisplay ? (
+            <div className="flex min-w-0 items-center gap-2">
+              {assigneeDisplay.avatarUrl ? (
+                <Image
+                  src={assigneeDisplay.avatarUrl}
+                  alt={t('event.board.card.assigneeAvatar', { name: assigneeDisplay.displayName })}
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-full object-cover"
+                  sizes="36px"
+                  unoptimized
+                />
+              ) : (
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent-primary)] text-xs font-semibold text-[var(--color-text-inverse)]"
+                  aria-hidden="true"
+                >
+                  {assigneeDisplay.initials}
+                </span>
+              )}
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className="text-xs font-medium text-[var(--color-text-secondary)]">{t('event.board.card.assignee')}</span>
+                <span className="truncate text-xs text-[var(--color-text-secondary)]">{assigneeDisplay.displayName}</span>
+              </div>
+            </div>
+          ) : canTake ? (
+            <button
+              type="button"
+              onClick={handleTakeClick}
+              disabled={isBusy}
+              className="inline-flex items-center rounded-full bg-[var(--color-success)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-success)]/90 disabled:opacity-60"
+              aria-label={t('event.board.card.takeAria')}
+            >
+              {t('event.board.card.take')}
+            </button>
+          ) : (
+            <span className="text-xs text-[var(--color-text-muted)]">{t('event.board.card.free')}</span>
+          )}
+
+          <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+            <span>{t('event.board.card.statusLabel')}</span>
+            <select
+              value={task.status}
+              onChange={handleStatusChange}
+              disabled={isBusy}
+              className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-primary)] focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)] disabled:opacity-60"
+              aria-label={t('event.board.card.statusAria')}
+            >
+              {TASK_STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {statusLabels[status]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {isContextMenuOpen && canDelete ? (
+          <div
+            ref={menuRef}
+            className="absolute z-20 min-w-[180px] rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] py-1 shadow-[var(--shadow-sm)] focus:outline-none"
+            style={{ top: menuPosition.top, left: menuPosition.left }}
+            role="menu"
+          >
+            <button
+              type="button"
+              onClick={handleDeleteFromMenu}
+              className="block w-full px-4 py-2 text-left text-sm text-[var(--color-error)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-error-soft)]"
+              role="menuitem"
+            >
+              {t('event.board.card.deleteAction')}
+            </button>
+          </div>
+        ) : null}
       </div>
       <ConfirmDialog
         open={isDeleteDialogOpen}
-        title={`Удалить задачу "${task.title}"?`}
-        message="Действие необратимо."
-        confirmLabel="Удалить"
-        cancelLabel="Отмена"
+        title={t('event.board.card.deleteTitle', { title: task.title })}
+        message={t('event.board.card.deleteMessage')}
+        confirmLabel={t('event.board.card.deleteConfirm')}
+        cancelLabel={t('event.board.card.deleteCancel')}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
         isProcessing={isDeleting}

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent, type JSX } from 'react';
 
+import { t } from '@/lib/i18n';
 import { changePassword } from '@/lib/profileApi';
 
 type NotificationType = 'success' | 'error';
@@ -15,6 +16,12 @@ const ProfileSecurityForm = ({ onNotify }: ProfileSecurityFormProps): JSX.Elemen
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const fieldClassName =
+    'w-full rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm font-medium text-[var(--color-text-primary)] shadow-sm transition focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]';
+  const labelClassName = 'text-sm font-semibold text-[var(--color-text-primary)]';
+  const cardClassName =
+    'flex flex-col gap-4 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm sm:px-8 sm:py-8';
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) {
@@ -22,7 +29,7 @@ const ProfileSecurityForm = ({ onNotify }: ProfileSecurityFormProps): JSX.Elemen
     }
 
     if (newPassword.trim().length === 0 || oldPassword.trim().length === 0) {
-      onNotify('error', 'Ошибка: заполните оба поля пароля.');
+      onNotify('error', t('profile.security.error.empty'));
       return;
     }
 
@@ -34,55 +41,64 @@ const ProfileSecurityForm = ({ onNotify }: ProfileSecurityFormProps): JSX.Elemen
       });
       setOldPassword('');
       setNewPassword('');
-      onNotify('success', 'Сохранено');
+      onNotify('success', t('profile.security.success'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Не удалось сменить пароль.';
-      onNotify('error', `Ошибка: ${message}`);
+      const message = error instanceof Error ? error.message : t('profile.security.error.generic');
+      onNotify('error', message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div>
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Безопасность</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-          Задайте новый пароль для своего аккаунта. Старайтесь использовать надёжные комбинации из букв и цифр.
-        </p>
-      </div>
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <header>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{t('profile.security.title')}</h2>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{t('profile.security.description')}</p>
+      </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-          Текущий пароль
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={oldPassword}
-            onChange={(event) => setOldPassword(event.target.value)}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-          />
-        </label>
+      <section className={cardClassName}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={`${labelClassName} flex flex-col gap-2`}>
+            {t('profile.security.field.current')}
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={oldPassword}
+              onChange={(event) => setOldPassword(event.target.value)}
+              className={fieldClassName}
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-          Новый пароль
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-          />
-        </label>
-      </div>
+          <label className={`${labelClassName} flex flex-col gap-2`}>
+            {t('profile.security.field.new')}
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className={fieldClassName}
+            />
+          </label>
+        </div>
 
-      <button
-        type="submit"
-        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Сохраняем...' : 'Сменить пароль'}
-      </button>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <button type="submit" className="btn btn--primary btn--pill" disabled={isSubmitting}>
+            {isSubmitting ? t('profile.security.submit.loading') : t('profile.security.submit')}
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost btn--pill"
+            onClick={() => {
+              setOldPassword('');
+              setNewPassword('');
+            }}
+            disabled={isSubmitting}
+          >
+            {t('profile.security.reset')}
+          </button>
+        </div>
+      </section>
     </form>
   );
 };

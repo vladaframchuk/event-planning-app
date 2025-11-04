@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useMemo, type JSX } from 'react';
 
+import { t } from '@/lib/i18n';
 import type { Event } from '@/types/event';
 
 type EventListProps = {
@@ -14,19 +16,20 @@ type EventListProps = {
   pendingDeleteId?: number | null;
 };
 
-const eventDateTimeFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
 
 const formatDate = (value: string | null): string | null => {
   if (!value) {
     return null;
   }
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-
-  return eventDateTimeFormatter.format(date);
+  return dateTimeFormatter.format(date);
 };
 
 const formatDateRange = (startAt: string | null, endAt: string | null): string => {
@@ -34,15 +37,25 @@ const formatDateRange = (startAt: string | null, endAt: string | null): string =
   const end = formatDate(endAt);
 
   if (start && end) {
-    return `${start} — ${end}`;
+    return t('events.list.dateRange', { start, end });
   }
-
   if (start) {
     return start;
   }
-
-  return 'Дата не указана';
+  return t('events.list.dateFallback');
 };
+
+const SkeletonCard = (): JSX.Element => (
+  <article className="rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-6 shadow-sm">
+    <div className="skeleton h-6 w-3/4 rounded-full" />
+    <div className="skeleton mt-4 h-4 w-1/2 rounded-full" />
+    <div className="mt-6 flex flex-wrap gap-3">
+      <div className="skeleton h-8 w-24 rounded-full" />
+      <div className="skeleton h-8 w-28 rounded-full" />
+    </div>
+    <div className="skeleton mt-8 h-10 w-2/3 rounded-full" />
+  </article>
+);
 
 const EventList = ({
   events,
@@ -51,109 +64,113 @@ const EventList = ({
   onDelete,
   currentUserId,
   pendingDeleteId,
-}: EventListProps) => {
+}: EventListProps): JSX.Element => {
   const router = useRouter();
 
-  const handleRowClick = (event: Event) => {
+  const handleOpenEvent = (event: Event) => {
     void router.push(`/events/${event.id}`);
   };
 
+  const skeletons = useMemo(
+    () =>
+      Array.from({ length: 4 }).map((_, index) => (
+        <SkeletonCard key={`event-skeleton-${index}`} />
+      )),
+    [],
+  );
+
   if (isLoading) {
-    return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-500 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        Загружаем события…
-      </div>
-    );
+    return <div className="grid gap-6 md:grid-cols-2">{skeletons}</div>;
   }
 
   if (!events.length) {
     return (
-      <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900/40 dark:text-neutral-400">
-        Пока нет событий. Добавьте первое мероприятие, чтобы начать планирование.
+      <div className="rounded-[28px] border border-dashed border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-10 py-16 text-center text-sm text-[var(--color-text-secondary)] shadow-sm">
+        {t('events.list.empty')}
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-sm dark:border-neutral-800">
-      <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-800">
-        <thead className="bg-neutral-50 dark:bg-neutral-900">
-          <tr className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            <th scope="col" className="px-4 py-3 sm:px-6">
-              Название
-            </th>
-            <th scope="col" className="px-4 py-3 sm:px-6">
-              Даты
-            </th>
-            <th scope="col" className="px-4 py-3 sm:px-6">
-              Локация
-            </th>
-            <th scope="col" className="px-4 py-3 sm:px-6">
-              Категория
-            </th>
-            <th scope="col" className="px-4 py-3 text-right sm:px-6">
-              Действия
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-200 bg-white text-sm dark:divide-neutral-800 dark:bg-neutral-950">
-          {events.map((event) => {
-            const isOwner = currentUserId === event.owner.id;
-            return (
-              <tr
-                key={event.id}
-                onClick={() => handleRowClick(event)}
-                className="cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900"
+    <div className="grid gap-6 md:grid-cols-2">
+      {events.map((event) => {
+        const isOwner = currentUserId === event.owner.id;
+        const isDeletePending = pendingDeleteId === event.id;
+
+        return (
+          <article
+            key={event.id}
+            onClick={() => handleOpenEvent(event)}
+            className="group flex h-full cursor-pointer flex-col gap-6 rounded-[28px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-sm transition-all duration-[var(--transition-medium)] ease-[var(--easing-standard)] hover:-translate-y-1 hover:shadow-[var(--shadow-md)] sm:px-8 sm:py-8"
+          >
+            <header className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-4">
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                  {event.title}
+                </h3>
+                <span className="rounded-full bg-[var(--color-surface-muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                  #{event.id}
+                </span>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                {formatDateRange(event.startAt, event.endAt)}
+              </p>
+            </header>
+
+            <dl className="space-y-3 text-sm text-[var(--color-text-secondary)]">
+              <div className="flex items-start gap-2">
+                <dt className="min-w-[88px] text-[var(--color-text-muted)]">{t('events.list.location')}</dt>
+                <dd>{event.location?.trim().length ? event.location : t('events.list.locationFallback')}</dd>
+              </div>
+              <div className="flex items-start gap-2">
+                <dt className="min-w-[88px] text-[var(--color-text-muted)]">{t('events.list.category')}</dt>
+                <dd>{event.category?.trim().length ? event.category : t('events.list.categoryFallback')}</dd>
+              </div>
+            </dl>
+
+            <footer className="mt-auto flex flex-wrap items-center justify-between gap-3">
+              <Link
+                href={`/events/${event.id}`}
+                onClick={(eventClick) => eventClick.stopPropagation()}
+                className="btn btn--ghost btn--pill"
               >
-                <td className="px-4 py-4 font-medium text-neutral-900 dark:text-neutral-100 sm:px-6">
-                  <Link href={`/events/${event.id}`} className="hover:text-blue-600 dark:hover:text-blue-400">
-                    {event.title}
-                  </Link>
-                </td>
-                <td className="px-4 py-4 text-neutral-600 dark:text-neutral-300 sm:px-6">
-                  {formatDateRange(event.startAt, event.endAt)}
-                </td>
-                <td className="px-4 py-4 text-neutral-600 dark:text-neutral-300 sm:px-6">
-                  {event.location && event.location.trim().length > 0 ? event.location : '—'}
-                </td>
-                <td className="px-4 py-4 text-neutral-600 dark:text-neutral-300 sm:px-6">
-                  {event.category && event.category.trim().length > 0 ? event.category : '—'}
-                </td>
-                <td className="px-4 py-4 text-right sm:px-6">
-                  {isOwner ? (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          onEdit(event);
-                        }}
-                        className="rounded-lg border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                        disabled={pendingDeleteId === event.id}
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          onDelete(event);
-                        }}
-                        className="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/40"
-                        disabled={pendingDeleteId === event.id}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-neutral-400">Только просмотр</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                {t('events.list.open')}
+              </Link>
+
+              {isOwner ? (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--pill"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      onEdit(event);
+                    }}
+                    disabled={isDeletePending}
+                  >
+                    {t('events.list.actions.edit')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--pill"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      onDelete(event);
+                    }}
+                    disabled={isDeletePending}
+                  >
+                    {isDeletePending ? t('events.list.actions.deletePending') : t('events.list.actions.delete')}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {t('events.list.actions.viewOnly')}
+                </span>
+              )}
+            </footer>
+          </article>
+        );
+      })}
     </div>
   );
 };

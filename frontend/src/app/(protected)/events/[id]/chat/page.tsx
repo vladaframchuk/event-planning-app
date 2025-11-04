@@ -3,14 +3,39 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, type JSX } from 'react';
 
 import ChatPanel from '@/components/ChatPanel';
-import EventNavigation from '@/components/EventNavigation';
+import EventStateCard from '@/components/EventStateCard';
 import { getEventById } from '@/lib/eventsApi';
+import { t } from '@/lib/i18n';
 import type { Event } from '@/types/event';
 
-const EventChatPage = () => {
+import EventTabsLayout from '../EventTabsLayout';
+
+const chatSkeleton = (
+  <div className="skeleton h-[var(--chat-h)] w-full rounded-3xl" aria-hidden="true" />
+);
+
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+const formatDateTime = (value: string | null): string => {
+  if (!value) {
+    return t('event.chat.info.empty');
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return t('event.chat.info.empty');
+  }
+
+  return dateTimeFormatter.format(date);
+};
+
+const EventChatPage = (): JSX.Element => {
   const params = useParams<{ id: string }>();
 
   const eventId = useMemo(() => {
@@ -28,71 +53,106 @@ const EventChatPage = () => {
 
   if (eventId === null) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-        <h1 className="text-xl font-semibold">Не удалось определить событие</h1>
-        <p className="mt-2 text-sm">Проверьте ссылку и попробуйте снова.</p>
-        <Link
-          href="/events"
-          className="mt-4 inline-flex items-center text-sm font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
-        >
-          К списку событий
-        </Link>
-      </section>
+      <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <EventStateCard
+          tone="error"
+          title={t('event.state.invalid.title')}
+          description={t('event.state.invalid.description')}
+          actions={
+            <Link
+              href="/events"
+              className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent-primary)] px-6 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)]"
+            >
+              {t('event.state.backToEvents')}
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
   if (eventQuery.isLoading) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-        Загружаем чат события...
-      </section>
+      <EventTabsLayout
+        eventId={eventId}
+        isOrganizer
+        title={t('event.tabs.loadingTitle')}
+        subtitle={t('event.chat.header.subtitle')}
+        description={t('event.chat.header.description')}
+        isLoading
+        skeleton={chatSkeleton}
+      />
     );
   }
 
   if (eventQuery.isError || !eventQuery.data) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-        <h1 className="text-xl font-semibold">Не удалось загрузить событие</h1>
-        <p className="mt-2 text-sm">
-          {eventQuery.error?.message ?? 'Попробуйте обновить страницу немного позже.'}
-        </p>
-        <div className="mt-4 flex gap-3">
-          <button
-            type="button"
-            onClick={() => eventQuery.refetch()}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            Повторить попытку
-          </button>
-          <Link
-            href="/events"
-            className="inline-flex items-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            К списку событий
-          </Link>
-        </div>
-      </section>
+      <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <EventStateCard
+          tone="error"
+          title={t('event.state.error.title')}
+          description={eventQuery.error?.message ?? t('event.state.error.description')}
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => eventQuery.refetch()}
+                className="inline-flex items-center justify-center rounded-full border border-[var(--color-accent-primary)] px-6 py-2 text-sm font-semibold text-[var(--color-accent-primary)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:border-[var(--color-accent-primary-strong)] hover:text-[var(--color-accent-primary-strong)]"
+              >
+                {t('event.state.retry')}
+              </button>
+              <Link
+                href="/events"
+                className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent-primary)] px-6 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)]"
+              >
+                {t('event.state.backToEvents')}
+              </Link>
+            </>
+          }
+        />
+      </div>
     );
   }
 
   const event = eventQuery.data;
   const isOrganizer = event.viewerRole === 'organizer';
 
-  return (
-    <section className="flex w-full flex-col gap-6 lg:flex-row">
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <header className="flex flex-col gap-1">
-          <p className="text-sm uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            Общение участников
-          </p>
-          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{event.title}</h1>
-        </header>
-        <ChatPanel eventId={event.id} />
+  const infoPanel = (
+    <dl className="flex flex-col gap-5 text-sm text-[var(--color-text-secondary)]">
+      <div className="flex flex-col gap-2">
+        <dt className="text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-[0.18em]">
+          {t('event.chat.info.start')}
+        </dt>
+        <dd className="text-base font-medium text-[var(--color-text-primary)]">{formatDateTime(event.startAt)}</dd>
       </div>
-      <EventNavigation eventId={event.id} className="lg:mt-0" isOrganizer={isOrganizer} />
-    </section>
+      <div className="flex flex-col gap-2">
+        <dt className="text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-[0.18em]">
+          {t('event.chat.info.end')}
+        </dt>
+        <dd className="text-base font-medium text-[var(--color-text-primary)]">{formatDateTime(event.endAt)}</dd>
+      </div>
+      <div className="flex flex-col gap-2">
+        <dt className="text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-[0.18em]">
+          {t('event.chat.info.organizer')}
+        </dt>
+        <dd className="text-base font-medium text-[var(--color-text-primary)]">{event.owner.email}</dd>
+      </div>
+    </dl>
+  );
+
+  return (
+    <EventTabsLayout
+      eventId={event.id}
+      isOrganizer={isOrganizer}
+      title={event.title}
+      subtitle={t('event.chat.header.subtitle')}
+      description={t('event.chat.header.description')}
+      sidePanel={infoPanel}
+      skeleton={chatSkeleton}
+    >
+      <ChatPanel eventId={event.id} />
+    </EventTabsLayout>
   );
 };
 
 export default EventChatPage;
-

@@ -1,10 +1,11 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 
-import EventNavigation from '@/components/EventNavigation';
+import EventStateCard from '@/components/EventStateCard';
 import ParticipantsTable from '@/components/participants/ParticipantsTable';
 import { getParticipants, removeParticipant, updateParticipantRole } from '@/lib/api/participants';
 import { getEventById } from '@/lib/eventsApi';
@@ -13,9 +14,18 @@ import { createInvite } from '@/lib/invitesApi';
 import { getMe, type Profile } from '@/lib/profileApi';
 import type { Event, Participant, Role } from '@/types/event';
 
-type ToastState = { id: number; message: string; type: 'success' | 'error' } | null;
+import EventTabsLayout from '../EventTabsLayout';
 
-const ParticipantsPage = () => {
+type ToastState = { id: number; message: string; tone: 'success' | 'error' } | null;
+
+const participantsSkeleton = (
+  <div className="flex flex-col gap-4">
+    <div className="skeleton h-6 w-48 rounded-full" />
+    <div className="skeleton h-64 w-full rounded-3xl" />
+  </div>
+);
+
+const ParticipantsPage = (): JSX.Element => {
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
@@ -34,7 +44,7 @@ const ParticipantsPage = () => {
     if (!toast) {
       return;
     }
-    const timeout = window.setTimeout(() => setToast(null), 3000);
+    const timeout = window.setTimeout(() => setToast(null), 3200);
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
@@ -100,10 +110,10 @@ const ParticipantsPage = () => {
         queryClient.setQueryData(participantsQueryKey, context.previous);
       }
       const message = error instanceof Error ? error.message : t('event.participants.errors.roleUpdateGeneric');
-      setToast({ id: Date.now(), message, type: 'error' });
+      setToast({ id: Date.now(), message, tone: 'error' });
     },
     onSuccess: () => {
-      setToast({ id: Date.now(), message: t('event.participants.toast.roleUpdated'), type: 'success' });
+      setToast({ id: Date.now(), message: t('event.participants.toast.roleUpdated'), tone: 'success' });
     },
     onSettled: () => {
       setRoleChangingId(null);
@@ -133,10 +143,10 @@ const ParticipantsPage = () => {
         queryClient.setQueryData(participantsQueryKey, context.previous);
       }
       const message = error instanceof Error ? error.message : t('event.participants.errors.removeParticipant');
-      setToast({ id: Date.now(), message, type: 'error' });
+      setToast({ id: Date.now(), message, tone: 'error' });
     },
     onSuccess: () => {
-      setToast({ id: Date.now(), message: t('event.participants.toast.participantRemoved'), type: 'success' });
+      setToast({ id: Date.now(), message: t('event.participants.toast.participantRemoved'), tone: 'success' });
     },
     onSettled: () => {
       setRemovingId(null);
@@ -165,17 +175,17 @@ const ParticipantsPage = () => {
       const invite = await createInvite(eventId, { expiresInHours: 48, maxUses: 0 });
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(invite.invite_url);
-        setToast({ id: Date.now(), message: t('event.participants.toast.inviteCopied'), type: 'success' });
+        setToast({ id: Date.now(), message: t('event.participants.toast.inviteCopied'), tone: 'success' });
       } else {
         setToast({
           id: Date.now(),
           message: t('event.participants.toast.inviteReady', { url: invite.invite_url }),
-          type: 'success',
+          tone: 'success',
         });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : t('event.participants.errors.inviteCreate');
-      setToast({ id: Date.now(), message, type: 'error' });
+      setToast({ id: Date.now(), message, tone: 'error' });
     } finally {
       setCopyPending(false);
     }
@@ -183,110 +193,191 @@ const ParticipantsPage = () => {
 
   if (eventId === null) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-        <h1 className="text-xl font-semibold">{t('event.participants.eventMissing.title')}</h1>
-        <p className="mt-2 text-sm">{t('event.participants.eventMissing.description')}</p>
-      </section>
+      <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <EventStateCard
+          tone="error"
+          title={t('event.state.invalid.title')}
+          description={t('event.state.invalid.description')}
+          actions={
+            <Link
+              href="/events"
+              className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent-primary)] px-6 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)]"
+            >
+              {t('event.state.backToEvents')}
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
   if (eventQuery.isLoading || profileQuery.isLoading) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:flex-row">
-        <EventNavigation eventId={eventId} isOrganizer />
-        <section className="flex-1 rounded-2xl border border-neutral-200 bg-white p-6 text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-          {t('event.participants.loading')}
-        </section>
-      </main>
+      <EventTabsLayout
+        eventId={eventId}
+        isOrganizer
+        title={t('event.tabs.loadingTitle')}
+        subtitle={t('event.participants.header.subtitle')}
+        description={t('event.participants.subtitle')}
+        isLoading
+        skeleton={participantsSkeleton}
+      />
     );
   }
 
   if (eventQuery.isError || !eventQuery.data) {
     const message = eventQuery.error?.message ?? t('event.participants.errors.eventLoad');
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-        <h1 className="text-xl font-semibold">{t('event.participants.errors.eventLoadTitle')}</h1>
-        <p className="mt-2 text-sm">{message}</p>
-      </section>
+      <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <EventStateCard
+          tone="error"
+          title={t('event.participants.errors.eventLoadTitle')}
+          description={message}
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => eventQuery.refetch()}
+                className="inline-flex items-center justify-center rounded-full border border-[var(--color-accent-primary)] px-6 py-2 text-sm font-semibold text-[var(--color-accent-primary)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:border-[var(--color-accent-primary-strong)] hover:text-[var(--color-accent-primary-strong)]"
+              >
+                {t('event.state.retry')}
+              </button>
+              <Link
+                href="/events"
+                className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent-primary)] px-6 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)]"
+              >
+                {t('event.state.backToEvents')}
+              </Link>
+            </>
+          }
+        />
+      </div>
     );
   }
 
-  const currentUserId = profileQuery.data?.id ?? null;
+  if (profileQuery.isError || !profileQuery.data) {
+    return (
+      <div className="mx-auto w-full max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <EventStateCard
+          tone="error"
+          title={t('event.participants.errors.profileLoadTitle')}
+          description={profileQuery.error?.message ?? t('event.participants.errors.profileLoad')}
+        />
+      </div>
+    );
+  }
+
+  const event = eventQuery.data;
+  const currentUserId = profileQuery.data.id ?? null;
   const participantsError = participantsQuery.error ?? null;
 
+  const copyInviteButton = isOrganizer ? (
+    <button
+      type="button"
+      onClick={handleCopyInvite}
+      disabled={isCopyPending}
+      className="btn btn--primary btn--pill"
+    >
+      {isCopyPending ? t('event.participants.buttons.copyInviteLoading') : t('event.participants.buttons.copyInvite')}
+    </button>
+  ) : null;
+
+  const sidePanel = (
+    <dl className="flex flex-col gap-5 text-sm text-[var(--color-text-secondary)]">
+      <div className="flex flex-col gap-2">
+        <dt className="text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-[0.18em]">
+          {t('event.participants.info.total')}
+        </dt>
+        <dd className="text-base font-semibold text-[var(--color-text-primary)]">
+          {participants.length}
+        </dd>
+      </div>
+      <div className="flex flex-col gap-2">
+        <dt className="text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-[0.18em]">
+          {t('event.participants.info.organizer')}
+        </dt>
+        <dd className="text-base font-medium text-[var(--color-text-primary)]">{event.owner.email}</dd>
+      </div>
+    </dl>
+  );
+
+  const mainContent = !isOrganizer ? (
+    <div className="rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-8 text-sm text-[var(--color-text-secondary)] shadow-sm">
+      {t('event.participants.noAccess')}
+    </div>
+  ) : participantsError ? (
+    <div className="rounded-3xl border border-[var(--color-error-soft)] bg-[var(--color-error-soft)]/45 px-6 py-8 text-sm text-[var(--color-error)] shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+        {t('event.participants.errors.listTitle')}
+      </h2>
+      <p className="mt-2 text-sm">{participantsError.message}</p>
+      <button
+        type="button"
+        onClick={() => participantsQuery.refetch()}
+        className="mt-4 inline-flex items-center justify-center rounded-full border border-[var(--color-accent-primary)] px-5 py-2 text-sm font-semibold text-[var(--color-accent-primary)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:border-[var(--color-accent-primary-strong)] hover:text-[var(--color-accent-primary-strong)]"
+      >
+        {t('event.participants.buttons.retry')}
+      </button>
+    </div>
+  ) : (
+    <ParticipantsTable
+      participants={participants}
+      currentUserId={currentUserId}
+      isLoading={participantsQuery.isLoading}
+      canManage={isOrganizer}
+      roleChangingId={roleChangingId}
+      removingId={removingId}
+      onRoleChange={handleRoleChange}
+      onRemove={handleRemove}
+    />
+  );
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 lg:flex-row">
-      <EventNavigation eventId={eventId} isOrganizer />
-      <section className="flex-1 space-y-6">
-        {toast ? (
-          <div
-            role="status"
-            className={`fixed right-8 top-8 z-40 flex items-center gap-3 rounded-xl px-5 py-3 text-sm shadow-lg transition ${
-              toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-600 text-white'
-            }`}
-          >
+    <>
+      <EventTabsLayout
+        eventId={event.id}
+        isOrganizer={isOrganizer}
+        title={event.title}
+        subtitle={t('event.participants.header.subtitle')}
+        description={t('event.participants.subtitle')}
+        sidePanel={sidePanel}
+        skeleton={participantsSkeleton}
+      >
+        <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-[clamp(1.5rem,2.4vw,1.875rem)] font-semibold text-[var(--color-text-primary)]">
+              {t('event.participants.heading')}
+            </h2>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {t('event.participants.header.description')}
+            </p>
+          </div>
+          {copyInviteButton}
+        </header>
+        {mainContent}
+      </EventTabsLayout>
+
+      {toast ? (
+        <div
+          className={[
+            'fixed right-6 top-6 z-50 rounded-full px-5 py-3 text-sm font-semibold text-[var(--color-text-inverse)] shadow-[var(--shadow-md)]',
+            toast.tone === 'success' ? 'bg-[var(--color-success)]' : 'bg-[var(--color-error)]',
+          ].join(' ')}
+          role="status"
+        >
+          <div className="flex items-center gap-3">
             <span>{toast.message}</span>
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="ml-4 text-xs font-semibold uppercase tracking-wide text-white/80 hover:text-white"
+              className="text-xs uppercase tracking-[0.2em]"
             >
               {t('event.participants.toast.close')}
             </button>
           </div>
-        ) : null}
-
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-              {t('event.participants.heading')}
-            </h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('event.participants.subtitle')}</p>
-          </div>
-          {isOrganizer ? (
-            <button
-              type="button"
-              onClick={handleCopyInvite}
-              disabled={isCopyPending}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:bg-blue-600/70"
-            >
-              {isCopyPending
-                ? t('event.participants.buttons.copyInviteLoading')
-                : t('event.participants.buttons.copyInvite')}
-            </button>
-          ) : null}
-        </header>
-
-        {!isOrganizer ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-            {t('event.participants.noAccess')}
-          </div>
-        ) : participantsError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600 shadow-sm dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-            <h2 className="text-lg font-semibold">{t('event.participants.errors.listTitle')}</h2>
-            <p className="mt-2">{participantsError.message}</p>
-            <button
-              type="button"
-              onClick={() => participantsQuery.refetch()}
-              className="mt-4 inline-flex items-center rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900/30"
-            >
-              {t('event.participants.buttons.retry')}
-            </button>
-          </div>
-        ) : (
-          <ParticipantsTable
-            participants={participants}
-            currentUserId={currentUserId}
-            isLoading={participantsQuery.isLoading}
-            canManage={isOrganizer}
-            roleChangingId={roleChangingId}
-            removingId={removingId}
-            onRoleChange={handleRoleChange}
-            onRemove={handleRemove}
-          />
-        )}
-      </section>
-    </main>
+        </div>
+      ) : null}
+    </>
   );
 };
 

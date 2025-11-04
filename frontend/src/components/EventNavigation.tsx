@@ -46,51 +46,50 @@ const EventNavigation = ({ eventId, className = '', isOrganizer = false }: Event
     return allLinks;
   }, [basePath, isOrganizer, pathname]);
 
-  const containerClassName = [
-    'w-full',
-    'shrink-0',
-    'flex',
-    'flex-col',
-    'h-full',
-    'lg:w-64',
-    'lg:sticky',
-    'lg:top-24',
-    'lg:self-stretch',
-    'lg:order-last',
-    'lg:ml-6',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
   return (
-    <aside className={containerClassName}>
-      <nav
-        aria-label={t('event.navigation.ariaLabel')}
-        className="flex h-full flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-      >
-        <p className="hidden px-4 pt-4 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 lg:block">
-          {t('event.navigation.sectionTitle')}
-        </p>
-        <ul className="flex w-full gap-2 overflow-x-auto px-3 pb-3 pt-2 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-4 lg:py-3">
-          {links.map((link) => (
-            <li key={link.href} className="lg:w-full">
-              <Link
-                href={link.href}
-                className={`inline-flex min-w-[140px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition lg:min-w-0 lg:w-full lg:justify-start ${
-                  link.active
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800'
-                }`}
-                aria-current={link.active ? 'page' : undefined}
-              >
-                {link.label}
+    <nav
+      aria-label={t('event.navigation.ariaLabel')}
+      className={[
+        'flex flex-col rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 pb-5 pt-6 shadow-sm',
+        'sm:px-5',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <p className="text-[var(--color-text-muted)] mb-4 text-xs font-semibold uppercase tracking-[0.18em]">
+        {t('event.navigation.sectionTitle')}
+      </p>
+      <ul className="flex w-full flex-col gap-2">
+        {links.map((link) => {
+          const itemClassName = [
+            'group flex w-full items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-sm font-semibold transition-[transform,background,border-color,color,box-shadow]',
+            'duration-[var(--transition-medium)] ease-[var(--easing-standard)]',
+            link.active
+              ? 'border-transparent bg-[var(--color-accent-primary)] text-[var(--color-text-inverse)] shadow-[var(--shadow-sm)]'
+              : 'border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-secondary)] hover:-translate-y-[1px] hover:border-[var(--color-accent-primary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent-primary)]',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return (
+            <li key={link.href}>
+              <Link href={link.href} className={itemClassName} aria-current={link.active ? 'page' : undefined}>
+                <span>{link.label}</span>
+                <span
+                  className={[
+                    'h-2 w-2 rounded-full transition-all duration-[var(--transition-fast)] ease-[var(--easing-standard)]',
+                    link.active
+                      ? 'scale-100 bg-[var(--color-text-inverse)]'
+                      : 'scale-0 bg-[var(--color-accent-primary)] group-hover:scale-75',
+                  ].join(' ')}
+                  aria-hidden="true"
+                />
               </Link>
             </li>
-          ))}
-        </ul>
-      </nav>
-    </aside>
+          );
+        })}
+      </ul>
+    </nav>
   );
 };
 

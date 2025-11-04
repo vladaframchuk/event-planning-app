@@ -15,6 +15,7 @@ import {
 
 import { useEventChannel } from '@/hooks/useEventChannel';
 import { listMessages, sendMessage } from '@/lib/chatApi';
+import { t } from '@/lib/i18n';
 import { getMe, type Profile } from '@/lib/profileApi';
 import type { ChatMessage } from '@/types/chat';
 
@@ -151,6 +152,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   const router = useRouter();
 
   const listRef = useRef<HTMLDivElement | null>(null);
+  const topSentinelRef = useRef<HTMLDivElement | null>(null);
 
   const messagesRef = useRef<LocalChatMessage[]>([]);
 
@@ -355,7 +357,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       const message =
         error instanceof Error
           ? error.message
-          : 'Не удалось загрузить сообщения. Попробуйте ещё раз.';
+          : t('event.chat.panel.errors.initial');
 
       setInitialError(message);
     } finally {
@@ -499,7 +501,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Не удалось загрузить историю сообщений.';
+        error instanceof Error ? error.message : t('event.chat.panel.errors.history');
 
       setToast({ id: Date.now(), message });
     } finally {
@@ -538,7 +540,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       mergeMessages(response.results);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Не удалось обновить чат. Попробуйте чуть позже.';
+        error instanceof Error ? error.message : t('event.chat.panel.errors.refresh');
 
       setToast({ id: Date.now(), message });
     } finally {
@@ -589,6 +591,38 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       setUnreadCount((current) => current + newIds.length);
     }
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    const container = listRef.current;
+    const sentinel = topSentinelRef.current;
+
+    if (!container || !sentinel) {
+      return;
+    }
+
+    if (!hasMoreHistory) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && hasMoreHistory && !loadMorePending && !initialLoading) {
+            loadOlder().catch(() => undefined);
+          }
+        });
+      },
+      {
+        root: container,
+        rootMargin: '0px',
+        threshold: 0,
+      },
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [hasMoreHistory, initialLoading, loadMorePending, loadOlder]);
 
   useEffect(() => {
     if (!Number.isFinite(eventId) || eventId <= 0) {
@@ -845,7 +879,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       const message =
         error instanceof Error
           ? error.message
-          : 'Не удалось отправить сообщение. Попробуйте снова.';
+          : t('event.chat.panel.errors.send');
 
       setSendError(message);
 
@@ -880,52 +914,56 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   const typingNames = useMemo(() => Array.from(typingUsers.values()), [typingUsers]);
 
   const typingIndicatorText = useMemo(() => {
+
     if (typingNames.length === 0) {
+
       return null;
+
     }
+
+
 
     if (typingNames.length === 1) {
-      return `${typingNames[0]} печатает...`;
+
+      return t('event.chat.panel.typing.single', { name: typingNames[0] });
+
     }
+
+
 
     if (typingNames.length === 2) {
-      return `${typingNames[0]} и ${typingNames[1]} печатают...`;
+
+      return t('event.chat.panel.typing.double', { first: typingNames[0], second: typingNames[1] });
+
     }
 
-    return `${typingNames[0]} и ещё ${typingNames.length - 1} печатают...`;
+
+
+    return t('event.chat.panel.typing.many', { first: typingNames[0], count: typingNames.length - 1 });
+
   }, [typingNames]);
+
+
 
   const realtimeStatusMeta = useMemo(() => {
     switch (realtimeStatus) {
       case 'connected':
-        return { label: 'online', dotClass: 'bg-emerald-500 dark:bg-emerald-400' };
+        return { label: t('event.chat.status.connected'), dotClass: 'bg-emerald-500 dark:bg-emerald-400' };
 
       case 'connecting':
-        return { label: 'reconnecting', dotClass: 'bg-amber-500 dark:bg-amber-400' };
+        return { label: t('event.chat.status.connecting'), dotClass: 'bg-amber-500 dark:bg-amber-400' };
 
       default:
-        return { label: 'offline', dotClass: 'bg-red-500 dark:bg-red-400' };
+        return { label: t('event.chat.status.disconnected'), dotClass: 'bg-red-500 dark:bg-red-400' };
     }
   }, [realtimeStatus]);
-
-  const oldestServerId = useMemo(() => {
-    const firstServer = messages.find((message) => message.id > 0);
-
-    return firstServer?.id ?? null;
-  }, [messages]);
-
-  const latestServerId = useMemo(() => {
-    const lastServer = [...messages].reverse().find((message) => message.id > 0);
-
-    return lastServer?.id ?? null;
-  }, [messages]);
 
   const renderAvatar = useCallback((message: LocalChatMessage) => {
     if (message.authorAvatar) {
       return (
         <Image
           src={message.authorAvatar}
-          alt={`Аватар пользователя ${message.authorName}`}
+          alt={t('event.chat.message.avatarAlt', { name: message.authorName })}
           width={40}
           height={40}
           sizes="40px"
@@ -936,7 +974,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
     }
 
     return (
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-300 text-sm font-semibold text-neutral-700 dark:bg-neutral-700 dark:text-neutral-100">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-sm font-semibold text-[var(--color-accent-primary)]">
         {extractInitials(message.authorName)}
       </div>
     );
@@ -990,8 +1028,8 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
         'shadow-sm',
 
         isOwn
-          ? 'rounded-br-sm bg-blue-600 text-white'
-          : 'rounded-bl-sm bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100',
+          ? 'rounded-br-sm bg-[var(--color-accent-primary)] text-[var(--color-text-inverse)]'
+          : 'rounded-bl-sm border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)]',
       ].join(' ');
 
       const nameClasses = [
@@ -999,7 +1037,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
         'font-semibold',
 
-        isOwn ? 'text-blue-700 dark:text-blue-300' : 'text-neutral-500 dark:text-neutral-400',
+        isOwn ? 'text-white/80' : 'text-[var(--color-text-muted)]',
       ].join(' ');
 
       const timeClasses = [
@@ -1011,7 +1049,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
         'tracking-wide',
 
-        isOwn ? 'text-blue-100/80' : 'text-neutral-500 dark:text-neutral-400',
+        isOwn ? 'text-white/70' : 'text-[var(--color-text-muted)]',
       ].join(' ');
 
       return (
@@ -1049,20 +1087,20 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   );
 
   return (
-    <section className="flex h-full flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
+    <section className="flex h-[var(--chat-h)] flex-col overflow-hidden rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm">
+      <header className="flex items-center justify-between border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-muted)] px-6 py-4">
         <div>
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-            Чат события
+          <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
+            {t('event.chat.panel.title')}
           </h2>
 
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Здесь участники обсуждают детали и быстро делятся новостями.
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            {t('event.chat.panel.subtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-300">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)] shadow-sm">
             <span
               className={`h-2 w-2 rounded-full ${realtimeStatusMeta.dotClass}`}
               aria-hidden="true"
@@ -1075,9 +1113,9 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             type="button"
             onClick={() => fetchNewMessages().catch(() => undefined)}
             disabled={refreshPending || initialLoading}
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            className="rounded-full border border-[var(--color-border-subtle)] px-3 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)] disabled:opacity-60"
           >
-            {refreshPending ? 'Обновляем...' : 'Обновить'}
+            {refreshPending ? t('event.chat.panel.refreshing') : t('event.chat.panel.refresh')}
           </button>
         </div>
       </header>
@@ -1091,46 +1129,44 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             onClick={() => loadInitial()}
             className="mt-3 inline-flex items-center rounded-lg border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
           >
-            Повторить попытку
+            {t('event.chat.panel.retry')}
           </button>
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col gap-3 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => loadOlder()}
-            disabled={!hasMoreHistory || loadMorePending || initialLoading}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            {loadMorePending ? 'Загружаем...' : 'Подгрузить ещё'}
-          </button>
-
-          <span className="text-xs text-neutral-400 dark:text-neutral-500">
-            {oldestServerId !== null && latestServerId !== null
-              ? `ID ${oldestServerId} – ${latestServerId}`
-              : 'Сообщений пока нет'}
-          </span>
-        </div>
-
+      <div className="flex flex-1 flex-col gap-3 px-6 py-4 overflow-hidden">
         <div
           ref={listRef}
-          className="relative flex-1 overflow-y-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950"
+          className="relative flex-1 overflow-y-auto rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-muted)] p-4"
           role="log"
           aria-live="polite"
           aria-relevant="additions"
         >
           {initialLoading ? (
-            <div className="flex h-full items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
-              Загружаем сообщения...
+            <div className="flex h-full items-center justify-center text-sm text-[var(--color-text-secondary)]">
+              {t('event.chat.panel.loading')}
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
-              Пока нет сообщений — будьте первым, кто начнёт разговор.
+            <div className="flex h-full items-center justify-center text-sm text-[var(--color-text-secondary)]">
+              {t('event.chat.panel.empty')}
             </div>
           ) : (
             <ul className="flex flex-col gap-4">
+              <li aria-hidden="true">
+                <div ref={topSentinelRef} className="h-1 w-full" />
+              </li>
+              {hasMoreHistory ? (
+                <li className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => loadOlder().catch(() => undefined)}
+                    disabled={loadMorePending || initialLoading}
+                    className="btn btn--ghost btn--pill"
+                  >
+                    {loadMorePending ? t('event.chat.panel.historyLoading') : t('event.chat.panel.historyInline')}
+                  </button>
+                </li>
+              ) : null}
               {messages.map((message) => renderMessage(message))}
             </ul>
           )}
@@ -1139,22 +1175,22 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             <button
               type="button"
               onClick={() => scrollToBottom()}
-              className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-inverse)] shadow-lg transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)]"
               aria-live="polite"
             >
-              Новые сообщения ({unreadCount})
+              {t('event.chat.panel.unread', { count: unreadCount })}
             </button>
           ) : null}
         </div>
 
         {typingIndicatorText ? (
           <div
-            className="flex items-center gap-2 rounded-full bg-neutral-100 px-4 py-2 text-xs font-medium text-neutral-500 shadow-sm dark:bg-neutral-800 dark:text-neutral-300"
+            className="flex items-center gap-2 rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm"
             aria-live="polite"
             role="status"
           >
             <span
-              className="h-2 w-2 animate-pulse rounded-full bg-neutral-400 dark:bg-neutral-500"
+              className="h-2 w-2 animate-pulse rounded-full bg-[var(--color-text-muted)]"
               aria-hidden="true"
             />
 
@@ -1165,18 +1201,18 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
       <form
         onSubmit={handleComposerSubmitEvent}
-        className="border-t border-neutral-200 px-6 py-4 dark:border-neutral-800"
+        className="border-t border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-4"
       >
         <label
           htmlFor="chat-message-input"
-          className="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+          className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]"
         >
-          Ваше сообщение
+          {t('event.chat.panel.input.label')}
         </label>
 
         {profileQuery.isError ? (
           <p className="mb-2 text-xs text-red-500 dark:text-red-400">
-            Не удалось загрузить данные профиля. Отправка сообщений может быть недоступна.
+            {t('event.chat.panel.errors.profile')}
           </p>
         ) : null}
 
@@ -1185,15 +1221,15 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
           value={composerValue}
           onChange={handleComposerChange}
           onKeyDown={handleComposerKeyDown}
-          placeholder="Напишите что-нибудь и нажмите Enter, чтобы отправить"
+          placeholder={t('event.chat.panel.input.placeholder')}
           rows={3}
-          className="w-full resize-none rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-          aria-label="Поле ввода сообщения"
+          className="w-full resize-none rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm text-[var(--color-text-primary)] shadow-sm focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]"
+          aria-label={t('event.chat.panel.input.ariaLabel')}
           disabled={profileQuery.isLoading || sendPending}
         />
 
-        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-neutral-400 dark:text-neutral-500">
-          <span>Shift+Enter — перенос строки</span>
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]">
+          <span>{t('event.chat.panel.input.helper')}</span>
 
           <div className="flex items-center gap-2">
             {sendError ? <span className="text-red-500 dark:text-red-400">{sendError}</span> : null}
@@ -1201,10 +1237,10 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             <button
               type="submit"
               disabled={profileQuery.isLoading || sendPending || composerValue.trim().length === 0}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60"
-              aria-label="Отправить сообщение"
+              className="btn btn--primary btn--pill"
+              aria-label={t('event.chat.panel.sendAria')}
             >
-              {sendPending ? 'Отправляем...' : 'Отправить'}
+              {sendPending ? t('event.chat.panel.sending') : t('event.chat.panel.send')}
             </button>
           </div>
         </div>

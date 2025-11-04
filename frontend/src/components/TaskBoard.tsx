@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   forwardRef,
+  type CSSProperties,
   type DragEvent,
   type FormEvent,
   type JSX,
@@ -18,6 +19,7 @@ import { useRealtimeStatusSetter } from '@/context/realtimeStatus';
 import { useEventChannel, type EventChannelMessage } from '@/hooks/useEventChannel';
 import { useInvalidateEventProgress } from '@/hooks/useInvalidateEventProgress';
 import type { EventProgress } from '@/lib/eventsApi';
+import { t } from '@/lib/i18n';
 import { getMe, type Profile } from '@/lib/profileApi';
 import {
   createList,
@@ -67,6 +69,22 @@ type DragContext =
   | null;
 
 type DropTaskIndicator = { listId: number | null; index: number | null };
+
+const DEFAULT_CATEGORY_WIDTH = 320;
+const BASE_CARD_WIDTH = 300;
+const BASE_CARD_HEIGHT = 240;
+const BOARD_SCALE_STEP = 0.05;
+const MIN_BOARD_SCALE = 0.25;
+const MAX_BOARD_SCALE = 2;
+
+const clampNumber = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
+
+type BoardStyle = CSSProperties & {
+  '--category-width'?: string;
+  '--board-scale'?: string;
+  '--card-w'?: string;
+  '--card-h'?: string;
+};
 
 export const arrayMove = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
   const list = [...items];
@@ -453,7 +471,7 @@ const applyStatusTransitionToProgress = (
 };
 
 const SkeletonColumn = (): JSX.Element => (
-  <div className="flex w-full min-w-[260px] max-w-xs flex-col rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
+  <div className="flex w-[var(--category-width)] min-w-[var(--category-width)] flex-col rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
     <div className="h-5 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
     <div className="mt-4 flex flex-col gap-3">
       <div className="h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
@@ -479,6 +497,10 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const [isSyncing, setSyncing] = useState(false);
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
+  const initialCategoryWidthRef = useRef(DEFAULT_CATEGORY_WIDTH);
+  const [baseCategoryWidth, setBaseCategoryWidth] = useState(DEFAULT_CATEGORY_WIDTH);
+  const hasUserAdjustedZoomRef = useRef(false);
+  const [boardScale, setBoardScale] = useState(1);
 
   const boardQueryKey = useMemo(() => ['events', eventId, 'board'], [eventId]);
   const progressQueryKey = useMemo(() => ['event-progress', eventId] as const, [eventId]);
@@ -487,6 +509,85 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const setRealtimeStatus = useRealtimeStatusSetter();
   const progressInvalidateTimeoutRef = useRef<number | null>(null);
   const boardSnapshotRef = useRef<Board | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const readRootWidth = (): number | null => {
+      const rootStyles = getComputedStyle(document.documentElement);
+      const rawValue = rootStyles.getPropertyValue('--category-width').trim();
+      const parsed = Number.parseFloat(rawValue);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+      }
+      return parsed;
+    };
+
+    const applyRootWidth = () => {
+      const parsed = readRootWidth();
+      if (parsed === null) {
+        return;
+      }
+      initialCategoryWidthRef.current = parsed;
+      setBaseCategoryWidth(parsed);
+      setBoardScale((current) => {
+        if (!hasUserAdjustedZoomRef.current) {
+          return 1;
+        }
+        return clampNumber(current, MIN_BOARD_SCALE, MAX_BOARD_SCALE);
+      });
+    };
+
+    applyRootWidth();
+    const handleResize = () => {
+      window.requestAnimationFrame(applyRootWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const boardStyle = useMemo<BoardStyle>(() => {
+    const baseWidth = Math.max(baseCategoryWidth, 1);
+    return {
+      '--category-width': `${baseWidth}px`,
+      '--board-scale': boardScale.toString(),
+      '--card-w': `${BASE_CARD_WIDTH}px`,
+      '--card-h': `${BASE_CARD_HEIGHT}px`,
+    };
+  }, [baseCategoryWidth, boardScale]);
+
+  const zoomPercent = Math.round(boardScale * 100);
+  const canZoomOut = boardScale - MIN_BOARD_SCALE > 0.01;
+  const canZoomIn = MAX_BOARD_SCALE - boardScale > 0.01;
+  const canResetZoom = Math.abs(boardScale - 1) > 0.01;
+
+  const adjustBoardScale = useCallback((deltaScale: number) => {
+    setBoardScale((current) => {
+      const next = clampNumber(current + deltaScale, MIN_BOARD_SCALE, MAX_BOARD_SCALE);
+      if (Math.abs(next - current) < 0.0001) {
+        return current;
+      }
+      hasUserAdjustedZoomRef.current = true;
+      return next;
+    });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    adjustBoardScale(-BOARD_SCALE_STEP);
+  }, [adjustBoardScale]);
+
+  const handleZoomIn = useCallback(() => {
+    adjustBoardScale(BOARD_SCALE_STEP);
+  }, [adjustBoardScale]);
+
+  const handleZoomReset = useCallback(() => {
+    hasUserAdjustedZoomRef.current = false;
+    setBoardScale(clampNumber(1, MIN_BOARD_SCALE, MAX_BOARD_SCALE));
+  }, []);
 
   const invalidateBoard = useCallback(
     () => queryClient.invalidateQueries({ queryKey: boardQueryKey, exact: false }),
@@ -1347,10 +1448,10 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   const canShowAddListButton = Boolean(isOrganizer && showInlineAddListButton && !isListFormVisible);
 
   const myTasksButtonClassName = [
-    'inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+    'inline-flex items-center rounded-full border px-3 py-2 text-xs font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent-primary)]',
     showMyTasksOnly
-      ? 'border-blue-600 bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400'
-      : 'border-neutral-300 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800',
+      ? 'border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] text-[var(--color-text-inverse)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-accent-primary-strong)]'
+      : 'border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent-primary)]',
   ].join(' ');
 
   useEffect(() => {
@@ -1382,10 +1483,19 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
   ) : null}
 
       {isLoading ? (
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          <SkeletonColumn />
-          <SkeletonColumn />
-          <SkeletonColumn />
+        <div
+          className="h-[var(--board-height)] w-full overflow-auto rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm"
+          style={boardStyle}
+          data-board-zoom-wrap="true"
+        >
+          <div
+            className="flex w-fit min-w-full items-start gap-5 px-3 pb-4 pt-3"
+            data-board-zoom-content="true"
+          >
+            <SkeletonColumn />
+            <SkeletonColumn />
+            <SkeletonColumn />
+          </div>
         </div>
       ) : null}
 
@@ -1408,18 +1518,19 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
 
       {!isLoading && !error && boardData ? (
         <>
-          {(isParticipant || canShowAddListButton) && (
-            <div className="flex flex-wrap items-center gap-3">
-              {canShowAddListButton ? (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            {(isParticipant || canShowAddListButton) && (
+              <div className="flex flex-wrap items-center gap-3">
+                {canShowAddListButton ? (
                 <button
                   type="button"
                   onClick={openListForm}
-                  className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                  className="btn btn--primary btn--pill !h-10 !px-4 text-sm"
                 >
                   Добавить колонку
                 </button>
               ) : null}
-              {isParticipant ? (
+                {isParticipant ? (
                 <button
                   type="button"
                   className={myTasksButtonClassName}
@@ -1428,9 +1539,52 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                 >
                   Мои задачи
                 </button>
-              ) : null}
+                ) : null}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 md:ml-auto">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                {t('event.board.zoom.label')}
+              </span>
+              <div
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-1 shadow-sm"
+                role="group"
+                aria-label={t('event.board.zoom.ariaLabel')}
+              >
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  disabled={!canZoomOut}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={t('event.board.zoom.decrease')}
+                >
+                  -
+                </button>
+                <span className="min-w-[2.75rem] text-center text-xs font-semibold text-[var(--color-text-secondary)]">
+                  {zoomPercent}%
+                </span>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  disabled={!canZoomIn}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={t('event.board.zoom.increase')}
+                >
+                  +
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleZoomReset}
+                disabled={!canResetZoom}
+                className="inline-flex items-center rounded-full border border-[var(--color-border-subtle)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={t('event.board.zoom.resetAria')}
+              >
+                {t('event.board.zoom.reset')}
+              </button>
             </div>
-          )}
+          </div>
 
           {isOrganizer && isListFormVisible ? (
             <form
@@ -1457,30 +1611,36 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                 <button
                   type="button"
                   onClick={handleCancelList}
-                  className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  className="btn btn--ghost btn--pill !h-10 !px-4 text-sm"
                   disabled={createListMutation.isPending}
                 >
-                  Отмена
+                  {t('event.board.listForm.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={createListMutation.isPending}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-70"
+                  className="btn btn--primary btn--pill !h-10 !px-4 text-sm"
                 >
-                  Создать
+                  {createListMutation.isPending ? t('event.board.listForm.submitLoading') : t('event.board.listForm.submit')}
                 </button>
               </div>
             </form>
           ) : null}
 
           <div
-            className="flex gap-4 overflow-x-auto pb-2"
-            onDragOver={handleBoardDragOver}
-            onDrop={handleBoardDrop}
-            aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
+            className="h-[var(--board-height)] w-full overflow-auto rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm"
+            style={boardStyle}
+            data-board-zoom-wrap="true"
           >
-            {boardData.lists.length === 0 ? (
-              <div className="flex w-full min-w-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
+            <div
+              className="flex w-fit min-w-full items-start gap-5 px-3 pb-4 pt-3"
+              onDragOver={handleBoardDragOver}
+              onDrop={handleBoardDrop}
+              aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
+              data-board-zoom-content="true"
+            >
+              {boardData.lists.length === 0 ? (
+                <div className="flex w-full min-w-[var(--category-width)] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
                 Добавьте первую колонку, чтобы начать планирование.
               </div>
             ) : (
@@ -1519,6 +1679,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                 />
               ))
             )}
+            </div>
           </div>
         </>
       ) : null}

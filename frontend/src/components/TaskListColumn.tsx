@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 
+import { t } from '@/lib/i18n';
 import type { BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
 
 import ConfirmDialog from './ConfirmDialog';
@@ -182,13 +183,13 @@ const TaskListColumn = ({
   };
 
   const sectionClasses = [
-    'relative flex w-full min-w-[260px] max-w-xs flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm transition dark:border-neutral-700 dark:bg-neutral-900',
+    'relative flex w-[var(--category-width)] min-h-[200px] flex-col overflow-hidden rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] shadow-sm transition-[height,background-color,border-color,box-shadow] duration-300 ease-in-out',
   ];
   if (isListDragging) {
     sectionClasses.push('opacity-60', 'dragging');
   }
   if (isListDropTarget) {
-    sectionClasses.push('ring-2', 'ring-blue-400');
+    sectionClasses.push('outline', 'outline-2', 'outline-[var(--color-accent-primary)]');
   }
 
   const handleDeleteListCancel = () => {
@@ -347,16 +348,19 @@ const TaskListColumn = ({
   const totalTaskCount = tasks.length;
   const taskCountLabel =
     showMyTasksOnly && myParticipantId !== null && visibleTaskCount !== totalTaskCount
-      ? `Задач: ${visibleTaskCount} / ${totalTaskCount}`
-      : `Задач: ${totalTaskCount}`;
+      ? t('event.board.taskCount.filtered', { visible: visibleTaskCount, total: totalTaskCount })
+      : t('event.board.taskCount.all', { total: totalTaskCount });
 
-  const baseEmptyMessage = 'Задач пока нет. Перетащите карточку или создайте новую.';
-  const filteredEmptyMessage = 'Для вас пока нет задач в этой колонке.';
+  const baseEmptyMessage = t('event.board.empty');
+  const filteredEmptyMessage = t('event.board.empty.filtered');
   const emptyMessage =
     totalTaskCount === 0 || !showMyTasksOnly || myParticipantId === null ? baseEmptyMessage : filteredEmptyMessage;
 
   const dropIndicator = (
-    <div className="my-1 h-2 rounded border-2 border-dashed border-blue-400" aria-hidden="true" />
+    <div
+      className="my-1 h-2 w-full rounded border-2 border-dashed border-[var(--color-accent-primary)]"
+      aria-hidden="true"
+    />
   );
 
   let dropIndicatorRendered = false;
@@ -403,7 +407,7 @@ const TaskListColumn = ({
         onDrop={handleSectionDrop}
         aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
       >
-      <header className="flex items-center justify-between gap-3 rounded-t-2xl bg-neutral-50 px-4 py-3 dark:bg-neutral-800">
+      <header className="flex items-center justify-between gap-3 rounded-t-3xl bg-[var(--color-surface-muted)] px-5 py-4">
         <div
           className="flex flex-1 cursor-grab select-none flex-col gap-1 focus:outline-none"
           draggable={canManage && !isSyncing}
@@ -415,16 +419,16 @@ const TaskListColumn = ({
           aria-dropeffect={dragContext?.type === 'list' ? 'move' : undefined}
           onKeyDown={handleHeaderKeyDown}
         >
-          <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{list.title}</h2>
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">{taskCountLabel}</span>
+          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">{list.title}</h2>
+          <span className="text-xs text-[var(--color-text-muted)]">{taskCountLabel}</span>
         </div>
         {canManage ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onAddTask(list)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label={`Добавить задачу в колонку ${list.title}`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent-primary)] text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={t('event.board.aria.addTask', { title: list.title })}
               disabled={isSyncing || isDeletingList}
             >
               +
@@ -435,25 +439,25 @@ const TaskListColumn = ({
       {isContextMenuOpen && canManage ? (
         <div
           ref={menuRef}
-          className="absolute z-30 min-w-[180px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+          className="absolute z-30 min-w-[200px] rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] py-1 shadow-[var(--shadow-sm)] focus:outline-none"
           style={{ top: menuPosition.top, left: menuPosition.left }}
           role="menu"
         >
           <button
             type="button"
             onClick={handleDeleteListFromMenu}
-            className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+            className="block w-full px-4 py-2 text-left text-sm text-[var(--color-error)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-error-soft)]"
             role="menuitem"
           >
-            Удалить категорию
+            {t('event.board.action.deleteColumn')}
           </button>
         </div>
       ) : null}
 
       <div
-        className="flex flex-1 flex-col gap-3 p-4"
+        className="flex w-full flex-col gap-4 overflow-visible px-4 pb-4 pt-3"
         role="list"
-        aria-label={`Задачи колонки ${list.title}`}
+        aria-label={t('event.board.aria.list', { title: list.title })}
         aria-dropeffect={dragContext?.type === 'task' ? 'move' : undefined}
         onDragOver={handleTasksContainerDragOver}
         onDrop={handleTasksContainerDrop}
@@ -461,7 +465,7 @@ const TaskListColumn = ({
         {visibleTaskCount === 0 ? (
           <>
             {showEmptyIndicatorBefore ? dropIndicator : null}
-            <p className="rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+            <p className="rounded-2xl border border-dashed border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-5 text-sm text-[var(--color-text-secondary)]">
               {emptyMessage}
             </p>
             {showEmptyIndicatorAfter ? dropIndicator : null}
@@ -479,7 +483,7 @@ const TaskListColumn = ({
             const assigneeParticipant =
               task.assignee !== null ? participants.get(task.assignee) ?? null : null;
             const taskClasses = [
-              'flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700 shadow-sm transition hover:border-blue-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200',
+              'flex w-full justify-center',
             ];
             if (isTaskDragging) {
               taskClasses.push('opacity-60', 'dragging');
@@ -524,10 +528,10 @@ const TaskListColumn = ({
     </section>
     <ConfirmDialog
       open={isDeleteDialogOpen}
-      title={`Удалить категорию "${list.title}"?`}
-      message="Будут также удалены все задачи этой категории. Действие необратимо."
-      confirmLabel="Удалить"
-      cancelLabel="Отмена"
+      title={t('event.board.dialog.deleteTitle', { title: list.title })}
+      message={t('event.board.dialog.deleteDescription')}
+      confirmLabel={t('event.board.dialog.confirm')}
+      cancelLabel={t('event.board.dialog.cancel')}
       onConfirm={handleDeleteListConfirm}
       onCancel={handleDeleteListCancel}
       isProcessing={isDeletingList}

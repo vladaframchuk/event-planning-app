@@ -1,11 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type JSX, useEffect, useMemo, useState } from 'react';
 
 import EventFormDialog, { type EventFormSubmitPayload } from '@/components/EventFormDialog';
 import EventList from '@/components/EventList';
+import EventStateCard from '@/components/EventStateCard';
 import { createEvent, deleteEvent, getEventCategories, getMyEvents, updateEvent } from '@/lib/eventsApi';
+import { t, type TranslationKey } from '@/lib/i18n';
 import { getMe, type Profile } from '@/lib/profileApi';
 import type { Event } from '@/types/event';
 
@@ -14,13 +16,18 @@ const PAGE_SIZE = 10;
 type OrderingOption = 'start_at' | '-start_at';
 type TimeFilter = 'all' | 'upcoming' | 'past';
 
-const TIME_FILTER_OPTIONS: ReadonlyArray<{ value: TimeFilter; label: string }> = [
-  { value: 'all', label: 'Все' },
-  { value: 'past', label: 'Прошедшие' },
-  { value: 'upcoming', label: 'Ближайшие' },
-];
+const TIME_FILTER_OPTIONS: ReadonlyArray<{ value: TimeFilter; labelKey: TranslationKey }> = [
+  { value: 'all', labelKey: 'events.filters.time.all' },
+  { value: 'upcoming', labelKey: 'events.filters.time.upcoming' },
+  { value: 'past', labelKey: 'events.filters.time.past' },
+] as const;
 
-const EventsPage = () => {
+const ORDERING_OPTIONS: ReadonlyArray<{ value: OrderingOption; labelKey: TranslationKey }> = [
+  { value: 'start_at', labelKey: 'events.filters.ordering.startAsc' },
+  { value: '-start_at', labelKey: 'events.filters.ordering.startDesc' },
+] as const;
+
+const EventsPage = (): JSX.Element => {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -31,6 +38,10 @@ const EventsPage = () => {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const fieldClassName =
+    'w-full rounded-[20px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm font-medium text-[var(--color-text-primary)] shadow-sm transition focus:border-[var(--color-accent-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-soft)]';
 
   const eventsQueryKey = useMemo(
     () => [
@@ -130,14 +141,14 @@ const EventsPage = () => {
       setEditingEvent(null);
       setDialogError(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Не удалось сохранить событие.';
+      const message = error instanceof Error ? error.message : t('events.dialog.error.generic');
       setDialogError(message);
       throw error;
     }
   };
 
   const handleDelete = async (event: Event) => {
-    const confirmed = window.confirm(`Удалить событие «${event.title}»?`);
+    const confirmed = window.confirm(t('events.delete.confirm', { title: event.title }));
     if (!confirmed) {
       return;
     }
@@ -146,7 +157,7 @@ const EventsPage = () => {
       await deleteMutation.mutateAsync(event.id);
       await invalidateEvents();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Не удалось удалить событие.';
+      const message = error instanceof Error ? error.message : t('events.delete.error');
       // eslint-disable-next-line no-alert
       alert(message);
     }
@@ -178,159 +189,160 @@ const EventsPage = () => {
   };
 
   const handleNextPage = () => {
-    setPage((prev) => prev + 1);
+    setPage((prev) => Math.min(totalPages, prev + 1));
   };
 
   const currentUserId = profileQuery.data?.id ?? null;
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const pendingDeleteId = deleteMutation.isPending ? deleteMutation.variables ?? null : null;
 
+  const hasQueryError = eventsQuery.isError || profileQuery.isError;
+  const hasActiveFilters =
+    search.trim().length > 0 || category.trim().length > 0 || timeFilter !== 'all' || ordering !== 'start_at';
+  const filtersPanelId = 'events-filters-panel';
+
   return (
-    <section className="mx-auto max-w-6xl space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-neutral-900 dark:text-neutral-50">Мои события</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Управляйте мероприятиями, фильтруйте по параметрам и приглашайте коллег.
-          </p>
-        </header>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center gap-3 self-start rounded-2xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:self-auto"
-        >
-          <span aria-hidden>＋</span>
-          Создать событие
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col">
-            <label htmlFor="events-search" className="mb-1 text-xs font-semibold uppercase text-neutral-500">
-              Поиск
-            </label>
-            <input
-              id="events-search"
-              value={search}
-              onChange={handleSearchChange}
-              placeholder="Название, описание или локация"
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-            />
+    <section className="w-full px-4 pb-16 pt-10 sm:px-8 lg:px-16 xl:px-24">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <header className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-8 py-10 shadow-[var(--shadow-md)] sm:px-12 sm:py-12">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex max-w-3xl flex-col gap-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                {t('events.header.kicker')}
+              </p>
+              <h1 className="text-[clamp(2rem,3vw,2.8rem)] font-semibold leading-[1.08] text-[var(--color-text-primary)]">
+                {t('events.header.title')}
+              </h1>
+              <p className="text-base text-[var(--color-text-secondary)]">
+                {t('events.header.subtitle')}
+              </p>
+            </div>
+            <button type="button" onClick={handleOpenCreate} className="btn btn--primary btn--pill self-start sm:self-auto">
+              {t('events.actions.create')}
+            </button>
           </div>
+        </header>
 
-          <div className="flex flex-col">
-            <label htmlFor="events-category" className="mb-1 text-xs font-semibold uppercase text-neutral-500">
-              Категория
-            </label>
-            <select
-              id="events-category"
-              value={category}
-              onChange={handleCategoryChange}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-              disabled={categoriesQuery.isLoading}
-            >
-              <option value="">Все категории</option>
-              {(categoriesQuery.data ?? []).map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {categoriesQuery.isError ? (
+        <div className="rounded-[32px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] px-6 py-6 shadow-[var(--shadow-sm)] sm:px-10 sm:py-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => categoriesQuery.refetch()}
-                className="mt-2 self-start text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                onClick={() => setFiltersOpen((prev) => !prev)}
+                aria-expanded={filtersOpen}
+                aria-controls={filtersPanelId}
+                className={[
+                  'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)]',
+                  filtersOpen
+                    ? 'border-[var(--color-accent-primary)] bg-[var(--color-background-primary)] text-[var(--color-accent-primary)]'
+                    : 'border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] hover:border-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)]',
+                ].join(' ')}
               >
-                Обновить список категорий
+                {filtersOpen ? t('events.filters.toggle.hide') : t('events.filters.toggle.show')}
+                {hasActiveFilters ? (
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-2 w-2 rounded-full bg-[var(--color-accent-primary)]"
+                  />
+                ) : null}
               </button>
-            ) : null}
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                {t('events.filters.results', { count: totalCount })}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="btn btn--ghost btn--pill" onClick={handlePrevPage} disabled={page === 1}>
+                {t('events.pagination.prev')}
+              </button>
+              <span className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                {t('events.pagination.page', { page, total: totalPages })}
+              </span>
+              <button type="button" className="btn btn--ghost btn--pill" onClick={handleNextPage} disabled={page >= totalPages}>
+                {t('events.pagination.next')}
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col">
-            <label htmlFor="events-time-filter" className="mb-1 text-xs font-semibold uppercase text-neutral-500">
-              Период
-            </label>
-            <select
-              id="events-time-filter"
-              value={timeFilter}
-              onChange={handleTimeFilterChange}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-            >
-              {TIME_FILTER_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {filtersOpen ? (
+            <div id={filtersPanelId} className="mt-6 grid gap-6">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                  {t('events.filters.search')}
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={handleSearchChange}
+                    placeholder={t('events.filters.searchPlaceholder')}
+                    className={fieldClassName}
+                  />
+                </label>
 
-          <div className="flex flex-col">
-            <label htmlFor="events-ordering" className="mb-1 text-xs font-semibold uppercase text-neutral-500">
-              Сортировка
-            </label>
-            <select
-              id="events-ordering"
-              value={ordering}
-              onChange={handleOrderingChange}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-            >
-              <option value="start_at">По дате начала (возрастание)</option>
-              <option value="-start_at">По дате начала (убывание)</option>
-            </select>
-          </div>
+                <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                  {t('events.filters.ordering.title')}
+                  <select value={ordering} onChange={handleOrderingChange} className={fieldClassName}>
+                    {ORDERING_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                  {t('events.filters.category')}
+                  <select
+                    value={category}
+                    onChange={handleCategoryChange}
+                    className={fieldClassName}
+                    disabled={categoriesQuery.isLoading}
+                  >
+                    <option value="">{t('events.filters.categoryAll')}</option>
+                    {(categoriesQuery.data ?? []).map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                  {t('events.filters.time.title')}
+                  <select value={timeFilter} onChange={handleTimeFilterChange} className={fieldClassName}>
+                    {TIME_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          ) : null}
         </div>
 
-        <div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Найдено: <span className="font-medium text-neutral-700 dark:text-neutral-200">{totalCount}</span>
-          </p>
-        </div>
-      </div>
-
-      {eventsQuery.isError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-          Не удалось загрузить события.{' '}
-          <button
-            type="button"
-            onClick={() => eventsQuery.refetch()}
-            className="font-medium underline underline-offset-4 hover:text-red-700 dark:hover:text-red-200"
-          >
-            Попробовать снова
-          </button>
-        </div>
-      ) : (
-        <EventList
-          events={events}
-          isLoading={eventsQuery.isLoading}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          currentUserId={currentUserId}
-          pendingDeleteId={pendingDeleteId}
-        />
-      )}
-
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={handlePrevPage}
-          disabled={page <= 1 || eventsQuery.isLoading}
-          className="inline-flex items-center rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
-        >
-          ← Назад
-        </button>
-        <span className="text-sm text-neutral-500 dark:text-neutral-400">
-          Страница {page} из {totalPages}
-        </span>
-        <button
-          type="button"
-          onClick={handleNextPage}
-          disabled={page >= totalPages || eventsQuery.isLoading}
-          className="inline-flex items-center rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
-        >
-          Вперёд →
-        </button>
+        {hasQueryError ? (
+          <EventStateCard
+            tone="error"
+            title={t('events.errors.loadTitle')}
+            description={eventsQuery.error?.message ?? profileQuery.error?.message ?? t('events.errors.loadDescription')}
+            actions={
+              <button type="button" className="btn btn--ghost btn--pill" onClick={() => eventsQuery.refetch()}>
+                {t('events.actions.retry')}
+              </button>
+            }
+          />
+        ) : (
+          <EventList
+            events={events}
+            isLoading={eventsQuery.isLoading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            currentUserId={currentUserId}
+            pendingDeleteId={pendingDeleteId ?? undefined}
+          />
+        )}
       </div>
 
       <EventFormDialog
