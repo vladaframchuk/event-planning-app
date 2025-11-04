@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,8 +11,8 @@ from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .emails import send_confirmation_email
 from .serializers import EmailTokenObtainPairSerializer, RegistrationSerializer, ResendConfirmationSerializer
+from .tasks import send_confirmation_email_async
 from .utils import EmailConfirmationTokenError, verify_email_confirmation_token
 
 User = get_user_model()
@@ -25,9 +26,29 @@ class RegistrationView(APIView):
 
     def post(self, request: Request) -> Response:
         serializer = RegistrationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as exc:
+            errors = exc.detail
+            message = _("Некорректные данные.")
+            if isinstance(errors, dict):
+                # Попробуем достать первое понятное сообщение об ошибке, например для email.
+                for field_errors in errors.values():
+                    if isinstance(field_errors, list) and field_errors:
+                        message = str(field_errors[0])
+                        break
+            return Response(
+                {"detail": message, "errors": errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         user = serializer.save()
-        send_confirmation_email(user)
+        try:
+            send_confirmation_email_async.delay(user.pk)
+        except Exception:
+            # Если Celery недоступен, шлём письмо синхронно, чтобы пользователь всё равно получил ссылку.
+            from .emails import send_confirmation_email
+
+            send_confirmation_email(user)
         return Response({"message": "confirmation_sent"}, status=status.HTTP_201_CREATED)
 
 
