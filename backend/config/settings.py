@@ -40,8 +40,15 @@ _LEGACY_ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=None)
 ALLOWED_HOSTS: list[str] = (
     _LEGACY_ALLOWED_HOSTS
     if _LEGACY_ALLOWED_HOSTS
-    else env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "testserver"])
+    else env.list(
+        "ALLOWED_HOSTS",
+        default=["localhost", "127.0.0.1", "testserver"],
+    )
 )
+
+for _internal_host in ("backend",):
+    if _internal_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_internal_host)
 
 
 # ����������� ����������

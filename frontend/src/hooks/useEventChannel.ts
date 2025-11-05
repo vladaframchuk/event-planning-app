@@ -43,6 +43,24 @@ const resolveWebSocketBase = (): string | null => {
   return `ws://${stripTrailingSlash(rawBase)}`;
 };
 
+const ensureWsBase = (value: string): string => {
+  try {
+    const url = new URL(value);
+    const segments = url.pathname
+      .split('/')
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0);
+    if (segments.length === 0 || segments[segments.length - 1] !== 'ws') {
+      segments.push('ws');
+    }
+    url.pathname = `/${segments.join('/')}`;
+    return stripTrailingSlash(url.toString());
+  } catch {
+    const normalized = stripTrailingSlash(value);
+    return normalized.endsWith('/ws') ? normalized : `${normalized}/ws`;
+  }
+};
+
 const buildWebSocketUrl = (eventId: number, token: string): string | null => {
   if (!isBrowser) {
     return null;
@@ -51,7 +69,8 @@ const buildWebSocketUrl = (eventId: number, token: string): string | null => {
   if (!base) {
     return null;
   }
-  return `${stripTrailingSlash(base)}/ws/events/${eventId}/?token=${encodeURIComponent(token)}`;
+  const wsBase = ensureWsBase(base);
+  return `${wsBase}/events/${eventId}/?token=${encodeURIComponent(token)}`;
 };
 
 export function useEventChannel(eventId: number) {
