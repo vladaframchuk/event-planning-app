@@ -1,21 +1,39 @@
 from __future__ import annotations
 
+import sys
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
+from drf_spectacular.openapi import AutoSchema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
-from drf_spectacular.openapi import AutoSchema
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from .emails import send_confirmation_email
 from .serializers import EmailTokenObtainPairSerializer, RegistrationSerializer, ResendConfirmationSerializer
 from .tasks import send_confirmation_email_async
 from .utils import EmailConfirmationTokenError, verify_email_confirmation_token
 
 User = get_user_model()
+
+
+def _dispatch_confirmation_email(user: User) -> None:
+    if user.pk is None:
+        raise ValueError("Cannot send confirmation email for unsaved user.")
+
+    if "pytest" in sys.modules or getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        send_confirmation_email_async.apply(args=(user.pk,))
+        return
+
+    try:
+        send_confirmation_email_async.delay(user.pk)
+    except Exception:
+        send_confirmation_email(user)
 
 
 class RegistrationView(APIView):
@@ -42,13 +60,7 @@ class RegistrationView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user = serializer.save()
-        try:
-            send_confirmation_email_async.delay(user.pk)
-        except Exception:
-            # Если Celery недоступен, шлём письмо синхронно, чтобы пользователь всё равно получил ссылку.
-            from .emails import send_confirmation_email
-
-            send_confirmation_email(user)
+        _dispatch_confirmation_email(user)
         return Response({"message": "confirmation_sent"}, status=status.HTTP_201_CREATED)
 
 
@@ -62,7 +74,7 @@ class ResendConfirmationView(APIView):
         serializer = ResendConfirmationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.user
-        send_confirmation_email(user)
+        _dispatch_confirmation_email(user)
         return Response({"message": "confirmation_sent"}, status=status.HTTP_200_OK)
 
 

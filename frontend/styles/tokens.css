@@ -71,27 +71,28 @@
   --button-padding-x: 22px;
   --button-height: 48px;
   --button-transition: background var(--transition-fast) var(--easing-standard), color var(--transition-fast) var(--easing-standard), box-shadow var(--transition-fast) var(--easing-standard), transform var(--transition-fast) var(--easing-standard);
+  --button-disabled-bg: #7c82a1;
 
   --button-primary-bg: #365cff;
   --button-primary-bg-hover: #2746e0;
   --button-primary-bg-active: #1b33b4;
-  --button-primary-bg-disabled: #9aaeff;
+  --button-primary-bg-disabled: var(--button-disabled-bg);
   --button-primary-text: #ffffff;
-  --button-primary-text-disabled: rgba(255, 255, 255, 0.78);
+  --button-primary-text-disabled: #ffffff;
 
   --button-success-bg: #1b9b5c;
   --button-success-bg-hover: #14804d;
   --button-success-bg-active: #0f6540;
-  --button-success-bg-disabled: #8dd3b0;
+  --button-success-bg-disabled: var(--button-disabled-bg);
   --button-success-text: #ffffff;
-  --button-success-text-disabled: rgba(255, 255, 255, 0.78);
+  --button-success-text-disabled: #ffffff;
 
   --button-dark-bg: #101428;
   --button-dark-bg-hover: #161d3b;
   --button-dark-bg-active: #0d1124;
-  --button-dark-bg-disabled: #495065;
+  --button-dark-bg-disabled: var(--button-disabled-bg);
   --button-dark-text: #ffffff;
-  --button-dark-text-disabled: rgba(255, 255, 255, 0.78);
+  --button-dark-text-disabled: #ffffff;
 
   --button-ghost-bg: transparent;
   --button-ghost-bg-hover: rgba(54, 92, 255, 0.12);
@@ -176,6 +177,7 @@
     --color-warning-soft: #3b2808;
     --color-error: #ff6b6b;
     --color-error-soft: #3a1116;
+    --button-disabled-bg: #4d5268;
   }
 }
 

@@ -46,6 +46,7 @@ ALLOWED_HOSTS: list[str] = (
 
 # ����������� ����������
 INSTALLED_APPS = [
+    "django_prometheus",
     "channels",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -53,7 +54,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # ��������� ����������
+    # пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -61,7 +62,7 @@ INSTALLED_APPS = [
     "drf_spectacular_sidecar",
     "django_filters",
     "corsheaders",
-    # ��������� ����������
+    # пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     "apps.users",
     "apps.events.apps.EventsConfig",
     "apps.health.apps.HealthConfig",
@@ -74,6 +75,7 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -83,6 +85,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 
@@ -142,6 +145,7 @@ DATABASES = {
         default="postgres://event_user:event_password@postgres:5432/event_db",
     )
 }
+DATABASES["default"]["ENGINE"] = "django_prometheus.db.backends.postgresql"
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

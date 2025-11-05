@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from apps.events.models import Participant
+from config.metrics import WS_ACTIVE_CONNECTIONS, WS_DISCONNECTS, WS_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -25,21 +26,28 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
     group_name: str
     event_id: int
     user_id: int
+    metrics_consumer: str = "events"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._metrics_connected: bool = False
 
     async def connect(self) -> None:
         user = self.scope.get("user")
         if user is None or isinstance(user, AnonymousUser) or not user.is_authenticated:
+            WS_ERRORS.labels(consumer=self.metrics_consumer, reason="unauthenticated").inc()
             await self.close(code=4401)
             return
 
         try:
             event_id = int(self.scope["url_route"]["kwargs"]["event_id"])
         except (KeyError, ValueError, TypeError):
+            WS_ERRORS.labels(consumer=self.metrics_consumer, reason="invalid_route").inc()
             await self.close(code=4400)
             return
 
-        # Проверяем, что пользователь участвует в событии.
         if not await self._is_participant(event_id, user.id):
+            WS_ERRORS.labels(consumer=self.metrics_consumer, reason="forbidden").inc()
             await self.close(code=4403)
             return
 
@@ -50,12 +58,18 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
         ensure_group_name_regex_allows_colon(self.channel_layer)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         logger.info("EventConsumer: user %s connected to event %s", user.id, event_id)
+        WS_ACTIVE_CONNECTIONS.labels(consumer=self.metrics_consumer).inc()
+        self._metrics_connected = True
         await self.accept()
 
     async def disconnect(self, code: int) -> None:
         group_name = getattr(self, "group_name", None)
         if group_name:
             await self.channel_layer.group_discard(group_name, self.channel_name)
+        if self._metrics_connected:
+            WS_ACTIVE_CONNECTIONS.labels(consumer=self.metrics_consumer).dec()
+            self._metrics_connected = False
+        WS_DISCONNECTS.labels(consumer=self.metrics_consumer, code=str(code)).inc()
         logger.info(
             "EventConsumer: channel %s disconnected with code %s",
             self.channel_name,
@@ -75,7 +89,6 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             await self._handle_chat_typing(content)
             return
         logger.debug("EventConsumer: ignoring incoming payload %s", content)
-        # Placeholder for future rate-limited client to server messages.
 
     async def broadcast(self, event: dict[str, Any]) -> None:
         if event.get("message_type") == "chat.typing":

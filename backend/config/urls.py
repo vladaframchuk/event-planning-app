@@ -19,6 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
+from django_prometheus import urls as prometheus_urls
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -42,6 +43,7 @@ urlpatterns = [
     path("api/", include("apps.chat.urls")),
     path("api/", include("apps.export.urls")),
     path("api/", include("apps.notifications.urls")),
+    path("metrics/", include(prometheus_urls)),
 ]
 
 if settings.DEBUG:

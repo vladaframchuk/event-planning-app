@@ -278,7 +278,7 @@ const InviteDialog = ({ eventId, open, onClose }: InviteDialogProps) => {
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:bg-[var(--button-disabled-bg)] disabled:text-white disabled:opacity-100 disabled:shadow-none"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Создание…' : 'Создать ссылку'}
@@ -302,7 +302,7 @@ const InviteDialog = ({ eventId, open, onClose }: InviteDialogProps) => {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="inline-flex items-center justify-center rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center justify-center rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[var(--button-disabled-bg)] disabled:text-white disabled:opacity-100"
                 >
                   Копировать
                 </button>

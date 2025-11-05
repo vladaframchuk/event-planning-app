@@ -427,7 +427,7 @@ const TaskListColumn = ({
             <button
               type="button"
               onClick={() => onAddTask(list)}
-              className="inline-flex h-12 w-12 min-h-[48px] min-w-[48px] items-center justify-center rounded-full bg-[var(--color-accent-primary)] text-base font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-12 w-12 min-h-[48px] min-w-[48px] items-center justify-center rounded-full bg-[var(--color-accent-primary)] text-base font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-accent-primary-strong)] disabled:cursor-not-allowed disabled:bg-[var(--button-disabled-bg)] disabled:text-[var(--color-text-inverse)] disabled:opacity-100 disabled:shadow-none"
               aria-label={t('event.board.aria.addTask', { title: list.title })}
               disabled={isSyncing || isDeletingList}
             >

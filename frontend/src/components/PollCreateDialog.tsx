@@ -324,7 +324,7 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
             <button
               type="submit"
               disabled={!canSubmit}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-70"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:bg-[var(--button-disabled-bg)] disabled:text-white disabled:opacity-100 disabled:shadow-none"
             >
               {isSubmitting ? 'Создание...' : 'Создать'}
             </button>

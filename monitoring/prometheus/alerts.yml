@@ -1,0 +1,74 @@
+groups:
+  - name: infrastructure
+    rules:
+      - alert: InstanceDown
+        expr: up{job=~"backend|nginx|cadvisor|node_exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} instance down"
+          description: "Instance {{ $labels.instance }} for job {{ $labels.job }} is not reporting."
+          runbook: TODO integrate Alertmanager routing
+
+      - alert: HighCPU
+        expr: (100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "Average CPU usage is above 80% for {{ $labels.instance }}."
+          runbook: TODO integrate Alertmanager routing
+
+      - alert: HighMemory
+        expr: ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory consumption is above 85% for {{ $labels.instance }}."
+          runbook: TODO integrate Alertmanager routing
+
+      - alert: DiskFill
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space below 10% on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} has less than 10% free space."
+          runbook: TODO integrate Alertmanager routing
+
+  - name: application
+    rules:
+      - alert: HTTP5xxRate
+        expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 5xx rate above threshold"
+          description: "More than 5% of responses are 5xx over the last 5 minutes."
+          runbook: TODO integrate Alertmanager routing
+
+      - alert: WSDisconnects
+        expr: increase(channels_ws_disconnects_total{code=~"44.."}[5m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated WebSocket disconnects"
+          description: "Channels reported over 20 disconnects with 44xx codes within 5 minutes."
+          runbook: TODO integrate Alertmanager routing
+
+      - alert: CeleryQueueLag
+        expr: histogram_quantile(0.95, sum(rate(celery_task_queue_latency_seconds_bucket[5m])) by (le)) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery queue latency over 30s"
+          description: "95th percentile Celery queue latency exceeds 30 seconds."
+          runbook: TODO integrate Alertmanager routing

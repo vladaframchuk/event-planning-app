@@ -265,7 +265,7 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
   const triggerLabel = t('event.header.actions.export');
 
   return (
-    <div className="relative inline-flex text-left max-[379px]:flex-1" ref={containerRef}>
+    <div className="relative inline-flex text-left max-[379px]:flex-1 sm:flex-shrink-0" ref={containerRef}>
       <button
         type="button"
         onClick={handleToggle}

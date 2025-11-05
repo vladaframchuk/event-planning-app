@@ -71,3 +71,6 @@ coverage.xml
 .gitleaks*
 __MACOSX/
 .history/
+deploy.env
+prev_deploy.env
+deploy_inputs.env

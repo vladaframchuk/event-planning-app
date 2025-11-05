@@ -147,7 +147,7 @@ const ConfirmDialog = ({
               ref={confirmButtonRef}
               onClick={handleConfirmClick}
               disabled={isProcessing}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-70"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:bg-[var(--button-disabled-bg)] disabled:text-white disabled:opacity-100 disabled:shadow-none"
             >
               {confirmLabel}
             </button>

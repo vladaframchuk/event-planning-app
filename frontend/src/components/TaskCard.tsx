@@ -305,7 +305,7 @@ const TaskCard = ({
               type="button"
               onClick={handleTakeClick}
               disabled={isBusy}
-              className="inline-flex min-h-[48px] items-center rounded-full bg-[var(--color-success)] px-4 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-success)]/90 disabled:opacity-60"
+              className="inline-flex min-h-[48px] items-center rounded-full bg-[var(--color-success)] px-4 py-2 text-sm font-semibold text-[var(--color-text-inverse)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-success)]/90 disabled:cursor-not-allowed disabled:bg-[var(--button-disabled-bg)] disabled:text-[var(--color-text-inverse)] disabled:opacity-100 disabled:shadow-none"
               aria-label={t('event.board.card.takeAria')}
             >
               {t('event.board.card.take')}

@@ -50,7 +50,7 @@ const BackIcon = ({ className }: { className?: string }) => (
 );
 
 const actionButtonBase =
-  'btn btn--pill inline-flex min-h-[48px] items-center justify-center gap-2 px-4 text-sm font-semibold max-[379px]:px-3';
+  'btn btn--pill inline-flex min-h-[48px] items-center justify-center gap-2 px-4 text-sm font-semibold max-[379px]:px-3 flex-shrink-0';
 const fullLabelClass = 'max-[379px]:hidden';
 
 const EventHeaderActions = ({
@@ -61,7 +61,7 @@ const EventHeaderActions = ({
 }: EventHeaderActionsProps): JSX.Element => (
   <div
     className={[
-      'flex w-full flex-wrap items-center justify-end gap-2 sm:gap-3',
+      'flex w-full flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-3',
       className,
     ]
       .filter(Boolean)
