@@ -95,21 +95,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
-          python - "$BACKEND_TAG" "$FRONTEND_TAG" "$GHCR_USERNAME" "$GHCR_TOKEN" "$REGISTRY_IMAGE_PREFIX" <<'PY'
-import os
-import pathlib
-from sys import argv
-
-back, front, user, token, prefix = argv[1:6]
-lines = [
-    f"BACKEND_TAG={back}",
-    f"FRONTEND_TAG={front}",
-    f"GHCR_USERNAME={user}",
-    f"GHCR_TOKEN={token}",
-    f"REGISTRY_IMAGE_PREFIX={prefix}",
-]
-pathlib.Path("deploy_inputs.env").write_text("\n".join(lines), encoding="utf-8")
-PY
+          python -c "import pathlib, sys; back, front, user, token, prefix = sys.argv[1:6]; pathlib.Path('deploy_inputs.env').write_text('\n'.join([f'BACKEND_TAG={back}', f'FRONTEND_TAG={front}', f'GHCR_USERNAME={user}', f'GHCR_TOKEN={token}', f'REGISTRY_IMAGE_PREFIX={prefix}']), encoding='utf-8')" "$BACKEND_TAG" "$FRONTEND_TAG" "$GHCR_USERNAME" "$GHCR_TOKEN" "$REGISTRY_IMAGE_PREFIX"
           scp -i ~/.ssh/id_rsa deploy_inputs.env "${SSH_USER}@${SSH_HOST}:~/event-planning-app/deploy_inputs.env"
           rm deploy_inputs.env
 
