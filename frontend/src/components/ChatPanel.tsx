@@ -157,6 +157,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   const messagesRef = useRef<LocalChatMessage[]>([]);
 
   const isAtBottomRef = useRef(true);
+  const autoScrollSuppressRef = useRef(false);
 
   const positiveIdsRef = useRef<Set<number>>(new Set());
 
@@ -437,14 +438,8 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
         return;
       }
 
-      if (additionsCount === 0) {
-        return;
-      }
-
-      if (isAtBottomRef.current) {
+      if (additionsCount > 0) {
         requestAnimationFrame(() => scrollToBottom());
-      } else {
-        setUnreadCount((current) => current + additionsCount);
       }
     },
     [replaceMessages, scrollToBottom],
@@ -468,6 +463,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
     const previousHeight = container?.scrollHeight ?? 0;
 
     setLoadMorePending(true);
+    autoScrollSuppressRef.current = true;
 
     try {
       const response = await listMessages(eventId, {
@@ -477,18 +473,16 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       });
 
       const mapped = response.results.map(toLocalMessage);
+      const existingIds = new Set(currentMessages.filter((item) => item.id > 0).map((item) => item.id));
+      const additions = mapped.filter((item) => !existingIds.has(item.id));
 
-      replaceMessages((prev) => {
-        const existing = new Set(prev.filter((item) => item.id > 0).map((item) => item.id));
+      if (additions.length === 0) {
+        autoScrollSuppressRef.current = false;
+        setHasMoreHistory(mapped.length === PAGE_SIZE);
+        return;
+      }
 
-        const additions = mapped.filter((item) => !existing.has(item.id));
-
-        if (additions.length === 0) {
-          return prev;
-        }
-
-        return [...additions, ...prev];
-      });
+      replaceMessages((prev) => [...additions, ...prev]);
 
       setHasMoreHistory(mapped.length === PAGE_SIZE);
 
@@ -561,12 +555,6 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   }, [fetchNewMessages]);
 
   useEffect(() => {
-    const container = listRef.current;
-
-    if (!container) {
-      return;
-    }
-
     const currentIds = positiveIdsRef.current;
 
     const nextIds = new Set<number>();
@@ -581,15 +569,16 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
     positiveIdsRef.current = nextIds;
 
+    if (autoScrollSuppressRef.current) {
+      autoScrollSuppressRef.current = false;
+      return;
+    }
+
     if (newIds.length === 0) {
       return;
     }
 
-    if (isAtBottomRef.current) {
-      requestAnimationFrame(() => scrollToBottom());
-    } else {
-      setUnreadCount((current) => current + newIds.length);
-    }
+    requestAnimationFrame(() => scrollToBottom());
   }, [messages, scrollToBottom]);
 
   useEffect(() => {

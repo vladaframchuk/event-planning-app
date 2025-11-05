@@ -105,7 +105,7 @@ def _build_poll_deleted_payload(event_id: int, poll_id: int) -> dict[str, Any]:
 
 
 class PollPagination(PageNumberPagination):
-    page_size = 10
+    page_size = 5
     page_size_query_param = "page_size"
     max_page_size = 50
 

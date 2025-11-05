@@ -115,6 +115,8 @@ const ConfirmContent = (): JSX.Element => {
     }
   };
 
+  const showResend = state.status !== 'success';
+
   return (
     <section className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-5xl flex-col gap-6 px-4 py-16 sm:px-8 lg:px-12">
       <div className={cardClassName}>
@@ -127,41 +129,43 @@ const ConfirmContent = (): JSX.Element => {
         <div className="mt-6">{statusContent}</div>
       </div>
 
-      <div className={cardClassName}>
-        <header className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
-            {t('auth.confirm.resend.title')}
-          </h2>
-          <p className="text-sm text-[var(--color-text-secondary)]">{t('auth.confirm.resend.description')}</p>
-        </header>
+      {showResend ? (
+        <div className={cardClassName}>
+          <header className="flex flex-col gap-3">
+            <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+              {t('auth.confirm.resend.title')}
+            </h2>
+            <p className="text-sm text-[var(--color-text-secondary)]">{t('auth.confirm.resend.description')}</p>
+          </header>
 
-        <form className="mt-6 flex flex-col gap-4" onSubmit={handleResend} noValidate>
-          <div className="flex flex-col gap-2">
-            <label className={labelClassName} htmlFor="resend-email">
-              {t('auth.confirm.resend.field.email.label')}
-            </label>
-            <input
-              id="resend-email"
-              type="email"
-              value={resendEmail}
-              onChange={(event) => setResendEmail(event.target.value)}
-              className={fieldClassName}
-              placeholder={t('auth.confirm.resend.field.email.placeholder')}
-              autoComplete="email"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isResending}
-            className="btn btn--primary btn--pill w-full justify-center md:w-auto"
-          >
-            {isResending ? t('auth.confirm.resend.submit.loading') : t('auth.confirm.resend.submit')}
-          </button>
-        </form>
-        {resendMessage ? (
-          <p className="mt-4 text-sm text-[var(--color-text-secondary)]">{resendMessage}</p>
-        ) : null}
-      </div>
+          <form className="mt-6 flex flex-col gap-4" onSubmit={handleResend} noValidate>
+            <div className="flex flex-col gap-2">
+              <label className={labelClassName} htmlFor="resend-email">
+                {t('auth.confirm.resend.field.email.label')}
+              </label>
+              <input
+                id="resend-email"
+                type="email"
+                value={resendEmail}
+                onChange={(event) => setResendEmail(event.target.value)}
+                className={fieldClassName}
+                placeholder={t('auth.confirm.resend.field.email.placeholder')}
+                autoComplete="email"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isResending}
+              className="btn btn--primary btn--pill w-full justify-center md:w-auto"
+            >
+              {isResending ? t('auth.confirm.resend.submit.loading') : t('auth.confirm.resend.submit')}
+            </button>
+          </form>
+          {resendMessage ? (
+            <p className="mt-4 text-sm text-[var(--color-text-secondary)]">{resendMessage}</p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 };

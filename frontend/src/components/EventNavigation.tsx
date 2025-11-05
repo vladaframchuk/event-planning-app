@@ -192,7 +192,7 @@ const EventNavigation = ({
         .filter(Boolean)
         .join(' ')}
     >
-      <p className="text-[var(--color-text-muted)] mb-[7.5rem] text-xs font-semibold uppercase tracking-[0.18em]">
+      <p className="text-[var(--color-text-muted)] mb-[9rem] text-xs font-semibold uppercase tracking-[0.18em]">
         {t('event.navigation.sectionTitle')}
       </p>
       <ul className="flex w-full flex-col gap-2">

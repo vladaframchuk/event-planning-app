@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { t } from '@/lib/i18n';
 import type { BoardParticipant, Task, TaskList, TaskStatus } from '@/types/task';
@@ -113,41 +114,11 @@ const TaskListColumn = ({
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeletingList, setDeletingList] = useState(false);
   const [isContextMenuOpen, setContextMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [isBrowser, setIsBrowser] = useState(false);
   const columnRef = useRef<HTMLElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
-    if (!isContextMenuOpen) {
-      return;
-    }
-    const handlePointerDown = (event: PointerEvent) => {
-      const menuNode = menuRef.current;
-      if (menuNode && menuNode.contains(event.target as Node)) {
-        return;
-      }
-      const columnNode = columnRef.current;
-      if (columnNode && columnNode.contains(event.target as Node)) {
-        setContextMenuOpen(false);
-        return;
-      }
-      setContextMenuOpen(false);
-    };
-
-    const handleEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setContextMenuOpen(false);
-      }
-    };
-
-    window.addEventListener('pointerdown', handlePointerDown, true);
-    window.addEventListener('keydown', handleEscape);
-
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown, true);
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, [isContextMenuOpen]);
+    setIsBrowser(true);
+  }, []);
 
   const closeContextMenu = () => {
     setContextMenuOpen(false);
@@ -162,15 +133,6 @@ const TaskListColumn = ({
     if (isSyncing || isDeletingList) {
       return;
     }
-    const columnNode = columnRef.current;
-    if (!columnNode) {
-      return;
-    }
-    const rect = columnNode.getBoundingClientRect();
-    setMenuPosition({
-      top: event.clientY - rect.top,
-      left: event.clientX - rect.left,
-    });
     setContextMenuOpen(true);
   };
 
@@ -436,23 +398,46 @@ const TaskListColumn = ({
           </div>
         ) : null}
       </header>
-      {isContextMenuOpen && canManage ? (
-        <div
-          ref={menuRef}
-          className="absolute z-30 min-w-[200px] rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] py-1 shadow-[var(--shadow-sm)] focus:outline-none"
-          style={{ top: menuPosition.top, left: menuPosition.left }}
-          role="menu"
-        >
-          <button
-            type="button"
-            onClick={handleDeleteListFromMenu}
-            className="block w-full px-4 py-2 text-left text-sm text-[var(--color-error)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-error-soft)]"
-            role="menuitem"
-          >
-            {t('event.board.action.deleteColumn')}
-          </button>
-        </div>
-      ) : null}
+      {isBrowser && isContextMenuOpen && canManage
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-40 flex flex-col justify-end bg-neutral-950/60 px-4 pb-10 pt-14 backdrop-blur-sm sm:justify-center sm:pb-0 sm:pt-0"
+              role="presentation"
+              onClick={closeContextMenu}
+            >
+              <div
+                className="mx-auto w-full max-w-sm rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-6 shadow-[var(--shadow-lg)] focus:outline-none"
+                role="menu"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+                  {t('event.board.action.deleteColumn')}
+                </h3>
+                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                  {t('event.board.card.deleteMessage')}
+                </p>
+                <div className="mt-6 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDeleteListFromMenu}
+                    className="w-full rounded-2xl bg-[var(--color-error)] px-4 py-3 text-sm font-semibold text-white transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-error)]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-error)]"
+                    role="menuitem"
+                  >
+                    {t('event.board.action.deleteColumn')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeContextMenu}
+                    className="w-full rounded-2xl border border-[var(--color-border-subtle)] px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-border-subtle)]"
+                  >
+                    {t('event.board.card.deleteCancel')}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <div
         className="flex w-full flex-col gap-4 overflow-y-auto px-4 pb-4 pt-3"

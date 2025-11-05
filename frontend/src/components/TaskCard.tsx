@@ -11,6 +11,7 @@ import {
   type JSX,
   type MouseEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { t } from '@/lib/i18n';
 import type { BoardParticipant, Task, TaskStatus } from '@/types/task';
@@ -86,9 +87,11 @@ const TaskCard = ({
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setDeleting] = useState(false);
   const [isContextMenuOpen, setContextMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [isBrowser, setIsBrowser] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    setIsBrowser(true);
+  }, []);
 
   const assigneeDisplay = useMemo(() => {
     if (!assignee) {
@@ -175,8 +178,6 @@ const TaskCard = ({
       return;
     }
     event.preventDefault();
-    const { clientX, clientY } = event;
-    setMenuPosition({ left: clientX, top: clientY });
     setContextMenuOpen(true);
   };
 
@@ -184,30 +185,15 @@ const TaskCard = ({
     if (!isContextMenuOpen) {
       return;
     }
-    const handlePointerDown = (event: PointerEvent) => {
-      const menuNode = menuRef.current;
-      if (menuNode && menuNode.contains(event.target as Node)) {
-        return;
-      }
-      const cardNode = cardRef.current;
-      if (cardNode && cardNode.contains(event.target as Node)) {
-        setContextMenuOpen(false);
-        return;
-      }
-      setContextMenuOpen(false);
-    };
-
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setContextMenuOpen(false);
       }
     };
 
-    window.addEventListener('pointerdown', handlePointerDown, true);
     window.addEventListener('keydown', handleEscape);
 
     return () => {
-      window.removeEventListener('pointerdown', handlePointerDown, true);
       window.removeEventListener('keydown', handleEscape);
     };
   }, [isContextMenuOpen]);
@@ -332,23 +318,46 @@ const TaskCard = ({
           </label>
         </div>
 
-        {isContextMenuOpen && canDelete ? (
-          <div
-            ref={menuRef}
-            className="absolute z-20 min-w-[180px] rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] py-1 shadow-[var(--shadow-sm)] focus:outline-none"
-            style={{ top: menuPosition.top, left: menuPosition.left }}
-            role="menu"
-          >
-            <button
-              type="button"
-              onClick={handleDeleteFromMenu}
-              className="block w-full px-4 py-2 text-left text-sm text-[var(--color-error)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-error-soft)]"
-              role="menuitem"
-            >
-              {t('event.board.card.deleteAction')}
-            </button>
-          </div>
-        ) : null}
+        {isBrowser && isContextMenuOpen && canDelete
+          ? createPortal(
+              <div
+                className="fixed inset-0 z-40 flex flex-col justify-end bg-neutral-950/60 px-4 pb-10 pt-14 backdrop-blur-sm sm:justify-center sm:pb-0 sm:pt-0"
+                role="presentation"
+                onClick={closeContextMenu}
+              >
+                <div
+                  className="mx-auto w-full max-w-sm rounded-3xl border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)] p-6 shadow-[var(--shadow-lg)] focus:outline-none"
+                  role="menu"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+                    {t('event.board.card.deleteAction')}
+                  </h3>
+                  <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                    {t('event.board.card.deleteMessage')}
+                  </p>
+                  <div className="mt-6 flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={handleDeleteFromMenu}
+                      className="w-full rounded-2xl bg-[var(--color-error)] px-4 py-3 text-sm font-semibold text-white transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-error)]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-error)]"
+                      role="menuitem"
+                    >
+                      {t('event.board.card.deleteAction')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeContextMenu}
+                      className="w-full rounded-2xl border border-[var(--color-border-subtle)] px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors duration-[var(--transition-fast)] ease-[var(--easing-standard)] hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-border-subtle)]"
+                    >
+                      {t('event.board.card.deleteCancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body,
+            )
+          : null}
       </div>
       <ConfirmDialog
         open={isDeleteDialogOpen}

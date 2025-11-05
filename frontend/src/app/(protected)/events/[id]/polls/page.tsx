@@ -22,7 +22,7 @@ type FilterValue = 'all' | 'open' | 'closed';
 type ToastState = { id: number; message: string; tone: 'success' | 'error' } | null;
 type PollListResponse = { results: Poll[]; count: number };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const FILTERS: ReadonlyArray<{ value: FilterValue; labelKey: TranslationKey }> = [
   { value: 'all', labelKey: 'event.polls.filters.all' },

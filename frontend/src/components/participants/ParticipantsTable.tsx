@@ -108,7 +108,7 @@ const ParticipantsTable = ({
                   <tr key={participant.id} className="bg-white dark:bg-neutral-900">
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-10 w-10 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100 text-xs font-semibold uppercase text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100 text-xs font-semibold uppercase text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
                           {participant.user.avatar ? (
                             <Image
                               src={participant.user.avatar}
