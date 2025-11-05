@@ -50,14 +50,18 @@ const ensureWsBase = (value: string): string => {
       .split('/')
       .map((segment) => segment.trim())
       .filter((segment) => segment.length > 0);
-    if (segments.length === 0 || segments[segments.length - 1] !== 'ws') {
-      segments.push('ws');
+    while (segments.length > 0 && segments[segments.length - 1].toLowerCase() === 'ws') {
+      segments.pop();
     }
+    segments.push('ws');
     url.pathname = `/${segments.join('/')}`;
     return stripTrailingSlash(url.toString());
   } catch {
     const normalized = stripTrailingSlash(value);
-    return normalized.endsWith('/ws') ? normalized : `${normalized}/ws`;
+    if (/(?:\/ws)+$/i.test(normalized)) {
+      return normalized.replace(/(?:\/ws)+$/i, '/ws');
+    }
+    return `${normalized}/ws`;
   }
 };
 
