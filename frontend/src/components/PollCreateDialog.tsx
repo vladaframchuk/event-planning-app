@@ -85,7 +85,9 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
   };
 
   const handleRemoveOption = (id: string) => {
-    setOptions((current) => (current.length <= 2 ? current : current.filter((option) => option.id !== id)));
+    setOptions((current) =>
+      current.length <= 2 ? current : current.filter((option) => option.id !== id),
+    );
   };
 
   const handleOptionChange = (id: string, value: string) => {
@@ -169,24 +171,24 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-6">
       <div
-        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900"
+        className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="poll-create-title"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="poll-create-title" className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            <h2 id="poll-create-title" className="text-xl font-semibold text-neutral-900">
               Новый опрос
             </h2>
-            <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="mt-1 text-sm text-neutral-600">
               Укажите вопрос и варианты ответа, чтобы участники могли проголосовать.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+            className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-300"
             aria-label="Закрыть диалог"
           >
             ✕
@@ -195,7 +197,7 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
 
         <form className="mt-6 flex flex-col gap-5" onSubmit={handleSubmit}>
           <fieldset className="flex flex-col gap-3">
-            <legend className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400">
+            <legend className="text-xs font-semibold uppercase text-neutral-500">
               Тип вопроса
             </legend>
             <div className="flex flex-wrap gap-3">
@@ -204,8 +206,8 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
                   key={option.value}
                   className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
                     pollType === option.value
-                      ? 'border-blue-600 bg-blue-50 text-blue-600 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200'
-                      : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:text-neutral-100'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      : 'border-neutral-300 text-neutral-600 hover:border-neutral-400 hover:text-neutral-800'
                   }`}
                 >
                   <input
@@ -223,19 +225,19 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
           </fieldset>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400">Вопрос</span>
+            <span className="text-xs font-semibold uppercase text-neutral-500">Вопрос</span>
             <input
               type="text"
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               placeholder="Например: где встречаемся?"
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               required
             />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">
+            <label className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700 transition hover:border-neutral-300">
               <input
                 type="checkbox"
                 checked={multiple}
@@ -243,7 +245,7 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
               />
               Несколько вариантов
             </label>
-            <label className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700 transition hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">
+            <label className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700 transition hover:border-neutral-300">
               <input
                 type="checkbox"
                 checked={allowChangeVote}
@@ -252,21 +254,21 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
               Разрешать менять голос
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400">
+              <span className="text-xs font-semibold uppercase text-neutral-500">
                 Завершить опрос до
               </span>
               <input
                 type="datetime-local"
                 value={endAt}
                 onChange={(event) => setEndAt(event.target.value)}
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
             </label>
           </div>
 
           <section>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Варианты ответа</h3>
+              <h3 className="text-sm font-semibold text-neutral-800">Варианты ответа</h3>
               <button
                 type="button"
                 onClick={handleAddOption}
@@ -279,14 +281,14 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
               {options.map((option) => (
                 <div
                   key={option.id}
-                  className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-950"
+                  className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3"
                 >
                   {pollType === 'date' ? (
                     <input
                       type="date"
                       value={option.dateValue}
                       onChange={(event) => handleOptionChange(option.id, event.target.value)}
-                      className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                      className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   ) : (
                     <input
@@ -294,13 +296,13 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
                       value={option.label}
                       onChange={(event) => handleOptionChange(option.id, event.target.value)}
                       placeholder="Введите вариант"
-                      className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                      className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   )}
                   <button
                     type="button"
                     onClick={() => handleRemoveOption(option.id)}
-                    className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+                    className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
                     aria-label="Удалить вариант"
                     disabled={options.length <= 2}
                   >
@@ -311,13 +313,13 @@ const PollCreateDialog = ({ open, eventId, onClose, onCreated }: PollCreateDialo
             </div>
           </section>
 
-          {formError ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
+          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
 
           <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
             >
               Отмена
             </button>

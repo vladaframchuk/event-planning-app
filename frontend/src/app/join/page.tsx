@@ -11,7 +11,10 @@ import { acceptInvite, validateInvite, type ValidateInviteResponse } from '@/lib
 const PENDING_TOKEN_STORAGE_KEY = 'epa_pending_invite_token';
 const INVITE_SUCCESS_TOAST_KEY = 'epa_invite_join_success';
 
-const inviteDateFormatter = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
+const inviteDateFormatter = new Intl.DateTimeFormat('ru-RU', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+});
 
 const formatDate = (value: string | null): string | null => {
   if (!value) {
@@ -74,7 +77,9 @@ const JoinPageContent = () => {
     },
     onError: (error) => {
       const message =
-        error instanceof Error ? error.message : 'Не удалось присоединиться к событию. Попробуйте позже.';
+        error instanceof Error
+          ? error.message
+          : 'Не удалось присоединиться к событию. Попробуйте позже.';
       setFeedback(message);
     },
   });
@@ -93,12 +98,12 @@ const JoinPageContent = () => {
 
   if (token.length === 0) {
     return (
-      <section className="mx-auto max-w-2xl rounded-xl border border-neutral-200 bg-white p-6 text-neutral-700 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
-        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-50">Приглашение</h1>
+      <section className="mx-auto max-w-2xl rounded-xl border border-neutral-200 bg-white p-6 text-neutral-700 shadow-sm">
+        <h1 className="text-2xl font-semibold text-neutral-900">Приглашение</h1>
         <p className="mt-2 text-sm">Укажите токен приглашения в адресной строке.</p>
         <Link
           href="/events"
-          className="mt-4 inline-flex items-center text-sm font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
+          className="mt-4 inline-flex items-center text-sm font-medium text-blue-600 underline underline-offset-4 hover:text-blue-700"
         >
           Перейти к событиям
         </Link>
@@ -108,7 +113,7 @@ const JoinPageContent = () => {
 
   if (inviteQuery.isLoading) {
     return (
-      <section className="mx-auto max-w-2xl rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+      <section className="mx-auto max-w-2xl rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm">
         Проверяем ссылку приглашения…
       </section>
     );
@@ -116,15 +121,16 @@ const JoinPageContent = () => {
 
   if (inviteQuery.isError || !inviteQuery.data) {
     return (
-      <section className="mx-auto max-w-2xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+      <section className="mx-auto max-w-2xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-600">
         <h1 className="text-2xl font-semibold">Ошибка проверки ссылки</h1>
         <p className="mt-2 text-sm">
-          {inviteQuery.error?.message ?? 'Попробуйте обновить страницу или запросите новую ссылку у организатора.'}
+          {inviteQuery.error?.message ??
+            'Попробуйте обновить страницу или запросите новую ссылку у организатора.'}
         </p>
         <button
           type="button"
           onClick={() => inviteQuery.refetch()}
-          className="mt-4 inline-flex items-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          className="mt-4 inline-flex items-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
         >
           Повторить
         </button>
@@ -137,34 +143,38 @@ const JoinPageContent = () => {
   const formattedStart = formatDate(invite.event?.startAt ?? null);
 
   return (
-    <section className="mx-auto flex max-w-2xl flex-col gap-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="mx-auto flex max-w-2xl flex-col gap-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-lg">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-50">Приглашение на событие</h1>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{statusMessage}</p>
+        <h1 className="text-2xl font-semibold text-neutral-900">Приглашение на событие</h1>
+        <p className="mt-1 text-sm text-neutral-600">{statusMessage}</p>
       </div>
 
       {invite.event ? (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{invite.event.title}</h2>
-          <dl className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+          <h2 className="text-lg font-semibold text-neutral-900">{invite.event.title}</h2>
+          <dl className="mt-3 space-y-2 text-sm text-neutral-700">
             <div className="flex items-baseline gap-2">
-              <dt className="w-24 text-neutral-500 dark:text-neutral-400">Когда:</dt>
+              <dt className="w-24 text-neutral-500">Когда:</dt>
               <dd>{formattedStart ?? 'Дата будет объявлена позже'}</dd>
             </div>
             <div className="flex items-baseline gap-2">
-              <dt className="w-24 text-neutral-500 dark:text-neutral-400">Где:</dt>
-              <dd>{invite.event.location && invite.event.location.trim().length > 0 ? invite.event.location : 'Уточняется'}</dd>
+              <dt className="w-24 text-neutral-500">Где:</dt>
+              <dd>
+                {invite.event.location && invite.event.location.trim().length > 0
+                  ? invite.event.location
+                  : 'Уточняется'}
+              </dd>
             </div>
             <div className="flex items-baseline gap-2">
-              <dt className="w-24 text-neutral-500 dark:text-neutral-400">Статус:</dt>
+              <dt className="w-24 text-neutral-500">Статус:</dt>
               <dd className="capitalize">{invite.status}</dd>
             </div>
             <div className="flex items-baseline gap-2">
-              <dt className="w-24 text-neutral-500 dark:text-neutral-400">Действует до:</dt>
+              <dt className="w-24 text-neutral-500">Действует до:</dt>
               <dd>{formatDate(invite.expiresAt) ?? '—'}</dd>
             </div>
             <div className="flex items-baseline gap-2">
-              <dt className="w-24 text-neutral-500 dark:text-neutral-400">Осталось:</dt>
+              <dt className="w-24 text-neutral-500">Осталось:</dt>
               <dd>{invite.usesLeft === null ? 'Без ограничений' : invite.usesLeft}</dd>
             </div>
           </dl>
@@ -172,7 +182,7 @@ const JoinPageContent = () => {
       ) : null}
 
       {feedback ? (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
           {feedback}
         </div>
       ) : null}
@@ -180,7 +190,7 @@ const JoinPageContent = () => {
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/events"
-          className="inline-flex items-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          className="inline-flex items-center rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
         >
           На главную
         </Link>
@@ -214,7 +224,7 @@ const JoinPage = () => {
   return (
     <Suspense
       fallback={
-        <section className="mx-auto max-w-2xl rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+        <section className="mx-auto max-w-2xl rounded-xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-sm">
           Загрузка страницы приглашения…
         </section>
       }

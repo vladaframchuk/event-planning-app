@@ -102,19 +102,26 @@ const buildProfileSummary = (): ProfileSummary => {
   const payload = decodeTokenPayload(getAccessToken());
 
   if (!payload) {
-    return { displayName: t('app.header.defaultDisplayName'), initials: t('app.header.defaultInitials') };
+    return {
+      displayName: t('app.header.defaultDisplayName'),
+      initials: t('app.header.defaultInitials'),
+    };
   }
 
   const avatarUrl = pickFirstString(payload, ['avatar', 'avatar_url', 'avatarUrl', 'picture']);
   const fullName =
     pickFirstString(payload, ['name', 'full_name', 'fullName']) ??
-    [pickFirstString(payload, ['first_name', 'firstName']), pickFirstString(payload, ['last_name', 'lastName'])]
+    [
+      pickFirstString(payload, ['first_name', 'firstName']),
+      pickFirstString(payload, ['last_name', 'lastName']),
+    ]
       .filter(Boolean)
       .join(' ')
       .trim();
 
   const email = pickFirstString(payload, ['email', 'preferred_username', 'sub']);
-  const displayName = fullName && fullName.length > 0 ? fullName : email ?? t('app.header.defaultDisplayName');
+  const displayName =
+    fullName && fullName.length > 0 ? fullName : (email ?? t('app.header.defaultDisplayName'));
   const initials = computeInitials(fullName ?? null, email ?? null);
 
   return {
@@ -129,10 +136,10 @@ const AUTH_STORAGE_KEYS = new Set([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
 const HEADER_ID = 'app-header-profile-button';
 
 const menuClasses =
-  'block w-full rounded-xl px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-100 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700';
+  'block w-full rounded-xl px-4 py-3 text-left text-sm text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-100 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400';
 
 const avatarBaseClasses =
-  'flex h-12 w-12 min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center rounded-full border border-transparent bg-blue-600 text-base font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400';
+  'flex h-12 w-12 min-h-[48px] min-w-[48px] cursor-pointer items-center justify-center rounded-full border border-transparent bg-blue-600 text-base font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400';
 
 const headerWrapperStyle = {
   paddingTop: 'calc(var(--safe-top) + 0.25rem)',
@@ -144,7 +151,7 @@ const headerInnerStyle = {
 } as const;
 
 const brandLinkClasses =
-  'inline-flex min-h-[48px] items-center rounded-full px-3 text-base font-semibold tracking-[-0.01em] text-neutral-900 transition-colors hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 dark:text-neutral-100 dark:hover:text-blue-400';
+  'inline-flex min-h-[48px] items-center rounded-full px-3 text-base font-semibold tracking-[-0.01em] text-neutral-900 transition-colors hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400';
 
 const dispatchAuthEvent = (): void => {
   if (typeof window === 'undefined') {
@@ -249,7 +256,8 @@ const AppHeader = (): JSX.Element => {
       }));
     };
 
-    const listener = (event: Event) => handleAvatarUpdated(event as CustomEvent<ProfileAvatarUpdatedDetail>);
+    const listener = (event: Event) =>
+      handleAvatarUpdated(event as CustomEvent<ProfileAvatarUpdatedDetail>);
     window.addEventListener(PROFILE_AVATAR_UPDATED_EVENT, listener);
 
     return () => {
@@ -291,7 +299,7 @@ const AppHeader = (): JSX.Element => {
 
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:border-neutral-800 dark:bg-neutral-900/85"
+      className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70"
       style={headerWrapperStyle}
     >
       <div
@@ -331,15 +339,25 @@ const AppHeader = (): JSX.Element => {
               id="app-header-profile-menu"
               role="menu"
               aria-labelledby={HEADER_ID}
-              className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-neutral-200 bg-white p-1 shadow-lg focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+              className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-neutral-200 bg-white p-1 shadow-lg focus:outline-none"
             >
-              <p className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              <p className="px-4 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
                 {profile.displayName}
               </p>
-              <button type="button" className={menuClasses} role="menuitem" onClick={handleProfileNavigation}>
+              <button
+                type="button"
+                className={menuClasses}
+                role="menuitem"
+                onClick={handleProfileNavigation}
+              >
                 {t('app.header.menu.profile')}
               </button>
-              <button type="button" className={menuClasses} role="menuitem" onClick={handleSwitchAccount}>
+              <button
+                type="button"
+                className={menuClasses}
+                role="menuitem"
+                onClick={handleSwitchAccount}
+              >
                 {t('app.header.menu.switchAccount')}
               </button>
               <button type="button" className={menuClasses} role="menuitem" onClick={handleLogout}>

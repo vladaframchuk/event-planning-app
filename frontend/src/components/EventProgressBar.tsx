@@ -15,11 +15,11 @@ type ToastState = {
 
 const fallbackCounts = { todo: 0, doing: 0, done: 0 } as const;
 const ProgressSkeleton = (): JSX.Element => (
-  <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+  <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
     <div className="flex animate-pulse flex-col gap-3">
-      <div className="h-4 w-36 rounded-full bg-neutral-200 dark:bg-neutral-700" />
-      <div className="h-3 w-full rounded-full bg-neutral-200 dark:bg-neutral-800" />
-      <div className="h-3 w-5/6 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+      <div className="h-4 w-36 rounded-full bg-neutral-200" />
+      <div className="h-3 w-full rounded-full bg-neutral-200" />
+      <div className="h-3 w-5/6 rounded-full bg-neutral-200" />
     </div>
   </section>
 );
@@ -75,20 +75,18 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
     ? hasTasks
       ? `Выполнено ${displayPercent}% (${counts.done} / ${progress.total_tasks})`
       : 'Добавьте задачи, чтобы видеть прогресс.'
-    : toast?.message ?? 'Нет данных о прогрессе.';
+    : (toast?.message ?? 'Нет данных о прогрессе.');
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
       {toast ? (
-        <div className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <div className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600">
           {toast.message}
         </div>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
-          {summaryText}
-        </div>
+        <div className="text-sm font-medium text-neutral-800">{summaryText}</div>
       </div>
 
       <div className="mt-3 space-y-2">
@@ -98,21 +96,21 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
           aria-valuemax={100}
           aria-valuenow={displayPercent}
           title={barTooltip}
-          className="relative h-4 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
+          className="relative h-4 overflow-hidden rounded-full bg-neutral-200"
         >
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out dark:bg-emerald-600"
+            className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
             style={{ width: `${percentValue}%` }}
           />
           <span className="sr-only">в очереди / в работе / готово: {barTooltip}</span>
         </div>
         {hasTasks ? (
-          <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
             <span>в очереди / в работе / готово: {barTooltip}</span>
             <button
               type="button"
               onClick={() => setListsOpen((current) => !current)}
-              className="inline-flex items-center rounded-full border border-neutral-300 px-2 py-0.5 font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              className="inline-flex items-center rounded-full border border-neutral-300 px-2 py-0.5 font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
             >
               {listsOpen ? 'Скрыть списки' : 'Показать списки'}
             </button>
@@ -125,22 +123,22 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
           {lists.map((item) => (
             <li
               key={item.list_id}
-              className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
+              className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 shadow-sm"
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{item.title}</span>
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                <span className="text-sm font-semibold text-neutral-800">{item.title}</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                   {item.done}/{item.total}
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
-                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-blue-700">
                   {item.todo} в очереди
                 </span>
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">
                   {item.doing} в работе
                 </span>
-                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
                   {item.done} готово
                 </span>
               </div>
@@ -153,6 +151,3 @@ const EventProgressBar = ({ eventId }: EventProgressBarProps): JSX.Element => {
 };
 
 export default EventProgressBar;
-
-
-

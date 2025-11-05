@@ -130,11 +130,8 @@
   );
 
   --gradient-background: radial-gradient(120% 140% at 15% 20%, rgba(54, 92, 255, 0.18) 0%, rgba(54, 92, 255, 0) 40%), radial-gradient(80% 120% at 85% 15%, rgba(90, 215, 169, 0.18) 0%, rgba(90, 215, 169, 0) 45%), radial-gradient(140% 120% at 50% 100%, rgba(230, 123, 232, 0.28) 0%, rgba(230, 123, 232, 0) 60%);
-  --gradient-background-dark: radial-gradient(120% 140% at 15% 20%, rgba(65, 128, 255, 0.24) 0%, rgba(65, 128, 255, 0) 40%), radial-gradient(80% 120% at 85% 15%, rgba(68, 216, 166, 0.24) 0%, rgba(68, 216, 166, 0) 50%), radial-gradient(140% 120% at 50% 100%, rgba(199, 110, 227, 0.32) 0%, rgba(199, 110, 227, 0) 65%);
   --gradient-solid: linear-gradient(140deg, #f4f5fb 0%, #f9f9ff 40%, #eef1ff 100%);
-  --gradient-solid-dark: linear-gradient(140deg, #0a0e1f 0%, #0f1326 45%, #1a2042 100%);
   --app-background-layers: radial-gradient(130% 150% at 16% 18%, var(--tint1) 0%, rgba(225, 232, 255, 0) 62%), radial-gradient(120% 140% at 80% 24%, var(--tint2) 0%, rgba(255, 227, 235, 0) 68%), radial-gradient(160% 160% at 54% 86%, var(--tint3) 0%, rgba(228, 255, 233, 0) 70%), linear-gradient(150deg, var(--bg2) 0%, rgba(246, 248, 255, 0.9) 46%, #f5f7ff 100%);
-  --app-background-layers-dark: radial-gradient(120% 140% at 18% 22%, rgba(86, 140, 255, 0.32) 0%, rgba(86, 140, 255, 0) 46%), radial-gradient(110% 130% at 80% 24%, rgba(82, 226, 174, 0.26) 0%, rgba(82, 226, 174, 0) 52%), radial-gradient(150% 140% at 56% 82%, rgba(210, 120, 240, 0.28) 0%, rgba(210, 120, 240, 0) 58%), linear-gradient(150deg, rgba(12, 16, 36, 0.96) 0%, rgba(18, 23, 47, 0.9) 38%, rgba(32, 40, 74, 0.94) 100%);
 }
 
 @media (max-width: 767px) {
@@ -152,32 +149,6 @@
 @media (min-width: 768px) {
   :root {
     --bottom-nav-height: 0px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background-primary: #0c1024;
-    --color-background-elevated: #101530;
-    --color-background-subtle: #141a3b;
-    --color-background-inverse: #f4f5fb;
-    --color-surface-muted: #181f43;
-    --color-border-subtle: #2a3054;
-    --color-border-strong: #3c4470;
-    --color-text-primary: #f5f7ff;
-    --color-text-secondary: #c5cae6;
-    --color-text-muted: #9aa2c8;
-    --color-text-inverse: #0c1024;
-    --color-accent-primary: #6c89ff;
-    --color-accent-primary-strong: #4f64e0;
-    --color-accent-soft: #2b3564;
-    --color-success: #3dd58d;
-    --color-success-soft: #133126;
-    --color-warning: #ffac33;
-    --color-warning-soft: #3b2808;
-    --color-error: #ff6b6b;
-    --color-error-soft: #3a1116;
-    --button-disabled-bg: #4d5268;
   }
 }
 

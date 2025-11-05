@@ -241,31 +241,33 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
   );
 
   const menuItems = useMemo(
-    () =>
-      [
-        {
-          format: 'pdf' as const,
-          label: PDF_LABEL,
-          icon: <PdfIcon className="h-4 w-4" />,
-        },
-        {
-          format: 'csv' as const,
-          label: CSV_LABEL,
-          icon: <TableIcon className="h-4 w-4" />,
-        },
-        {
-          format: 'xls' as const,
-          label: XLS_LABEL,
-          icon: <TableIcon className="h-4 w-4" />,
-        },
-      ],
+    () => [
+      {
+        format: 'pdf' as const,
+        label: PDF_LABEL,
+        icon: <PdfIcon className="h-4 w-4" />,
+      },
+      {
+        format: 'csv' as const,
+        label: CSV_LABEL,
+        icon: <TableIcon className="h-4 w-4" />,
+      },
+      {
+        format: 'xls' as const,
+        label: XLS_LABEL,
+        icon: <TableIcon className="h-4 w-4" />,
+      },
+    ],
     [],
   );
 
   const triggerLabel = t('event.header.actions.export');
 
   return (
-    <div className="relative inline-flex text-left max-[379px]:flex-1 sm:flex-shrink-0" ref={containerRef}>
+    <div
+      className="relative inline-flex text-left max-[379px]:flex-1 sm:flex-shrink-0"
+      ref={containerRef}
+    >
       <button
         type="button"
         onClick={handleToggle}
@@ -287,15 +289,15 @@ const EventExportMenu = ({ eventId }: EventExportMenuProps) => {
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 top-full z-10 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
-          <ul className="py-1 text-sm text-neutral-800 dark:text-neutral-200">
+        <div className="absolute left-0 top-full z-10 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg">
+          <ul className="py-1 text-sm text-neutral-800">
             {menuItems.map(({ format, label, icon }) => (
               <li key={format}>
                 <button
                   type="button"
                   onClick={() => handleExport(format)}
                   disabled={isAnyLoading}
-                  className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400 dark:hover:bg-neutral-700"
+                  className="flex w-full items-center justify-between gap-2 px-4 py-2 text-left hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
                 >
                   <span className="flex items-center gap-2">
                     {icon}

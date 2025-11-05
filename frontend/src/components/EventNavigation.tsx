@@ -95,7 +95,8 @@ const EventNavigation = ({
   const basePath = `/events/${eventId}`;
 
   const links = useMemo(() => {
-    const currentPath = pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+    const currentPath =
+      pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
     const allLinks = [
       {
         href: basePath,
@@ -130,7 +131,7 @@ const EventNavigation = ({
         aria-label={t('event.navigation.ariaLabel')}
         className={[
           'lg:hidden',
-          'w-full rounded-[22px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)]/95 shadow-[var(--shadow-sm)] backdrop-blur supports-[backdrop-filter]:bg-[color:rgba(255,255,255,0.92)] dark:bg-[color:rgba(16,20,40,0.92)]',
+          'w-full rounded-[22px] border border-[var(--color-border-subtle)] bg-[var(--color-background-elevated)]/95 shadow-[var(--shadow-sm)] backdrop-blur supports-[backdrop-filter]:bg-[color:rgba(255,255,255,0.92)]',
           className,
         ]
           .filter(Boolean)
@@ -208,7 +209,11 @@ const EventNavigation = ({
             .join(' ');
           return (
             <li key={link.href}>
-              <Link href={link.href} className={itemClassName} aria-current={link.active ? 'page' : undefined}>
+              <Link
+                href={link.href}
+                className={itemClassName}
+                aria-current={link.active ? 'page' : undefined}
+              >
                 <span>{link.label}</span>
                 <span
                   className={[

@@ -121,15 +121,15 @@ const ConfirmDialog = ({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={messageId}
-        className="max-w-sm rounded-2xl bg-white p-6 shadow-xl focus:outline-none dark:bg-neutral-900"
+        className="max-w-sm rounded-2xl bg-white p-6 shadow-xl focus:outline-none"
         onClick={handleContainerClick}
       >
         <div className="space-y-4">
           <div>
-            <h2 id={titleId} className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+            <h2 id={titleId} className="text-lg font-semibold text-neutral-900">
               {title}
             </h2>
-            <p id={messageId} className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+            <p id={messageId} className="mt-2 text-sm text-neutral-600">
               {message}
             </p>
           </div>
@@ -138,7 +138,7 @@ const ConfirmDialog = ({
               type="button"
               onClick={onCancel}
               disabled={isProcessing}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {cancelLabel}
             </button>

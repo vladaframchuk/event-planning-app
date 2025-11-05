@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { useMemo, type JSX } from 'react';
@@ -57,10 +57,10 @@ const ParticipantsTable = ({
   ];
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="max-w-full overflow-x-auto">
-        <table className="min-w-full divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
-        <thead className="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
+        <table className="min-w-full divide-y divide-neutral-200 text-sm">
+        <thead className="bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500">
           <tr>
             <th scope="col" className="px-4 py-3 text-left">
               {t('event.participants.table.headers.name')}
@@ -79,17 +79,17 @@ const ParticipantsTable = ({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100 text-neutral-700 dark:divide-neutral-800 dark:text-neutral-200">
+        <tbody className="divide-y divide-neutral-100 text-neutral-700">
           {isLoading ? (
             <tr>
-              <td colSpan={5} className="px-4 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+              <td colSpan={5} className="px-4 py-6 text-center text-sm text-neutral-500">
                 {t('event.participants.table.loading')}
               </td>
             </tr>
           ) : null}
           {!isLoading && participants.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+              <td colSpan={5} className="px-4 py-6 text-center text-sm text-neutral-500">
                 {t('event.participants.table.empty')}
               </td>
             </tr>
@@ -105,10 +105,10 @@ const ParticipantsTable = ({
                 const joinedLabel = formatJoinedAt(participant.joinedAt);
 
                 return (
-                  <tr key={participant.id} className="bg-white dark:bg-neutral-900">
+                  <tr key={participant.id} className="bg-white">
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100 text-xs font-semibold uppercase text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100 text-xs font-semibold uppercase text-neutral-600">
                           {participant.user.avatar ? (
                             <Image
                               src={participant.user.avatar}
@@ -123,21 +123,21 @@ const ParticipantsTable = ({
                           )}
                         </div>
                         <div>
-                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                          <p className="font-semibold text-neutral-900">
                             {participant.user.name?.trim() || participant.user.email}
                           </p>
                           {isCurrentUser ? (
-                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                            <p className="text-xs text-blue-600">
                               {t('event.participants.table.badge.current')}
                             </p>
                           ) : null}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-neutral-600 dark:text-neutral-300">{participant.user.email}</td>
+                    <td className="px-4 py-4 text-neutral-600">{participant.user.email}</td>
                     <td className="px-4 py-4">
                       <select
-                        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:disabled:bg-neutral-800"
+                        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
                         value={participant.role}
                         onChange={(event) => onRoleChange(participant.id, event.currentTarget.value as Role)}
                         disabled={roleDisabled}
@@ -150,13 +150,13 @@ const ParticipantsTable = ({
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-4 text-neutral-600 dark:text-neutral-300">{joinedLabel}</td>
+                    <td className="px-4 py-4 text-neutral-600">{joinedLabel}</td>
                     <td className="px-4 py-4 text-right">
                       <button
                         type="button"
                         onClick={() => onRemove(participant.id)}
                         disabled={removeDisabled}
-                        className="inline-flex items-center rounded-lg border border-red-500 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-400 disabled:opacity-70 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/30 dark:disabled:border-neutral-700 dark:disabled:text-neutral-500"
+                        className="inline-flex items-center rounded-lg border border-red-500 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:border-neutral-300 disabled:text-neutral-400 disabled:opacity-70"
                       >
                         {removingId === participant.id
                           ? t('event.participants.table.actions.removing')

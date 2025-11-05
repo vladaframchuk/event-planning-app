@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import type { ReactElement, ReactNode } from 'react';
 
@@ -15,7 +15,7 @@ const ProfileLayout = ({ children }: ProfileLayoutProps): ReactElement => {
   return (
     <AuthGuard>
       <RealtimeStatusProvider>
-        <div className="flex min-h-screen flex-col text-neutral-900 dark:text-neutral-50">
+        <div className="flex min-h-screen flex-col text-neutral-900">
           <AppHeader />
           <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">{children}</main>
           <AppFooter />

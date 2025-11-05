@@ -28,18 +28,8 @@ const buildFeatures = (): Feature[] => [
           fill="currentColor"
           opacity="0.25"
         />
-        <path
-          d="M18 17h12"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M18 23h8"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        />
+        <path d="M18 17h12" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M18 23h8" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -112,12 +102,16 @@ const FeaturesRow = (): JSX.Element => {
             <article
               key={feature.id}
               data-surface="card"
-              className="flex h-full flex-col gap-4 rounded-2xl border border-[color:rgba(54,92,255,0.12)] bg-[color:rgba(255,255,255,0.86)]/80 p-6 backdrop-blur supports-[backdrop-filter]:bg-[color:rgba(255,255,255,0.75)] dark:bg-[color:rgba(16,20,40,0.8)]/85"
+              className="flex h-full flex-col gap-4 rounded-2xl border border-[color:rgba(54,92,255,0.12)] bg-[color:rgba(255,255,255,0.86)]/80 p-6 backdrop-blur supports-[backdrop-filter]:bg-[color:rgba(255,255,255,0.75)]"
             >
               {feature.icon}
               <div className="flex flex-col gap-2">
-                <h3 className="text-lg font-semibold text-[color:var(--color-text-primary)]">{feature.title}</h3>
-                <p className="text-sm leading-relaxed text-[color:var(--color-text-secondary)]">{feature.description}</p>
+                <h3 className="text-lg font-semibold text-[color:var(--color-text-primary)]">
+                  {feature.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-[color:var(--color-text-secondary)]">
+                  {feature.description}
+                </p>
               </div>
             </article>
           ))}

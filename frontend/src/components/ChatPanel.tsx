@@ -355,10 +355,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
       requestAnimationFrame(() => scrollToBottom('auto'));
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('event.chat.panel.errors.initial');
+      const message = error instanceof Error ? error.message : t('event.chat.panel.errors.initial');
 
       setInitialError(message);
     } finally {
@@ -473,7 +470,9 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       });
 
       const mapped = response.results.map(toLocalMessage);
-      const existingIds = new Set(currentMessages.filter((item) => item.id > 0).map((item) => item.id));
+      const existingIds = new Set(
+        currentMessages.filter((item) => item.id > 0).map((item) => item.id),
+      );
       const additions = mapped.filter((item) => !existingIds.has(item.id));
 
       if (additions.length === 0) {
@@ -494,8 +493,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
         });
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('event.chat.panel.errors.history');
+      const message = error instanceof Error ? error.message : t('event.chat.panel.errors.history');
 
       setToast({ id: Date.now(), message });
     } finally {
@@ -533,8 +531,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
 
       mergeMessages(response.results);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : t('event.chat.panel.errors.refresh');
+      const message = error instanceof Error ? error.message : t('event.chat.panel.errors.refresh');
 
       setToast({ id: Date.now(), message });
     } finally {
@@ -865,10 +862,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
     } catch (error) {
       replaceMessages((prev) => prev.filter((item) => item.localId !== localId));
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : t('event.chat.panel.errors.send');
+      const message = error instanceof Error ? error.message : t('event.chat.panel.errors.send');
 
       setSendError(message);
 
@@ -903,47 +897,34 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
   const typingNames = useMemo(() => Array.from(typingUsers.values()), [typingUsers]);
 
   const typingIndicatorText = useMemo(() => {
-
     if (typingNames.length === 0) {
-
       return null;
-
     }
-
-
 
     if (typingNames.length === 1) {
-
       return t('event.chat.panel.typing.single', { name: typingNames[0] });
-
     }
-
-
 
     if (typingNames.length === 2) {
-
       return t('event.chat.panel.typing.double', { first: typingNames[0], second: typingNames[1] });
-
     }
 
-
-
-    return t('event.chat.panel.typing.many', { first: typingNames[0], count: typingNames.length - 1 });
-
+    return t('event.chat.panel.typing.many', {
+      first: typingNames[0],
+      count: typingNames.length - 1,
+    });
   }, [typingNames]);
-
-
 
   const realtimeStatusMeta = useMemo(() => {
     switch (realtimeStatus) {
       case 'connected':
-        return { label: t('event.chat.status.connected'), dotClass: 'bg-emerald-500 dark:bg-emerald-400' };
+        return { label: t('event.chat.status.connected'), dotClass: 'bg-emerald-500' };
 
       case 'connecting':
-        return { label: t('event.chat.status.connecting'), dotClass: 'bg-amber-500 dark:bg-amber-400' };
+        return { label: t('event.chat.status.connecting'), dotClass: 'bg-amber-500' };
 
       default:
-        return { label: t('event.chat.status.disconnected'), dotClass: 'bg-red-500 dark:bg-red-400' };
+        return { label: t('event.chat.status.disconnected'), dotClass: 'bg-red-500' };
     }
   }, [realtimeStatus]);
 
@@ -1091,7 +1072,6 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
           <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
             {t('event.chat.panel.title')}
           </h2>
-
         </div>
 
         <div className="flex items-center gap-3">
@@ -1116,7 +1096,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
       </header>
 
       {initialError ? (
-        <div className="m-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <div className="m-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <p>{initialError}</p>
 
           <button
@@ -1165,7 +1145,9 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
                     disabled={loadMorePending || initialLoading}
                     className="btn btn--ghost btn--pill"
                   >
-                    {loadMorePending ? t('event.chat.panel.historyLoading') : t('event.chat.panel.historyInline')}
+                    {loadMorePending
+                      ? t('event.chat.panel.historyLoading')
+                      : t('event.chat.panel.historyInline')}
                   </button>
                 </li>
               ) : null}
@@ -1214,9 +1196,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
         </label>
 
         {profileQuery.isError ? (
-          <p className="mb-2 text-xs text-red-500 dark:text-red-400">
-            {t('event.chat.panel.errors.profile')}
-          </p>
+          <p className="mb-2 text-xs text-red-500">{t('event.chat.panel.errors.profile')}</p>
         ) : null}
 
         <textarea
@@ -1236,7 +1216,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
           <span className="max-w-full">{t('event.chat.panel.input.helper')}</span>
 
           <div className="flex items-center gap-2">
-            {sendError ? <span className="text-red-500 dark:text-red-400">{sendError}</span> : null}
+            {sendError ? <span className="text-red-500">{sendError}</span> : null}
 
             <button
               type="submit"
@@ -1258,7 +1238,7 @@ const ChatPanel = ({ eventId }: ChatPanelProps) => {
             right: 'calc(var(--safe-right) + 1.5rem)',
           }}
         >
-          <div className="pointer-events-auto rounded-xl bg-neutral-900/90 px-4 py-3 text-sm font-medium text-white shadow-lg dark:bg-neutral-800/90">
+          <div className="pointer-events-auto rounded-xl bg-neutral-900/90 px-4 py-3 text-sm font-medium text-white shadow-lg">
             {toast.message}
           </div>
         </div>

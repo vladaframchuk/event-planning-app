@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import type { ReactElement, ReactNode } from 'react';
 
@@ -23,7 +23,7 @@ const ProtectedLayout = ({ children }: ProtectedLayoutProps): ReactElement => {
   return (
     <AuthGuard>
       <RealtimeStatusProvider>
-        <div className="flex flex-col text-neutral-900 dark:text-neutral-50" style={shellStyle}>
+        <div className="flex flex-col text-neutral-900" style={shellStyle}>
           <AppHeader />
           <main className="flex-1 px-4 pb-10 pt-6 sm:px-6 lg:px-8" style={mainStyle}>
             {children}

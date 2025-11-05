@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -471,12 +471,12 @@ const applyStatusTransitionToProgress = (
 };
 
 const SkeletonColumn = (): JSX.Element => (
-  <div className="flex w-[var(--category-width)] min-w-[var(--category-width)] flex-col rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
-    <div className="h-5 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
+  <div className="flex w-[var(--category-width)] min-w-[var(--category-width)] flex-col rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="h-5 w-2/3 animate-pulse rounded bg-neutral-200" />
     <div className="mt-4 flex flex-col gap-3">
-      <div className="h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
-      <div className="h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
-      <div className="h-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
+      <div className="h-4 animate-pulse rounded bg-neutral-200" />
+      <div className="h-4 animate-pulse rounded bg-neutral-200" />
+      <div className="h-4 animate-pulse rounded bg-neutral-200" />
     </div>
   </div>
 );
@@ -1505,7 +1505,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
       ) : null}
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-600">
           <h2 className="text-lg font-semibold">Не удалось загрузить доску.</h2>
           <p className="mt-2 text-sm">{error.message}</p>
           <button
@@ -1514,7 +1514,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
               boardQuery.refetch();
               profileQuery.refetch();
             }}
-            className="mt-3 inline-flex items-center rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
+            className="mt-3 inline-flex items-center rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
           >
             Повторить попытку
           </button>
@@ -1594,7 +1594,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
           {isOrganizer && isListFormVisible ? (
             <form
               onSubmit={handleListSubmit}
-              className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:flex-row md:items-end"
+              className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm md:flex-row md:items-end"
             >
               <div className="flex flex-1 flex-col gap-1">
                 <label htmlFor="new-list-title" className="text-xs font-semibold uppercase text-neutral-500">
@@ -1605,12 +1605,12 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
                   type="text"
                   value={listTitle}
                   onChange={(event) => setListTitle(event.target.value)}
-                  className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                  className="rounded-lg border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   placeholder="Например, «В работе»"
                   disabled={createListMutation.isPending}
                   autoFocus
                 />
-                {listError ? <p className="text-xs text-red-600 dark:text-red-400">{listError}</p> : null}
+                {listError ? <p className="text-xs text-red-600">{listError}</p> : null}
               </div>
               <div className="flex gap-3">
                 <button
@@ -1650,7 +1650,7 @@ const TaskBoard = forwardRef<TaskBoardHandle, TaskBoardProps>(({ eventId, showIn
               data-board-zoom-content="true"
             >
               {boardData.lists.length === 0 ? (
-                <div className="flex w-full min-w-[var(--category-width)] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
+                <div className="flex w-full min-w-[var(--category-width)] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500">
                 Добавьте первую колонку, чтобы начать планирование.
               </div>
             ) : (

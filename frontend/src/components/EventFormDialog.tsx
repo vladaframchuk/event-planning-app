@@ -118,8 +118,7 @@ const Dialog = ({
   }
 
   const handleChange =
-    (field: keyof FormState) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { value } = event.target;
       setFormState((prev) => ({
         ...prev,
@@ -203,20 +202,18 @@ const Dialog = ({
       aria-modal="true"
       aria-labelledby="event-form-dialog-title"
     >
-      <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-lg dark:bg-neutral-900">
+      <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-lg">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 id="event-form-dialog-title" className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            <h2 id="event-form-dialog-title" className="text-xl font-semibold text-neutral-900">
               {initialEvent ? 'Редактирование события' : 'Новое событие'}
             </h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Заполните основные параметры мероприятия.
-            </p>
+            <p className="text-sm text-neutral-500">Заполните основные параметры мероприятия.</p>
           </div>
           <button
             type="button"
             onClick={close}
-            className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-neutral-800"
+            className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             aria-label="Закрыть"
             disabled={loading}
           >
@@ -226,7 +223,10 @@ const Dialog = ({
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="event-title" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            <label
+              htmlFor="event-title"
+              className="mb-1 block text-sm font-medium text-neutral-700"
+            >
               Название *
             </label>
             <input
@@ -234,18 +234,20 @@ const Dialog = ({
               type="text"
               value={formState.title}
               onChange={handleChange('title')}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               placeholder="Например, «Демо продукта»"
               disabled={loading}
             />
-            {fieldErrors.title ? <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p> : null}
+            {fieldErrors.title ? (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.title}</p>
+            ) : null}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="event-category"
-                className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1 block text-sm font-medium text-neutral-700"
               >
                 Категория
               </label>
@@ -254,16 +256,18 @@ const Dialog = ({
                 type="text"
                 value={formState.category}
                 onChange={handleChange('category')}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 placeholder="meetup, workshop..."
                 disabled={loading}
               />
-              {fieldErrors.category ? <p className="mt-1 text-xs text-red-500">{fieldErrors.category}</p> : null}
+              {fieldErrors.category ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.category}</p>
+              ) : null}
             </div>
             <div>
               <label
                 htmlFor="event-location"
-                className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1 block text-sm font-medium text-neutral-700"
               >
                 Локация
               </label>
@@ -272,11 +276,13 @@ const Dialog = ({
                 type="text"
                 value={formState.location}
                 onChange={handleChange('location')}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 placeholder="Адрес или ссылка"
                 disabled={loading}
               />
-              {fieldErrors.location ? <p className="mt-1 text-xs text-red-500">{fieldErrors.location}</p> : null}
+              {fieldErrors.location ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.location}</p>
+              ) : null}
             </div>
           </div>
 
@@ -284,7 +290,7 @@ const Dialog = ({
             <div>
               <label
                 htmlFor="event-start-at"
-                className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1 block text-sm font-medium text-neutral-700"
               >
                 Начало
               </label>
@@ -293,15 +299,17 @@ const Dialog = ({
                 type="datetime-local"
                 value={formState.startAt}
                 onChange={handleChange('startAt')}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 disabled={loading}
               />
-              {fieldErrors.startAt ? <p className="mt-1 text-xs text-red-500">{fieldErrors.startAt}</p> : null}
+              {fieldErrors.startAt ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.startAt}</p>
+              ) : null}
             </div>
             <div>
               <label
                 htmlFor="event-end-at"
-                className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                className="mb-1 block text-sm font-medium text-neutral-700"
               >
                 Окончание
               </label>
@@ -310,17 +318,19 @@ const Dialog = ({
                 type="datetime-local"
                 value={formState.endAt}
                 onChange={handleChange('endAt')}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 disabled={loading}
               />
-              {fieldErrors.endAt ? <p className="mt-1 text-xs text-red-500">{fieldErrors.endAt}</p> : null}
+              {fieldErrors.endAt ? (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.endAt}</p>
+              ) : null}
             </div>
           </div>
 
           <div>
             <label
               htmlFor="event-description"
-              className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-200"
+              className="mb-1 block text-sm font-medium text-neutral-700"
             >
               Описание
             </label>
@@ -328,11 +338,13 @@ const Dialog = ({
               id="event-description"
               value={formState.description}
               onChange={handleChange('description')}
-              className="h-28 w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              className="h-28 w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               placeholder="Расскажите участникам, что будет происходить."
               disabled={loading}
             />
-            {fieldErrors.description ? <p className="mt-1 text-xs text-red-500">{fieldErrors.description}</p> : null}
+            {fieldErrors.description ? (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.description}</p>
+            ) : null}
           </div>
 
           {effectiveError ? <p className="text-sm text-red-500">{effectiveError}</p> : null}
@@ -341,7 +353,7 @@ const Dialog = ({
             <button
               type="button"
               onClick={close}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
               disabled={loading}
             >
               Отмена

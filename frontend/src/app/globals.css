@@ -17,7 +17,7 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
-  color-scheme: light dark;
+  color-scheme: light;
   overflow-x: hidden;
   scroll-behavior: smooth;
 }
@@ -55,18 +55,6 @@ body {
   animation: ambientShift 48s ease-in-out infinite;
   will-change: transform, background-position, background-size;
   transform: translateZ(0);
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background: var(--gradient-solid-dark);
-    color: var(--color-text-primary);
-  }
-
-  .app-animated-bg {
-    background-color: var(--color-background-primary);
-    background-image: var(--app-background-layers-dark);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -324,12 +312,6 @@ input, textarea, select {
   animation: skeletonPulse 1.4s var(--easing-standard) infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  .skeleton {
-    background: linear-gradient(90deg, rgba(16, 21, 44, 0.45), rgba(34, 42, 78, 0.92), rgba(16, 21, 44, 0.45));
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after {
     animation: none;
@@ -360,12 +342,6 @@ input, textarea, select {
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
   border-radius: 999px;
-}
-
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: rgba(158, 167, 212, 0.4);
-  }
 }
 
 .navigation-progress__line {

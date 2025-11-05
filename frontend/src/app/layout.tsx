@@ -10,16 +10,7 @@ export const metadata: Metadata = {
   title: "Event Planning App",
   description: "Plan your events together",
   manifest: "/manifest.json",
-  themeColor: [
-    {
-      media: "(prefers-color-scheme: light)",
-      color: "#f4f5fb",
-    },
-    {
-      media: "(prefers-color-scheme: dark)",
-      color: "#0c1024",
-    },
-  ],
+  themeColor: "#f4f5fb",
 };
 
 export const viewport: Viewport = {
@@ -42,16 +33,7 @@ export default function RootLayout({
           content="text/html; charset=utf-8"
         />
         <link rel="manifest" href="/manifest.json" />
-        <meta
-          name="theme-color"
-          content="#f4f5fb"
-          media="(prefers-color-scheme: light)"
-        />
-        <meta
-          name="theme-color"
-          content="#0c1024"
-          media="(prefers-color-scheme: dark)"
-        />
+        <meta name="theme-color" content="#f4f5fb" />
       </head>
       <body className={inter.className}>
         <div className="app-animated-bg" aria-hidden="true" />
