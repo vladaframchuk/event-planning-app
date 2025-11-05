@@ -106,21 +106,21 @@ def test_event_organizer_can_update_event_details() -> None:
     owner = User.objects.create_user(email="owner-organizer@example.com", password="Password123")
     organizer = User.objects.create_user(email="coorganizer@example.com", password="Password123")
 
-    event = Event.objects.create(owner=owner, title="Collaborative Event")
+    event = Event.objects.create(owner=owner, title="Collab Event")
     Participant.objects.create(event=event, user=organizer, role=Participant.Role.ORGANIZER)
 
     organizer_client = _auth_client(organizer)
     response = organizer_client.patch(
         f"/api/events/{event.id}/",
-        data={"title": "Updated By Organizer"},
+        data={"title": "Organizer Update"},
         format="json",
     )
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["title"] == "Updated By Organizer"
+    assert payload["title"] == "Organizer Update"
     event.refresh_from_db()
-    assert event.title == "Updated By Organizer"
+    assert event.title == "Organizer Update"
 
 
 def test_filter_search_ordering() -> None:

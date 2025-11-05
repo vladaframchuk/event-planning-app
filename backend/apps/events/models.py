@@ -18,7 +18,7 @@ class Event(models.Model):
         related_name="events",
         verbose_name="Владелец",
     )
-    title = models.CharField("Название", max_length=200)
+    title = models.CharField("Название", max_length=16)
     category = models.CharField("Категория", max_length=50, blank=True)
     description = models.TextField("Описание", blank=True)
     start_at = models.DateTimeField("Старт", null=True, blank=True)

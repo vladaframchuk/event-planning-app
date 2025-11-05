@@ -4,6 +4,8 @@ import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from '
 
 import type { Event, EventInput } from '@/types/event';
 
+const TITLE_MAX_LENGTH = 16;
+
 export type EventFormSubmitPayload = EventInput & {
   title: string;
 };
@@ -120,9 +122,10 @@ const Dialog = ({
   const handleChange =
     (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { value } = event.target;
+      const nextValue = field === 'title' ? value.slice(0, TITLE_MAX_LENGTH) : value;
       setFormState((prev) => ({
         ...prev,
-        [field]: value,
+        [field]: nextValue,
       }));
       setFieldErrors((prev) => ({
         ...prev,
@@ -143,8 +146,12 @@ const Dialog = ({
       form: '',
     };
 
-    if (formState.title.trim().length === 0) {
+    const trimmedTitle = formState.title.trim();
+
+    if (trimmedTitle.length === 0) {
       nextErrors.title = 'Название обязательно.';
+    } else if (trimmedTitle.length > TITLE_MAX_LENGTH) {
+      nextErrors.title = `Название не может превышать ${TITLE_MAX_LENGTH} символов.`;
     }
 
     const startIso = toIso(formState.startAt);
@@ -172,7 +179,7 @@ const Dialog = ({
 
     try {
       await onSubmit({
-        title: formState.title.trim(),
+        title: trimmedTitle,
         category: formState.category.trim() || '',
         description: formState.description.trim() || '',
         startAt: startIso,
@@ -229,12 +236,13 @@ const Dialog = ({
             >
               Название *
             </label>
-            <input
-              id="event-title"
-              type="text"
-              value={formState.title}
-              onChange={handleChange('title')}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      <input
+        id="event-title"
+        type="text"
+        value={formState.title}
+        onChange={handleChange('title')}
+        maxLength={TITLE_MAX_LENGTH}
+        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               placeholder="Например, «Демо продукта»"
               disabled={loading}
             />

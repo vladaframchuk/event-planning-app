@@ -36,16 +36,20 @@ from apps.events.models import Event
 from apps.tasks.models import Task, TaskList
 
 _FONT_CANDIDATES_REGULAR: Final[list[Path]] = [
+    Path(settings.BASE_DIR) / "apps" / "export" / "fonts" / "Roboto-Regular.ttf",
     Path(settings.BASE_DIR) / "static" / "fonts" / "DejaVuSans.ttf",
     Path(settings.BASE_DIR) / "fonts" / "DejaVuSans.ttf",
+    Path(settings.BASE_DIR) / "apps" / "export" / "fonts" / "DejaVuSans.ttf",
     Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
     Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
     Path("/Library/Fonts/Arial Unicode.ttf"),
     Path(r"C:\Windows\Fonts\arial.ttf"),
 ]
 _FONT_CANDIDATES_BOLD: Final[list[Path]] = [
+    Path(settings.BASE_DIR) / "apps" / "export" / "fonts" / "Roboto-Bold.ttf",
     Path(settings.BASE_DIR) / "static" / "fonts" / "DejaVuSans-Bold.ttf",
     Path(settings.BASE_DIR) / "fonts" / "DejaVuSans-Bold.ttf",
+    Path(settings.BASE_DIR) / "apps" / "export" / "fonts" / "DejaVuSans-Bold.ttf",
     Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
     Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
     Path("/Library/Fonts/Arial Bold.ttf"),
