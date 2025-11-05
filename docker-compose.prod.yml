@@ -33,7 +33,7 @@ services:
       start_period: 5s
 
   backend:
-    image: ${REGISTRY_IMAGE_PREFIX:-ghcr.io/example/event-planning-app}-backend:${BACKEND_TAG:-latest}
+    image: ${REGISTRY_IMAGE_PREFIX}-backend:${BACKEND_TAG}
     restart: unless-stopped
     env_file:
       - ./.env.prod
@@ -55,7 +55,7 @@ services:
       start_period: 30s
 
   celery-worker:
-    image: ${REGISTRY_IMAGE_PREFIX:-ghcr.io/example/event-planning-app}-backend:${BACKEND_TAG:-latest}
+    image: ${REGISTRY_IMAGE_PREFIX}-backend:${BACKEND_TAG}
     command: ["celery", "-A", "config.celery_app", "worker", "--loglevel=info", "--autoscale=8,2"]
     restart: unless-stopped
     env_file:
@@ -79,7 +79,7 @@ services:
       start_period: 45s
 
   celery-beat:
-    image: ${REGISTRY_IMAGE_PREFIX:-ghcr.io/example/event-planning-app}-backend:${BACKEND_TAG:-latest}
+    image: ${REGISTRY_IMAGE_PREFIX}-backend:${BACKEND_TAG}
     command: ["celery", "-A", "config.celery_app", "beat", "--loglevel=info"]
     restart: unless-stopped
     env_file:
@@ -99,7 +99,7 @@ services:
       start_period: 45s
 
   frontend:
-    image: ${REGISTRY_IMAGE_PREFIX:-ghcr.io/example/event-planning-app}-frontend:${FRONTEND_TAG:-latest}
+    image: ${REGISTRY_IMAGE_PREFIX}-frontend:${FRONTEND_TAG}
     restart: unless-stopped
     env_file:
       - ./.env.prod
