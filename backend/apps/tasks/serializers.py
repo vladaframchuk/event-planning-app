@@ -13,7 +13,9 @@ def _validate_dependencies_completed(dependencies: list[Task]) -> None:
     """Проверяет, что все переданные задачи находятся в статусе done."""
     incomplete = [task.id for task in dependencies if task.status != Task.Status.DONE]
     if incomplete:
-        message = _("Нельзя перевести задачу в статус doing или done, пока зависимости не завершены.")
+        message = _(
+            "Нельзя перевести задачу в статус doing или done, пока зависимости не завершены."
+        )
         raise serializers.ValidationError({"status": message})
 
 
@@ -29,8 +31,12 @@ class TaskListSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     """Сериализация задач с проверкой зависимостей и дедлайнов."""
 
-    status = serializers.ChoiceField(choices=Task.Status.choices, default=Task.Status.TODO)
-    assignee = serializers.PrimaryKeyRelatedField(queryset=Participant.objects.all(), required=False, allow_null=True)
+    status = serializers.ChoiceField(
+        choices=Task.Status.choices, default=Task.Status.TODO
+    )
+    assignee = serializers.PrimaryKeyRelatedField(
+        queryset=Participant.objects.all(), required=False, allow_null=True
+    )
     depends_on = serializers.PrimaryKeyRelatedField(
         queryset=Task.objects.all(),
         many=True,
@@ -87,7 +93,9 @@ class TaskSerializer(serializers.ModelSerializer):
 
         depends = attrs.get("depends_on")
         if depends is not None:
-            invalid_ids = [task.id for task in depends if task.list.event_id != event_id]
+            invalid_ids = [
+                task.id for task in depends if task.list.event_id != event_id
+            ]
             if invalid_ids:
                 message = _("Все зависимости должны принадлежать тому же событию.")
                 raise serializers.ValidationError({"depends_on": message})
@@ -150,7 +158,9 @@ class TaskAssignSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("Участник не найден.")) from exc
         task: Task = self.context["task"]
         if participant.event_id != task.list.event_id:
-            raise serializers.ValidationError(_("Участник должен принадлежать тому же событию."))
+            raise serializers.ValidationError(
+                _("Участник должен принадлежать тому же событию.")
+            )
         return participant
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:

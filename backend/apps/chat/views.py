@@ -39,7 +39,9 @@ class EventMessageListCreateView(generics.GenericAPIView):
     serializer_class = MessageSerializer
     pagination_class = MessagePagination
 
-    def get_serializer_class(self) -> type[MessageSerializer] | type[MessageCreateSerializer]:
+    def get_serializer_class(
+        self,
+    ) -> type[MessageSerializer] | type[MessageCreateSerializer]:
         if self.request.method == "POST":
             return MessageCreateSerializer
         return MessageSerializer
@@ -87,7 +89,9 @@ class EventMessageListCreateView(generics.GenericAPIView):
             items = list(page)
             if getattr(self, "_ordered_desc", False):
                 items = list(reversed(items))
-            serializer = MessageSerializer(items, many=True, context={"request": request})
+            serializer = MessageSerializer(
+                items, many=True, context={"request": request}
+            )
             return self.get_paginated_response(serializer.data)
 
         items = list(queryset)

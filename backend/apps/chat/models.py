@@ -23,7 +23,9 @@ class Message(models.Model):
         verbose_name="Автор",
     )
     text = models.TextField(verbose_name="Текст")
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Создано")
+    created_at = models.DateTimeField(
+        auto_now_add=True, db_index=True, verbose_name="Создано"
+    )
     edited_at = models.DateTimeField(null=True, blank=True, verbose_name="Изменено")
 
     class Meta:
@@ -38,4 +40,3 @@ class Message(models.Model):
         """Короткое представление сообщения для админки."""
         preview = (self.text or "")[:30]
         return f"[{self.created_at}] {self.author_id}: {preview}"
-

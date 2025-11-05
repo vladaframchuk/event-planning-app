@@ -58,7 +58,9 @@ def test_list_shows_only_my_events() -> None:
 
     my_event = Event.objects.create(owner=owner, title="My Event")
     shared_event = Event.objects.create(owner=other, title="Shared Event")
-    Participant.objects.create(event=shared_event, user=owner, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=shared_event, user=owner, role=Participant.Role.MEMBER
+    )
     foreign_event = Event.objects.create(owner=third, title="Foreign Event")
 
     client = _auth_client(owner)
@@ -74,10 +76,14 @@ def test_list_shows_only_my_events() -> None:
 def test_update_and_delete_only_for_owner() -> None:
     """Редактировать и удалять событие может только владелец."""
     owner = User.objects.create_user(email="owner@example.com", password="Password123")
-    participant = User.objects.create_user(email="participant@example.com", password="Password123")
+    participant = User.objects.create_user(
+        email="participant@example.com", password="Password123"
+    )
 
     event = Event.objects.create(owner=owner, title="Initial Title")
-    Participant.objects.create(event=event, user=participant, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=event, user=participant, role=Participant.Role.MEMBER
+    )
 
     owner_client = _auth_client(owner)
     participant_client = _auth_client(participant)
@@ -103,11 +109,17 @@ def test_update_and_delete_only_for_owner() -> None:
 
 def test_event_organizer_can_update_event_details() -> None:
     """Организатор события получает права на редактирование."""
-    owner = User.objects.create_user(email="owner-organizer@example.com", password="Password123")
-    organizer = User.objects.create_user(email="coorganizer@example.com", password="Password123")
+    owner = User.objects.create_user(
+        email="owner-organizer@example.com", password="Password123"
+    )
+    organizer = User.objects.create_user(
+        email="coorganizer@example.com", password="Password123"
+    )
 
     event = Event.objects.create(owner=owner, title="Collab Event")
-    Participant.objects.create(event=event, user=organizer, role=Participant.Role.ORGANIZER)
+    Participant.objects.create(
+        event=event, user=organizer, role=Participant.Role.ORGANIZER
+    )
 
     organizer_client = _auth_client(organizer)
     response = organizer_client.patch(
@@ -154,7 +166,9 @@ def test_filter_search_ordering() -> None:
     )
 
     search_response = client.get("/api/events/", {"search": "Launch"})
-    assert [item["id"] for item in search_response.json()["results"]] == [event_future_long.id]
+    assert [item["id"] for item in search_response.json()["results"]] == [
+        event_future_long.id
+    ]
 
     category_response = client.get("/api/events/", {"category": "workshop"})
     category_ids = [item["id"] for item in category_response.json()["results"]]
@@ -170,7 +184,9 @@ def test_filter_search_ordering() -> None:
 
     ordering_response = client.get("/api/events/", {"ordering": "-start_at"})
     ordering_payload = ordering_response.json()["results"]
-    ordering_with_dates = [item["id"] for item in ordering_payload if item["start_at"] is not None]
+    ordering_with_dates = [
+        item["id"] for item in ordering_payload if item["start_at"] is not None
+    ]
     assert ordering_with_dates == [
         event_future_long.id,
         event_future_short.id,

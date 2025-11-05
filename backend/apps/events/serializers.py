@@ -45,7 +45,6 @@ class EventSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-
     def get_viewer_role(self, obj: Event) -> str | None:
         request = self.context.get("request")
         user = getattr(request, "user", None)
@@ -87,7 +86,9 @@ class InviteCreateSerializer(serializers.Serializer):
     """Сериализатор создания инвайта."""
 
     expires_in_hours = serializers.IntegerField(min_value=1, max_value=168)
-    max_uses = serializers.IntegerField(min_value=0, max_value=1000, required=False, default=0)
+    max_uses = serializers.IntegerField(
+        min_value=0, max_value=1000, required=False, default=0
+    )
 
     def create(self, validated_data: dict[str, Any]) -> Invite:
         """Создает инвайт с ограничениями по времени и количеству использований."""
@@ -113,12 +114,21 @@ class InviteReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Invite
-        fields = ("token", "invite_url", "expires_at", "max_uses", "uses_count", "is_revoked")
+        fields = (
+            "token",
+            "invite_url",
+            "expires_at",
+            "max_uses",
+            "uses_count",
+            "is_revoked",
+        )
         read_only_fields = fields
 
     def get_invite_url(self, obj: Invite) -> str:
         """Формирует ссылку для присоединения."""
-        base_url = getattr(settings, "SITE_FRONT_URL", "http://localhost:3000").rstrip("/")
+        base_url = getattr(settings, "SITE_FRONT_URL", "http://localhost:3000").rstrip(
+            "/"
+        )
         return f"{base_url}/join?token={obj.token}"
 
 
@@ -158,9 +168,3 @@ class ParticipantRoleUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Participant
         fields = ("role",)
-
-
-
-
-
-

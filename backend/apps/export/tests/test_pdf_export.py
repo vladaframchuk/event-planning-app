@@ -65,13 +65,18 @@ def test_event_pdf_export_view_returns_pdf_response() -> None:
 
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
-    assert response["Content-Disposition"] == f'attachment; filename=\"event_{event.id}_plan.pdf\"'
+    assert (
+        response["Content-Disposition"]
+        == f'attachment; filename="event_{event.id}_plan.pdf"'
+    )
     assert event.title.encode("utf-8") in response.content
 
 
 def test_event_pdf_export_view_denies_non_participant() -> None:
     event, owner = _create_event("owner@forbidden.test")
-    outsider = User.objects.create_user(email="outsider@test.dev", password="Password123")
+    outsider = User.objects.create_user(
+        email="outsider@test.dev", password="Password123"
+    )
 
     client = _auth_client(outsider)
     response = client.get(f"/api/events/{event.id}/export/pdf")

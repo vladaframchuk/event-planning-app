@@ -41,9 +41,15 @@ def test_progress_returns_counts_and_percent() -> None:
     list_main = TaskList.objects.create(event=event, title="Подготовка", order=1)
     list_day = TaskList.objects.create(event=event, title="День X", order=0)
 
-    Task.objects.create(list=list_main, title="Собрать материалы", status=Task.Status.TODO)
-    Task.objects.create(list=list_main, title="Согласовать площадку", status=Task.Status.DOING)
-    Task.objects.create(list=list_main, title="Подготовить презентацию", status=Task.Status.DONE)
+    Task.objects.create(
+        list=list_main, title="Собрать материалы", status=Task.Status.TODO
+    )
+    Task.objects.create(
+        list=list_main, title="Согласовать площадку", status=Task.Status.DOING
+    )
+    Task.objects.create(
+        list=list_main, title="Подготовить презентацию", status=Task.Status.DONE
+    )
     Task.objects.create(list=list_day, title="Запустить стрим", status=Task.Status.TODO)
     Task.objects.create(list=list_day, title="Проверить звук", status=Task.Status.DONE)
 
@@ -86,7 +92,9 @@ def test_progress_cached_and_invalidated_on_task_change() -> None:
 
 def test_only_participant_or_owner_can_access() -> None:
     event, owner = _create_event_with_owner("owner-access@example.com")
-    outsider = User.objects.create_user(email="outsider@example.com", password="Password123")
+    outsider = User.objects.create_user(
+        email="outsider@example.com", password="Password123"
+    )
 
     owner_client = _auth_client(owner)
     outsider_client = _auth_client(outsider)

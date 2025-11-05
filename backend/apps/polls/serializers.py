@@ -46,7 +46,9 @@ class PollCreateSerializer(serializers.ModelSerializer):
         options_input: list[dict[str, Any]] = attrs.get("options", [])
 
         if len(options_input) < 2:
-            raise serializers.ValidationError({"options": ["Нужно указать минимум два варианта."]})
+            raise serializers.ValidationError(
+                {"options": ["Нужно указать минимум два варианта."]}
+            )
 
         normalized_options: list[dict[str, Any]] = []
 
@@ -55,9 +57,17 @@ class PollCreateSerializer(serializers.ModelSerializer):
             for option in options_input:
                 date_value = option.get("date_value")
                 if date_value is None:
-                    raise serializers.ValidationError({"options": ["Для типа date все варианты должны содержать date_value."]})
+                    raise serializers.ValidationError(
+                        {
+                            "options": [
+                                "Для типа date все варианты должны содержать date_value."
+                            ]
+                        }
+                    )
                 if date_value in seen_dates:
-                    raise serializers.ValidationError({"options": ["Все даты должны быть уникальными."]})
+                    raise serializers.ValidationError(
+                        {"options": ["Все даты должны быть уникальными."]}
+                    )
                 seen_dates.add(date_value)
                 normalized_options.append({"date_value": date_value})
         elif poll_type in {Poll.Type.PLACE, Poll.Type.CUSTOM}:
@@ -65,12 +75,18 @@ class PollCreateSerializer(serializers.ModelSerializer):
             for option in options_input:
                 label = option.get("label")
                 if label is None:
-                    raise serializers.ValidationError({"options": ["Для этого типа необходимо заполнить label."]})
+                    raise serializers.ValidationError(
+                        {"options": ["Для этого типа необходимо заполнить label."]}
+                    )
                 cleaned_label = label.strip()
                 if not cleaned_label:
-                    raise serializers.ValidationError({"options": ["Пустые варианты недоступны."]})
+                    raise serializers.ValidationError(
+                        {"options": ["Пустые варианты недоступны."]}
+                    )
                 if cleaned_label in seen_labels:
-                    raise serializers.ValidationError({"options": ["Варианты должны быть уникальными."]})
+                    raise serializers.ValidationError(
+                        {"options": ["Варианты должны быть уникальными."]}
+                    )
                 seen_labels.add(cleaned_label)
                 normalized_options.append({"label": cleaned_label})
         else:
@@ -91,7 +107,9 @@ class PollCreateSerializer(serializers.ModelSerializer):
             created_by=request.user,
             **validated_data,
         )
-        poll_options = [PollOption(poll=poll, **option_data) for option_data in options_data]
+        poll_options = [
+            PollOption(poll=poll, **option_data) for option_data in options_data
+        ]
         PollOption.objects.bulk_create(poll_options)
         return poll
 
@@ -148,7 +166,10 @@ class PollReadSerializer(serializers.ModelSerializer):
         annotated_total = getattr(obj, "total_votes", None)
         if annotated_total is not None:
             return int(annotated_total)
-        option_votes = [int(getattr(option, "votes_count", 0) or 0) for option in self._get_prefetched_options(obj)]
+        option_votes = [
+            int(getattr(option, "votes_count", 0) or 0)
+            for option in self._get_prefetched_options(obj)
+        ]
         return int(sum(option_votes))
 
     def get_my_votes(self, obj: Poll) -> list[int]:

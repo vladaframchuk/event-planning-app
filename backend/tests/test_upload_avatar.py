@@ -20,13 +20,20 @@ def _auth_client(user: User) -> APIClient:
     return client
 
 
-def _build_image_file(name: str, *, size: tuple[int, int] = (64, 64), color: tuple[int, int, int] = (255, 0, 0)) -> SimpleUploadedFile:
+def _build_image_file(
+    name: str,
+    *,
+    size: tuple[int, int] = (64, 64),
+    color: tuple[int, int, int] = (255, 0, 0),
+) -> SimpleUploadedFile:
     buffer = BytesIO()
     image = Image.new("RGB", size, color)
     format_hint = "JPEG" if name.lower().endswith((".jpg", ".jpeg")) else "PNG"
     image.save(buffer, format=format_hint)
     buffer.seek(0)
-    return SimpleUploadedFile(name, buffer.read(), content_type=f"image/{format_hint.lower()}")
+    return SimpleUploadedFile(
+        name, buffer.read(), content_type=f"image/{format_hint.lower()}"
+    )
 
 
 def test_upload_avatar_success(tmp_path: Path, settings) -> None:
@@ -58,7 +65,9 @@ def test_upload_avatar_rejects_non_image(tmp_path: Path, settings) -> None:
     user = User.objects.create_user(email="invalid@example.com", password="Password123")
     client = _auth_client(user)
 
-    fake_file = SimpleUploadedFile("avatar.txt", b"not an image", content_type="text/plain")
+    fake_file = SimpleUploadedFile(
+        "avatar.txt", b"not an image", content_type="text/plain"
+    )
     response = client.post("/api/me/avatar", {"avatar": fake_file}, format="multipart")
 
     assert response.status_code == 400

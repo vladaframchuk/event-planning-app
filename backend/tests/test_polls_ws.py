@@ -34,7 +34,9 @@ def _inmemory_channel_layer(settings):
 
 @pytest.fixture
 def owner() -> User:
-    return User.objects.create_user(email="poll-owner@example.com", password="Secret123")
+    return User.objects.create_user(
+        email="poll-owner@example.com", password="Secret123"
+    )
 
 
 @pytest.fixture
@@ -46,7 +48,9 @@ def event(owner: User) -> Event:
 
 @pytest.mark.asyncio
 async def test_poll_created_broadcast(event: Event, owner: User) -> None:
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
     connected, _ = await communicator.connect()
     assert connected
 
@@ -89,7 +93,9 @@ async def test_poll_created_broadcast(event: Event, owner: User) -> None:
 
 @pytest.mark.asyncio
 async def test_poll_lifecycle_realtime_updates(event: Event, owner: User) -> None:
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
     connected, _ = await communicator.connect()
     assert connected
 
@@ -135,7 +141,9 @@ async def test_poll_lifecycle_realtime_updates(event: Event, owner: User) -> Non
     assert vote_payload["leader_option_ids"] == [option_ids[0]]
     assert vote_payload["options"] == [{"id": option_ids[0], "votes_count": 1}]
 
-    version_after_vote = await database_sync_to_async(lambda: Poll.objects.get(id=poll_id).version)()
+    version_after_vote = await database_sync_to_async(
+        lambda: Poll.objects.get(id=poll_id).version
+    )()
     assert version_after_vote == 2
 
     close_response = await database_sync_to_async(client.post)(
@@ -149,10 +157,14 @@ async def test_poll_lifecycle_realtime_updates(event: Event, owner: User) -> Non
     assert close_payload["poll_id"] == poll_id
     assert close_payload["version"] == 3
 
-    version_after_close = await database_sync_to_async(lambda: Poll.objects.get(id=poll_id).version)()
+    version_after_close = await database_sync_to_async(
+        lambda: Poll.objects.get(id=poll_id).version
+    )()
     assert version_after_close == 3
 
-    delete_response = await database_sync_to_async(client.delete)(f"/api/polls/{poll_id}")
+    delete_response = await database_sync_to_async(client.delete)(
+        f"/api/polls/{poll_id}"
+    )
     assert delete_response.status_code == 204
 
     delete_message = await communicator.receive_json_from(timeout=1)
@@ -161,9 +173,10 @@ async def test_poll_lifecycle_realtime_updates(event: Event, owner: User) -> Non
     assert delete_payload["poll_id"] == poll_id
     assert delete_payload["event_id"] == event.id
 
-    poll_exists = await database_sync_to_async(lambda: Poll.objects.filter(id=poll_id).exists())()
+    poll_exists = await database_sync_to_async(
+        lambda: Poll.objects.filter(id=poll_id).exists()
+    )()
     assert poll_exists is False
 
     await communicator.disconnect()
     await communicator.wait()
-

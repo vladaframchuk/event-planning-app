@@ -74,7 +74,9 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate_old_password(self, value: str) -> str:
         user = self.context.get("request").user  # type: ignore[assignment]
         if not user.check_password(value):
-            raise serializers.ValidationError(_("Текущий пароль указан неверно."), code="invalid")
+            raise serializers.ValidationError(
+                _("Текущий пароль указан неверно."), code="invalid"
+            )
         return value
 
     def validate_new_password(self, value: str) -> str:

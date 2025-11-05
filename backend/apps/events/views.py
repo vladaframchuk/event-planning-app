@@ -28,7 +28,11 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.none()
     serializer_class = EventSerializer
     permission_classes = (IsAuthenticated,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
+    filter_backends = (
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    )
     filterset_fields = ("category",)
     search_fields = ("title", "description", "location")
     ordering_fields = ("start_at",)
@@ -45,7 +49,9 @@ class EventViewSet(viewsets.ModelViewSet):
             .distinct()
         )
 
-    def get_serializer_class(self) -> type[EventSerializer] | type[EventCreateUpdateSerializer]:
+    def get_serializer_class(
+        self,
+    ) -> type[EventSerializer] | type[EventCreateUpdateSerializer]:
         """Для записи используем упрощённый сериализатор."""
         if self.action in {"create", "update", "partial_update"}:
             return EventCreateUpdateSerializer
@@ -56,9 +62,13 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        read_serializer = EventSerializer(serializer.instance, context=self.get_serializer_context())
+        read_serializer = EventSerializer(
+            serializer.instance, context=self.get_serializer_context()
+        )
         headers = self.get_success_headers(read_serializer.data)
-        return Response(read_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            read_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def update(self, request: Request, *args, **kwargs) -> Response:
         """Обновляем событие и возвращаем данные для чтения."""
@@ -67,7 +77,9 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        read_serializer = EventSerializer(serializer.instance, context=self.get_serializer_context())
+        read_serializer = EventSerializer(
+            serializer.instance, context=self.get_serializer_context()
+        )
         return Response(read_serializer.data)
 
     def partial_update(self, request: Request, *args, **kwargs) -> Response:
@@ -121,6 +133,7 @@ class EventViewSet(viewsets.ModelViewSet):
             .order_by("category")
         )
         return Response({"categories": list(categories_qs)})
+
     def get_permissions(self) -> list[BasePermission]:
         action = getattr(self, "action", None)
         if action in {"list", "create", "categories"}:

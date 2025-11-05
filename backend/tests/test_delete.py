@@ -47,9 +47,7 @@ def test_owner_can_delete_task_and_orders_compact() -> None:
     response = client.delete(f"/api/tasks/{task_b.id}/")
 
     assert response.status_code == 204
-    remaining = list(
-        Task.objects.filter(list=task_list).order_by("order", "id")
-    )
+    remaining = list(Task.objects.filter(list=task_list).order_by("order", "id"))
     assert [task.id for task in remaining] == [task_a.id, task_c.id]
     assert [task.order for task in remaining] == [0, 1]
 
@@ -69,17 +67,19 @@ def test_owner_can_delete_tasklist_cascade_and_tasklists_orders_compact() -> Non
     assert not TaskList.objects.filter(id=list_b.id).exists()
     assert not Task.objects.filter(list_id=list_b.id).exists()
 
-    remaining_lists = list(
-        TaskList.objects.filter(event=event).order_by("order", "id")
-    )
+    remaining_lists = list(TaskList.objects.filter(event=event).order_by("order", "id"))
     assert [task_list.id for task_list in remaining_lists] == [list_a.id, list_c.id]
     assert [task_list.order for task_list in remaining_lists] == [0, 1]
 
 
 def test_participant_cannot_delete_task_or_tasklist() -> None:
     event, owner = _create_event_with_owner("owner-delete@example.com")
-    participant_user = User.objects.create_user(email="member@example.com", password="Password123")
-    Participant.objects.create(event=event, user=participant_user, role=Participant.Role.MEMBER)
+    participant_user = User.objects.create_user(
+        email="member@example.com", password="Password123"
+    )
+    Participant.objects.create(
+        event=event, user=participant_user, role=Participant.Role.MEMBER
+    )
     task_list = TaskList.objects.create(event=event, title="Roadmap", order=0)
     task = Task.objects.create(list=task_list, title="Protected", order=0)
 

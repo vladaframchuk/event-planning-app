@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
@@ -75,11 +74,12 @@ class MessageSerializer(serializers.ModelSerializer):
 class MessageCreateSerializer(serializers.Serializer):
     """Валидация входящих данных для создания сообщения."""
 
-    text = serializers.CharField(max_length=4000, allow_blank=False, trim_whitespace=True)
+    text = serializers.CharField(
+        max_length=4000, allow_blank=False, trim_whitespace=True
+    )
 
     def validate_text(self, value: str) -> str:
         trimmed = value.strip()
         if not trimmed:
             raise serializers.ValidationError("Текст сообщения не может быть пустым.")
         return trimmed
-

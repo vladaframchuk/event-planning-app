@@ -16,7 +16,11 @@ from rest_framework.views import APIView
 
 from apps.events.models import Event
 from apps.polls.models import Poll, PollOption, Vote
-from apps.events.permissions import IsEventMember, IsEventOrganizer, ReadOnlyOrEventMember
+from apps.events.permissions import (
+    IsEventMember,
+    IsEventOrganizer,
+    ReadOnlyOrEventMember,
+)
 from apps.polls.serializers import (
     PollCreateSerializer,
     PollListItemSerializer,
@@ -25,7 +29,9 @@ from apps.polls.serializers import (
 from apps.polls.ws_notify import ws_notify_event
 
 
-def _build_poll_created_payload(event_id: int, poll_data: Mapping[str, Any]) -> dict[str, Any]:
+def _build_poll_created_payload(
+    event_id: int, poll_data: Mapping[str, Any]
+) -> dict[str, Any]:
     """Готовим структуру poll.created из сериализованных данных."""
 
     options = [
@@ -51,7 +57,9 @@ def _build_poll_created_payload(event_id: int, poll_data: Mapping[str, Any]) -> 
             "my_votes": [int(option_id) for option_id in poll_data.get("my_votes", [])],
             "options": options,
             "total_votes": int(poll_data.get("total_votes", 0) or 0),
-            "leader_option_ids": [int(option_id) for option_id in poll_data.get("leader_option_ids", [])],
+            "leader_option_ids": [
+                int(option_id) for option_id in poll_data.get("leader_option_ids", [])
+            ],
         },
         "version": int(poll_data.get("version", 1) or 1),
     }
@@ -68,7 +76,9 @@ def _build_poll_updated_payload(
     raw_options = poll_data.get("options", [])
     filtered_ids = {int(option_id) for option_id in (changed_option_ids or set())}
     if filtered_ids:
-        options_iterable = [option for option in raw_options if int(option["id"]) in filtered_ids]
+        options_iterable = [
+            option for option in raw_options if int(option["id"]) in filtered_ids
+        ]
     else:
         options_iterable = raw_options
 
@@ -84,12 +94,16 @@ def _build_poll_updated_payload(
         "poll_id": int(poll_data["id"]),
         "options": options,
         "total_votes": int(poll_data.get("total_votes", 0) or 0),
-        "leader_option_ids": [int(option_id) for option_id in poll_data.get("leader_option_ids", [])],
+        "leader_option_ids": [
+            int(option_id) for option_id in poll_data.get("leader_option_ids", [])
+        ],
         "version": int(poll_data.get("version", 1) or 1),
     }
 
 
-def _build_poll_closed_payload(event_id: int, poll_id: int, version: int) -> dict[str, Any]:
+def _build_poll_closed_payload(
+    event_id: int, poll_id: int, version: int
+) -> dict[str, Any]:
     return {
         "event_id": event_id,
         "poll_id": poll_id,
@@ -123,13 +137,14 @@ class PollQuerysetMixin:
             .annotate(total_votes=Count("votes", distinct=True))
         )
 
-    def _collect_user_votes(self, polls: Iterable[Poll], user_id: int) -> dict[int, list[int]]:
+    def _collect_user_votes(
+        self, polls: Iterable[Poll], user_id: int
+    ) -> dict[int, list[int]]:
         poll_ids = [poll.id for poll in polls]
         if not poll_ids:
             return {}
-        votes = (
-            Vote.objects.filter(poll_id__in=poll_ids, user_id=user_id)
-            .values_list("poll_id", "option_id")
+        votes = Vote.objects.filter(poll_id__in=poll_ids, user_id=user_id).values_list(
+            "poll_id", "option_id"
         )
         vote_map: dict[int, list[int]] = defaultdict(list)
         for poll_id, option_id in votes:
@@ -162,7 +177,9 @@ class EventScopedMixin:
         return event
 
 
-class EventPollListCreateView(EventScopedMixin, PollQuerysetMixin, generics.ListCreateAPIView):
+class EventPollListCreateView(
+    EventScopedMixin, PollQuerysetMixin, generics.ListCreateAPIView
+):
     permission_classes = [IsAuthenticated]
     pagination_class = PollPagination
     queryset = Poll.objects.none()
@@ -297,49 +314,80 @@ class PollVoteView(PollDetailBaseView, APIView):
         poll = self.get_object()
         now = timezone.now()
         if poll.is_voting_closed(now=now):
-            return Response({"detail": "Голосование недоступно."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Голосование недоступно."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         option_ids = request.data.get("option_ids")
         if not isinstance(option_ids, list):
-            return Response({"option_ids": ["Нужно передать список идентификаторов."]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"option_ids": ["Нужно передать список идентификаторов."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             option_ids = [int(option_id) for option_id in option_ids]
         except (TypeError, ValueError):
-            return Response({"option_ids": ["Идентификаторы должны быть целыми числами."]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"option_ids": ["Идентификаторы должны быть целыми числами."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if not poll.multiple and len(option_ids) != 1:
-            return Response({"option_ids": ["Для этого опроса можно выбрать только один вариант."]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"option_ids": ["Для этого опроса можно выбрать только один вариант."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if poll.multiple and len(option_ids) != len(set(option_ids)):
-            return Response({"option_ids": ["Варианты не должны повторяться."]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"option_ids": ["Варианты не должны повторяться."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         available_option_ids = {option.id for option in poll.options.all()}
-        invalid_options = [option_id for option_id in option_ids if option_id not in available_option_ids]
+        invalid_options = [
+            option_id
+            for option_id in option_ids
+            if option_id not in available_option_ids
+        ]
         if invalid_options:
-            return Response({"option_ids": ["Указаны варианты, которые не принадлежат опросу."]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"option_ids": ["Указаны варианты, которые не принадлежат опросу."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         user = request.user
         changed = False
         touched_option_ids: set[int] = set()
 
         with transaction.atomic():
-            existing_votes_qs = Vote.objects.select_for_update().filter(poll=poll, user=user)
-            existing_option_ids = list(existing_votes_qs.values_list("option_id", flat=True))
+            existing_votes_qs = Vote.objects.select_for_update().filter(
+                poll=poll, user=user
+            )
+            existing_option_ids = list(
+                existing_votes_qs.values_list("option_id", flat=True)
+            )
 
             if not poll.multiple:
                 selected_id = option_ids[0]
                 if existing_option_ids:
                     if not poll.allow_change_vote:
                         if selected_id not in existing_option_ids:
-                            return Response({"detail": "????????? ?????? ?????????."}, status=status.HTTP_400_BAD_REQUEST)
+                            return Response(
+                                {"detail": "????????? ?????? ?????????."},
+                                status=status.HTTP_400_BAD_REQUEST,
+                            )
                     else:
                         if selected_id not in existing_option_ids:
                             touched_option_ids.update(existing_option_ids)
                             deleted_count, _ = existing_votes_qs.delete()
                             if deleted_count:
                                 changed = True
-                            Vote.objects.create(poll=poll, option_id=selected_id, user=user)
+                            Vote.objects.create(
+                                poll=poll, option_id=selected_id, user=user
+                            )
                             changed = True
                             touched_option_ids.add(selected_id)
                 else:
@@ -350,15 +398,24 @@ class PollVoteView(PollDetailBaseView, APIView):
                 new_option_ids = set(option_ids)
                 existing_option_ids_set = set(existing_option_ids)
 
-                if existing_option_ids_set and not poll.allow_change_vote and new_option_ids != existing_option_ids_set:
-                    return Response({"detail": "????????? ?????? ?????????."}, status=status.HTTP_400_BAD_REQUEST)
+                if (
+                    existing_option_ids_set
+                    and not poll.allow_change_vote
+                    and new_option_ids != existing_option_ids_set
+                ):
+                    return Response(
+                        {"detail": "????????? ?????? ?????????."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
                 to_create = new_option_ids - existing_option_ids_set
                 if poll.allow_change_vote:
                     to_delete = existing_option_ids_set - new_option_ids
                     if to_delete:
                         touched_option_ids.update(to_delete)
-                        deleted_count, _ = existing_votes_qs.filter(option_id__in=to_delete).delete()
+                        deleted_count, _ = existing_votes_qs.filter(
+                            option_id__in=to_delete
+                        ).delete()
                         if deleted_count:
                             changed = True
 
@@ -415,4 +472,3 @@ class PollCloseView(PollDetailBaseView, APIView):
             _build_poll_closed_payload(poll.event_id, poll.id, poll.version),
         )
         return Response({"message": "closed"}, status=status.HTTP_200_OK)
-

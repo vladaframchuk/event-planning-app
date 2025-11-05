@@ -20,11 +20,17 @@ def verify_email_confirmation_token(token: str, max_age_seconds: int = 172_800) 
     try:
         raw_user_id = signer.unsign(token, max_age=max_age_seconds)
     except SignatureExpired as exc:
-        raise EmailConfirmationTokenError(_("Срок действия токена подтверждения истёк.")) from exc
+        raise EmailConfirmationTokenError(
+            _("Срок действия токена подтверждения истёк.")
+        ) from exc
     except BadSignature as exc:
-        raise EmailConfirmationTokenError(_("Токен подтверждения недействителен.")) from exc
+        raise EmailConfirmationTokenError(
+            _("Токен подтверждения недействителен.")
+        ) from exc
 
     try:
         return int(raw_user_id)
     except ValueError as exc:
-        raise EmailConfirmationTokenError(_("Некорректный формат токена подтверждения.")) from exc
+        raise EmailConfirmationTokenError(
+            _("Некорректный формат токена подтверждения.")
+        ) from exc

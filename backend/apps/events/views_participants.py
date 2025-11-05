@@ -110,7 +110,9 @@ class EventParticipantDetailView(APIView):
             qs = qs.exclude(pk__in=list(exclude))
         return qs.exists()
 
-    def _error(self, code: str, detail: str, *, status_code: int = status.HTTP_400_BAD_REQUEST) -> Response:
+    def _error(
+        self, code: str, detail: str, *, status_code: int = status.HTTP_400_BAD_REQUEST
+    ) -> Response:
         return Response({"code": code, "detail": detail}, status=status_code)
 
     def _extract_validation_detail(self, error: DjangoValidationError) -> str:
@@ -129,7 +131,9 @@ class EventParticipantDetailView(APIView):
         return "Operation is not allowed."
 
     def _build_serializer(self, participant: Participant) -> ParticipantSerializer:
-        serializer = ParticipantSerializer(participant, context={"request": self.request})
+        serializer = ParticipantSerializer(
+            participant, context={"request": self.request}
+        )
         return serializer
 
     def patch(self, request: Request, event_id: int, participant_id: int) -> Response:
@@ -141,18 +145,27 @@ class EventParticipantDetailView(APIView):
         if new_role == participant.role:
             return Response(self._build_serializer(participant).data)
 
-        if participant.role == Participant.Role.ORGANIZER and new_role != Participant.Role.ORGANIZER:
-            other_exists = self._other_organizers_exist(participant.event, {participant.pk})
+        if (
+            participant.role == Participant.Role.ORGANIZER
+            and new_role != Participant.Role.ORGANIZER
+        ):
+            other_exists = self._other_organizers_exist(
+                participant.event, {participant.pk}
+            )
             if participant.user_id == request.user.id and not other_exists:
-                 has_other_participants = (
-                     participant.event.participants.exclude(pk=participant.pk).exists()
-                 )
-                 return self._error(
-                    "self_last_organizer" if has_other_participants else "last_organizer",
+                has_other_participants = participant.event.participants.exclude(
+                    pk=participant.pk
+                ).exists()
+                return self._error(
+                    "self_last_organizer"
+                    if has_other_participants
+                    else "last_organizer",
                     "Cannot change your role because you are the only organizer.",
                 )
             if not other_exists:
-                return self._error("last_organizer", "Cannot demote the last organizer.")
+                return self._error(
+                    "last_organizer", "Cannot demote the last organizer."
+                )
 
         participant.role = new_role
         try:
@@ -167,14 +180,18 @@ class EventParticipantDetailView(APIView):
     def delete(self, request: Request, event_id: int, participant_id: int) -> Response:
         participant = self.get_participant()
         if participant.role == Participant.Role.ORGANIZER:
-            other_exists = self._other_organizers_exist(participant.event, {participant.pk})
+            other_exists = self._other_organizers_exist(
+                participant.event, {participant.pk}
+            )
             if participant.user_id == request.user.id and not other_exists:
                 return self._error(
                     "last_organizer",
                     "Cannot remove yourself because you are the only organizer.",
                 )
             if not other_exists:
-                return self._error("last_organizer", "Cannot remove the last organizer.")
+                return self._error(
+                    "last_organizer", "Cannot remove the last organizer."
+                )
 
         try:
             with transaction.atomic():
@@ -183,8 +200,3 @@ class EventParticipantDetailView(APIView):
             detail = self._extract_validation_detail(exc)
             return self._error("last_organizer", detail)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
-
-

@@ -8,14 +8,9 @@ from celery.schedules import crontab
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext_lazy as _
 
-"""
-������� ��������� Django-�������: ����������� ���������, CORS � ��������� ��������.
-"""
 
-# ������� ���������� ������� ��� ������ ��������������� ������.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ������ ���������� ��������� ���� ��� ��� ������ ����������.
 env = environ.Env()
 _env_file = BASE_DIR / ".env"
 if _env_file.exists():
@@ -23,17 +18,13 @@ if _env_file.exists():
 
 
 def _get_secret_key() -> str:
-    """��������� ��������� ���� � ���������� ���������� ���������� ��������."""
     secret_key = env("DJANGO_SECRET_KEY", default=env("SECRET_KEY", default=None))
     if secret_key is None:
-        message = (
-            "�� ������ ��������� ����. ���������, ��� DJANGO_SECRET_KEY ����� � backend/.env."
-        )
+        message = "Secret key is missing. Please make sure DJANGO_SECRET_KEY exists in backend/.env."
         raise ImproperlyConfigured(message)
     return str(secret_key)
 
 
-# �������� ��������� ���������
 SECRET_KEY = _get_secret_key()
 DEBUG = env.bool("DEBUG", default=False)
 _LEGACY_ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=None)
@@ -51,7 +42,6 @@ for _internal_host in ("backend",):
         ALLOWED_HOSTS.append(_internal_host)
 
 
-# ����������� ����������
 INSTALLED_APPS = [
     "django_prometheus",
     "channels",
@@ -61,7 +51,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -69,7 +58,6 @@ INSTALLED_APPS = [
     "drf_spectacular_sidecar",
     "django_filters",
     "corsheaders",
-    # пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     "apps.users",
     "apps.events.apps.EventsConfig",
     "apps.health.apps.HealthConfig",
@@ -142,7 +130,9 @@ else:
         },
     }
 
-CHANNELS_WS_MAX_MESSAGE_SIZE = env.int("CHANNELS_WS_MAX_MESSAGE_SIZE", default=64 * 1024)
+CHANNELS_WS_MAX_MESSAGE_SIZE = env.int(
+    "CHANNELS_WS_MAX_MESSAGE_SIZE", default=64 * 1024
+)
 
 
 # Database
@@ -176,17 +166,21 @@ LANGUAGE_CODE = "ru"
 TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
-LANGUAGES = [("ru", _('Русский'))]
+LANGUAGES = [("ru", _("Русский"))]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
 EMAIL_HOST = env("EMAIL_HOST", default="")
 EMAIL_PORT = env.int("EMAIL_PORT", default=25)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Event Planner <no-reply@event-planner.local>")
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL", default="Event Planner <no-reply@event-planner.local>"
+)
 SITE_URL: str = env("SITE_URL", default="http://localhost:3000")
 SITE_FRONT_URL: str = env("SITE_FRONT_URL", default=SITE_URL)
 
@@ -306,12 +300,9 @@ LOGGING = {
     },
     "loggers": {
         "django.request": {
-            # 401/403/404 ������ �� �������� ������� ���������������� ��� debug-���������.
             "level": "ERROR",
             "handlers": ["console"],
             "propagate": False,
         },
     },
 }
-
-

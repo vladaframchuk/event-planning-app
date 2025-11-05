@@ -22,7 +22,9 @@ ORIGIN_HEADERS = [(b"origin", b"http://testserver"), (b"host", b"testserver")]
 
 @pytest.fixture(autouse=True)
 def _use_inmemory_channel_layer(settings):
-    settings.CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    settings.CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
 
 
 @pytest.fixture
@@ -32,14 +34,18 @@ def owner() -> User:
 
 @pytest.fixture
 def participant() -> User:
-    return User.objects.create_user(email="participant@example.com", password="Secret123")
+    return User.objects.create_user(
+        email="participant@example.com", password="Secret123"
+    )
 
 
 @pytest.fixture
 def event(owner: User, participant: User) -> Event:
     event = Event.objects.create(owner=owner, title="Realtime Chat")
     Participant.objects.create(event=event, user=owner, role=Participant.Role.ORGANIZER)
-    Participant.objects.create(event=event, user=participant, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=event, user=participant, role=Participant.Role.MEMBER
+    )
     return event
 
 
@@ -49,9 +55,15 @@ def _build_ws_path(event_id: int, user: User) -> str:
 
 
 @pytest.mark.asyncio
-async def test_rest_message_broadcasts_to_other_clients(event: Event, owner: User, participant: User) -> None:
-    author_comm = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
-    reader_comm = WebsocketCommunicator(application, _build_ws_path(event.id, participant), headers=ORIGIN_HEADERS)
+async def test_rest_message_broadcasts_to_other_clients(
+    event: Event, owner: User, participant: User
+) -> None:
+    author_comm = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
+    reader_comm = WebsocketCommunicator(
+        application, _build_ws_path(event.id, participant), headers=ORIGIN_HEADERS
+    )
     connected_author, _ = await author_comm.connect()
     connected_reader, _ = await reader_comm.connect()
     assert connected_author
@@ -79,15 +91,23 @@ async def test_rest_message_broadcasts_to_other_clients(event: Event, owner: Use
 
 
 @pytest.mark.asyncio
-async def test_typing_broadcast_respects_rate_limit(event: Event, owner: User, participant: User) -> None:
-    author_comm = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
-    reader_comm = WebsocketCommunicator(application, _build_ws_path(event.id, participant), headers=ORIGIN_HEADERS)
+async def test_typing_broadcast_respects_rate_limit(
+    event: Event, owner: User, participant: User
+) -> None:
+    author_comm = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
+    reader_comm = WebsocketCommunicator(
+        application, _build_ws_path(event.id, participant), headers=ORIGIN_HEADERS
+    )
     connected_author, _ = await author_comm.connect()
     connected_reader, _ = await reader_comm.connect()
     assert connected_author
     assert connected_reader
 
-    await author_comm.send_json_to({"type": "chat.typing", "payload": {"event_id": event.id}})
+    await author_comm.send_json_to(
+        {"type": "chat.typing", "payload": {"event_id": event.id}}
+    )
     first_typing = await reader_comm.receive_json_from(timeout=1)
     assert first_typing["type"] == "chat.typing"
     typing_payload = first_typing["payload"]
@@ -96,11 +116,15 @@ async def test_typing_broadcast_respects_rate_limit(event: Event, owner: User, p
 
     assert await author_comm.receive_nothing(timeout=0.3)
 
-    await author_comm.send_json_to({"type": "chat.typing", "payload": {"event_id": event.id}})
+    await author_comm.send_json_to(
+        {"type": "chat.typing", "payload": {"event_id": event.id}}
+    )
     assert await reader_comm.receive_nothing(timeout=0.3)
 
     await asyncio.sleep(1.1)
-    await author_comm.send_json_to({"type": "chat.typing", "payload": {"event_id": event.id}})
+    await author_comm.send_json_to(
+        {"type": "chat.typing", "payload": {"event_id": event.id}}
+    )
     second_typing = await reader_comm.receive_json_from(timeout=1)
     assert second_typing["type"] == "chat.typing"
 

@@ -29,13 +29,19 @@ class IgnoreAcceptContentNegotiation(BaseContentNegotiation):
 def _fetch_event_and_membership(event_id: int, user: Any) -> Tuple[Event, bool]:
     """Возвращает событие и флаг доступа, если пользователь участвует в нём."""
 
-    event = get_object_or_404(Event.objects.only("id", "title", "owner_id"), id=event_id)
+    event = get_object_or_404(
+        Event.objects.only("id", "title", "owner_id"), id=event_id
+    )
 
     if not getattr(user, "is_authenticated", False):
         return event, False
     if event.owner_id == getattr(user, "id", None):
         return event, True
-    is_participant = Participant.objects.filter(event_id=event.id, user=user).values_list("id", flat=True).exists()
+    is_participant = (
+        Participant.objects.filter(event_id=event.id, user=user)
+        .values_list("id", flat=True)
+        .exists()
+    )
     return event, is_participant
 
 
@@ -53,7 +59,9 @@ class EventPdfExportView(APIView):
 
         pdf_bytes = generate_event_pdf(event.id)
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="event_{event.id}_plan.pdf"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="event_{event.id}_plan.pdf"'
+        )
         return response
 
 
@@ -71,7 +79,9 @@ class EventExportCSVView(APIView):
 
         csv_bytes = generate_event_csv(event.id)
         response = HttpResponse(csv_bytes, content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="event_{event.id}_plan.csv"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="event_{event.id}_plan.csv"'
+        )
         return response
 
 
@@ -92,5 +102,7 @@ class EventExportXLSView(APIView):
             xls_bytes,
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = f'attachment; filename="event_{event.id}_plan.xlsx"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="event_{event.id}_plan.xlsx"'
+        )
         return response

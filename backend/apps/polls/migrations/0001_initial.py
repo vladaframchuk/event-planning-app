@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -22,7 +21,11 @@ class Migration(migrations.Migration):
                 (
                     "type",
                     models.CharField(
-                        choices=[("date", "date"), ("place", "place"), ("custom", "custom")],
+                        choices=[
+                            ("date", "date"),
+                            ("place", "place"),
+                            ("custom", "custom"),
+                        ],
                         max_length=10,
                     ),
                 ),
@@ -109,7 +112,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="poll",
-            index=models.Index(fields=["event", "is_closed"], name="idx_poll_event_closed"),
+            index=models.Index(
+                fields=["event", "is_closed"], name="idx_poll_event_closed"
+            ),
         ),
         migrations.AddIndex(
             model_name="poll",

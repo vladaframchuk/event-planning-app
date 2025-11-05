@@ -14,8 +14,6 @@ from .ws_auth import JWTAuthMiddlewareStack  # noqa: E402
 application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
-        "websocket": JWTAuthMiddlewareStack(
-            URLRouter(websocket_urlpatterns)
-        ),
+        "websocket": JWTAuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
     }
 )

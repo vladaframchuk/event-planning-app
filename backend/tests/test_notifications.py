@@ -31,7 +31,9 @@ def _auth_client(user: User) -> APIClient:
 def test_send_deadline_reminders_sends_emails_once() -> None:
     now = timezone.now()
     owner = User.objects.create_user(email="owner@example.com", password="Password123")
-    assignee_user = User.objects.create_user(email="assignee@example.com", password="Password123")
+    assignee_user = User.objects.create_user(
+        email="assignee@example.com", password="Password123"
+    )
     event = Event.objects.create(owner=owner, title="Demo event")
     owner_participant = Participant.objects.create(
         user=owner,
@@ -53,7 +55,10 @@ def test_send_deadline_reminders_sends_emails_once() -> None:
 
     result = send_deadline_reminders()
     assert result == 2
-    assert {email.to[0] for email in mail.outbox} == {"owner@example.com", "assignee@example.com"}
+    assert {email.to[0] for email in mail.outbox} == {
+        "owner@example.com",
+        "assignee@example.com",
+    }
 
     task.refresh_from_db()
     assert task.deadline_reminder_sent_at is not None

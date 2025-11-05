@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -16,17 +15,42 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
                     ),
                 ),
                 ("title", models.CharField(max_length=200, verbose_name="Название")),
-                ("category", models.CharField(blank=True, max_length=50, verbose_name="Категория")),
+                (
+                    "category",
+                    models.CharField(
+                        blank=True, max_length=50, verbose_name="Категория"
+                    ),
+                ),
                 ("description", models.TextField(blank=True, verbose_name="Описание")),
-                ("start_at", models.DateTimeField(blank=True, null=True, verbose_name="Старт")),
-                ("end_at", models.DateTimeField(blank=True, null=True, verbose_name="Финиш")),
-                ("location", models.CharField(blank=True, max_length=200, verbose_name="Локация")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="Создано")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="Обновлено")),
+                (
+                    "start_at",
+                    models.DateTimeField(blank=True, null=True, verbose_name="Старт"),
+                ),
+                (
+                    "end_at",
+                    models.DateTimeField(blank=True, null=True, verbose_name="Финиш"),
+                ),
+                (
+                    "location",
+                    models.CharField(
+                        blank=True, max_length=200, verbose_name="Локация"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Создано"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Обновлено"),
+                ),
             ],
             options={
                 "verbose_name": "Событие",
@@ -40,7 +64,10 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
                     ),
                 ),
                 (
@@ -54,7 +81,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "joined_at",
-                    models.DateTimeField(auto_now_add=True, verbose_name="Дата присоединения"),
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Дата присоединения"
+                    ),
                 ),
             ],
             options={

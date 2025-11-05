@@ -15,7 +15,6 @@ celery_app.autodiscover_tasks()
 
 @celery_app.task(bind=True)
 def debug_task(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-    """РћС‚Р»Р°РґРѕС‡РЅР°СЏ Р·Р°РґР°С‡Р° Celery, РІС‹РІРѕРґСЏС‰Р°СЏ РєРѕРЅС‚РµРєСЃС‚ РІС‹Р·РѕРІР°."""
     print(f"Request: {self.request!r}, args={args}, kwargs={kwargs}")
 
 

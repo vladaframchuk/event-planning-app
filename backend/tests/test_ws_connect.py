@@ -45,7 +45,9 @@ ORIGIN_HEADERS = [(b"origin", b"http://testserver"), (b"host", b"testserver")]
 
 @pytest.mark.asyncio
 async def test_participant_establishes_connection(event: Event, owner: User) -> None:
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
     connected, close_code = await communicator.connect()
     assert connected
     assert close_code is None

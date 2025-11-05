@@ -62,7 +62,12 @@ class ValidateInviteView(APIView):
         token = request.query_params.get("token")
         if not token:
             return Response(
-                {"status": "not_found", "event": None, "uses_left": None, "expires_at": None},
+                {
+                    "status": "not_found",
+                    "event": None,
+                    "uses_left": None,
+                    "expires_at": None,
+                },
                 status=status.HTTP_200_OK,
             )
 
@@ -70,7 +75,12 @@ class ValidateInviteView(APIView):
             invite = Invite.objects.select_related("event").get(token=token)
         except Invite.DoesNotExist:
             return Response(
-                {"status": "not_found", "event": None, "uses_left": None, "expires_at": None},
+                {
+                    "status": "not_found",
+                    "event": None,
+                    "uses_left": None,
+                    "expires_at": None,
+                },
                 status=status.HTTP_200_OK,
             )
 
@@ -84,7 +94,9 @@ class ValidateInviteView(APIView):
             "id": invite.event_id,
             "title": invite.event.title,
             "location": invite.event.location,
-            "start_at": invite.event.start_at.isoformat() if invite.event.start_at else None,
+            "start_at": invite.event.start_at.isoformat()
+            if invite.event.start_at
+            else None,
         }
 
         response_payload = {

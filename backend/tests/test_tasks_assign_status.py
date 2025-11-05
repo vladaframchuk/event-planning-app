@@ -37,7 +37,9 @@ def test_owner_can_assign_and_unassign() -> None:
     task_list = TaskList.objects.create(event=event, title="List")
     task = Task.objects.create(list=task_list, title="Need assignee")
 
-    assignee_user = User.objects.create_user(email="member@example.com", password="Password123")
+    assignee_user = User.objects.create_user(
+        email="member@example.com", password="Password123"
+    )
     participant = Participant.objects.create(
         event=event,
         user=assignee_user,
@@ -74,7 +76,9 @@ def test_participant_can_take_unassigned_task_but_not_when_already_assigned() ->
     task_list = TaskList.objects.create(event=event, title="Todo")
     task = Task.objects.create(list=task_list, title="Shared task")
 
-    member_user = User.objects.create_user(email="member@example.com", password="Password123")
+    member_user = User.objects.create_user(
+        email="member@example.com", password="Password123"
+    )
     member_participant = Participant.objects.create(
         event=event,
         user=member_user,
@@ -93,8 +97,12 @@ def test_participant_can_take_unassigned_task_but_not_when_already_assigned() ->
     task.refresh_from_db()
     assert task.assignee_id == member_participant.id
 
-    other_user = User.objects.create_user(email="other@example.com", password="Password123")
-    Participant.objects.create(event=event, user=other_user, role=Participant.Role.MEMBER)
+    other_user = User.objects.create_user(
+        email="other@example.com", password="Password123"
+    )
+    Participant.objects.create(
+        event=event, user=other_user, role=Participant.Role.MEMBER
+    )
 
     other_client = _make_client(other_user)
     second_attempt = other_client.post(f"/api/tasks/{task.id}/take/")
@@ -106,7 +114,9 @@ def test_assignee_can_change_status_own_task() -> None:
     event, owner = _create_event_with_owner("owner3@example.com")
     task_list = TaskList.objects.create(event=event, title="Doing")
 
-    assignee_user = User.objects.create_user(email="assignee@example.com", password="Password123")
+    assignee_user = User.objects.create_user(
+        email="assignee@example.com", password="Password123"
+    )
     participant = Participant.objects.create(
         event=event,
         user=assignee_user,
@@ -132,16 +142,24 @@ def test_non_assignee_cannot_change_status() -> None:
     event, owner = _create_event_with_owner("owner4@example.com")
     task_list = TaskList.objects.create(event=event, title="Blocked")
 
-    assignee_user = User.objects.create_user(email="assigned@example.com", password="Password123")
+    assignee_user = User.objects.create_user(
+        email="assigned@example.com", password="Password123"
+    )
     assignee_participant = Participant.objects.create(
         event=event,
         user=assignee_user,
         role=Participant.Role.MEMBER,
     )
-    task = Task.objects.create(list=task_list, title="Locked task", assignee=assignee_participant)
+    task = Task.objects.create(
+        list=task_list, title="Locked task", assignee=assignee_participant
+    )
 
-    outsider_user = User.objects.create_user(email="outsider@example.com", password="Password123")
-    Participant.objects.create(event=event, user=outsider_user, role=Participant.Role.MEMBER)
+    outsider_user = User.objects.create_user(
+        email="outsider@example.com", password="Password123"
+    )
+    Participant.objects.create(
+        event=event, user=outsider_user, role=Participant.Role.MEMBER
+    )
 
     outsider_client = _make_client(outsider_user)
     response = outsider_client.post(
@@ -160,7 +178,9 @@ def test_dependencies_block_doing_and_done_until_all_done() -> None:
     event, owner = _create_event_with_owner("owner5@example.com")
     task_list = TaskList.objects.create(event=event, title="Critical")
 
-    dependency = Task.objects.create(list=task_list, title="Dependency", status=Task.Status.TODO)
+    dependency = Task.objects.create(
+        list=task_list, title="Dependency", status=Task.Status.TODO
+    )
     blocked_task = Task.objects.create(list=task_list, title="Blocked")
     blocked_task.depends_on.add(dependency)
 
@@ -201,7 +221,9 @@ def test_assignee_must_belong_to_same_event() -> None:
     task_list = TaskList.objects.create(event=target_event, title="Main")
     task = Task.objects.create(list=task_list, title="Needs assignment")
 
-    foreign_user = User.objects.create_user(email="foreign@example.com", password="Password123")
+    foreign_user = User.objects.create_user(
+        email="foreign@example.com", password="Password123"
+    )
     foreign_participant = Participant.objects.create(
         event=other_event,
         user=foreign_user,

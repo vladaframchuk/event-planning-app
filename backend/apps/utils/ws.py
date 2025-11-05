@@ -16,4 +16,3 @@ def ensure_group_name_regex_allows_colon(channel_layer: Any) -> None:
     if ":" in getattr(pattern, "pattern", ""):
         return
     channel_layer.group_name_regex = re.compile(r"^[\w\-.:]+$")
-

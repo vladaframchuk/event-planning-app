@@ -108,7 +108,9 @@ def test_participant_lists_and_reads_polls() -> None:
     assert detail_payload["id"] == poll.id
     assert detail_payload["total_votes"] == 2
     assert sorted(detail_payload["my_votes"]) == [option_b.id]
-    assert sorted(detail_payload["leader_option_ids"]) == sorted([option_a.id, option_b.id])
+    assert sorted(detail_payload["leader_option_ids"]) == sorted(
+        [option_a.id, option_b.id]
+    )
 
 
 def test_vote_single_choice_blocks_second_vote_when_no_change_allowed() -> None:
@@ -205,7 +207,9 @@ def test_vote_multi_adds_and_removes_when_allowed() -> None:
         format="json",
     )
     assert first_response.status_code == 200
-    assert sorted(first_response.json()["my_votes"]) == sorted([option_a.id, option_b.id])
+    assert sorted(first_response.json()["my_votes"]) == sorted(
+        [option_a.id, option_b.id]
+    )
 
     second_response = client.post(
         f"/api/polls/{poll.id}/vote",

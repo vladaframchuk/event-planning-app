@@ -8,7 +8,11 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework import status
-from rest_framework.exceptions import NotAuthenticated, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    NotAuthenticated,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.request import Request
@@ -32,7 +36,6 @@ from apps.tasks.serializers import (
     TaskStatusSerializer,
 )
 from apps.tasks.realtime import (
-    fetch_ordered_task_ids,
     fetch_ordered_tasklist_ids,
     task_deleted_payload,
     task_list_deleted_payload,
@@ -41,7 +44,10 @@ from apps.tasks.realtime import (
     task_order_payload,
     task_to_payload,
 )
-from apps.tasks.services.order import normalize_task_orders_in_list, normalize_tasklist_orders_in_event
+from apps.tasks.services.order import (
+    normalize_task_orders_in_list,
+    normalize_tasklist_orders_in_event,
+)
 from apps.tasks.services.progress import (
     compute_event_progress,
     get_cached_progress,
@@ -74,26 +80,30 @@ def _get_task_event_id(task_id: int | None) -> int | None:
     if task_id is None:
         return None
     return (
-        Task.objects.filter(id=task_id)
-        .values_list("list__event_id", flat=True)
-        .first()
+        Task.objects.filter(id=task_id).values_list("list__event_id", flat=True).first()
     )
 
 
 def _validate_ordered_ids(raw_value: Any) -> list[int]:
     """Validate that ordered_ids is a list of unique integers."""
     if not isinstance(raw_value, list):
-        raise ValidationError({"ordered_ids": [_("Поле ordered_ids должно быть списком целых чисел.")]})
+        raise ValidationError(
+            {"ordered_ids": [_("Поле ordered_ids должно быть списком целых чисел.")]}
+        )
     if not raw_value:
         return []
 
     try:
         ordered_ids = [int(item) for item in raw_value]
     except (TypeError, ValueError) as exc:
-        raise ValidationError({"ordered_ids": ["ordered_ids должен содержать только целые числа."]}) from exc
+        raise ValidationError(
+            {"ordered_ids": ["ordered_ids должен содержать только целые числа."]}
+        ) from exc
 
     if len(ordered_ids) != len(set(ordered_ids)):
-        raise ValidationError({"ordered_ids": ["ordered_ids не должен содержать дубликатов."]})
+        raise ValidationError(
+            {"ordered_ids": ["ordered_ids не должен содержать дубликатов."]}
+        )
 
     return ordered_ids
 
@@ -142,7 +152,11 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
 
     def perform_create(self, serializer: TaskListSerializer) -> None:
         event: Event = serializer.validated_data["event"]
-        max_order = TaskList.objects.filter(event=event).aggregate(max_value=Max("order")).get("max_value")
+        max_order = (
+            TaskList.objects.filter(event=event)
+            .aggregate(max_value=Max("order"))
+            .get("max_value")
+        )
         if max_order is None:
             max_order = -1
         task_list_instance = serializer.save(order=max_order + 1)
@@ -161,11 +175,7 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
         if pk is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        task_list = (
-            TaskList.objects.select_related("event")
-            .filter(pk=pk)
-            .first()
-        )
+        task_list = TaskList.objects.select_related("event").filter(pk=pk).first()
         if task_list is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -194,7 +204,6 @@ class TaskListViewSet(EventScopedPermissionMixin, ModelViewSet):
         notify_progress_invalidation(event_id)
         invalidate_cached_progress(event_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
 
         return response
 
@@ -227,12 +236,15 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
         message: str | None = None,
         code: str | None = None,
     ) -> None:
-        if request.authenticators and not getattr(request, "successful_authenticator", None):
+        if request.authenticators and not getattr(
+            request, "successful_authenticator", None
+        ):
             raise NotAuthenticated()
         if getattr(self, "action", None) == "status":
             detail = {
                 "code": "forbidden",
-                "detail": message or "You do not have permission to change this task status.",
+                "detail": message
+                or "You do not have permission to change this task status.",
             }
             raise PermissionDenied(detail=detail, code=code)
         raise PermissionDenied(detail=message, code=code)
@@ -292,12 +304,13 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        updated = (
-            Task.objects.filter(id=task.id, assignee__isnull=True)
-            .update(assignee=participant, updated_at=timezone.now())
+        updated = Task.objects.filter(id=task.id, assignee__isnull=True).update(
+            assignee=participant, updated_at=timezone.now()
         )
         if updated == 0:
-            return Response({"code": "already_assigned"}, status=status.HTTP_409_CONFLICT)
+            return Response(
+                {"code": "already_assigned"}, status=status.HTTP_409_CONFLICT
+            )
 
         task.refresh_from_db()
         payload = task_to_payload(task)
@@ -364,7 +377,11 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
 
     def perform_create(self, serializer: TaskSerializer) -> None:
         task_list: TaskList = serializer.validated_data["list"]
-        max_order = Task.objects.filter(list=task_list).aggregate(max_value=Max("order")).get("max_value")
+        max_order = (
+            Task.objects.filter(list=task_list)
+            .aggregate(max_value=Max("order"))
+            .get("max_value")
+        )
         if max_order is None:
             max_order = -1
         task = serializer.save(order=max_order + 1)
@@ -388,11 +405,7 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
         if pk is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        task = (
-            Task.objects.select_related("list", "list__event")
-            .filter(pk=pk)
-            .first()
-        )
+        task = Task.objects.select_related("list", "list__event").filter(pk=pk).first()
         if task is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -418,7 +431,6 @@ class TaskViewSet(EventScopedPermissionMixin, ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
 class ReorderTaskListsView(APIView):
     permission_classes = [IsAuthenticated, IsEventOrganizer]
 
@@ -440,7 +452,9 @@ class ReorderTaskListsView(APIView):
             .order_by("order", "id")
         )
         existing_ids = [task_list.id for task_list in task_lists]
-        if set(existing_ids) != set(ordered_ids) or len(existing_ids) != len(ordered_ids):
+        if set(existing_ids) != set(ordered_ids) or len(existing_ids) != len(
+            ordered_ids
+        ):
             return Response(
                 {
                     "code": "invalid_ids",
@@ -493,7 +507,9 @@ class ReorderTasksInListView(APIView):
             .order_by("order", "id")
         )
         existing_ids = [task.id for task in tasks]
-        if set(existing_ids) != set(ordered_ids) or len(existing_ids) != len(ordered_ids):
+        if set(existing_ids) != set(ordered_ids) or len(existing_ids) != len(
+            ordered_ids
+        ):
             return Response(
                 {
                     "code": "invalid_ids",
@@ -548,9 +564,7 @@ class BoardView(EventScopedPermissionMixin, APIView):
                 ),
             )
         )
-        participants = list(
-            event.participants.select_related("user").order_by("id")
-        )
+        participants = list(event.participants.select_related("user").order_by("id"))
         serializer = BoardSerializer(
             {"event": event, "lists": lists, "participants": participants},
             context={"request": request},
@@ -573,7 +587,9 @@ class EventProgressView(APIView):
     def get(self, request: Request, event_id: int) -> Response:
         event = get_object_or_404(Event.objects.only("id", "owner_id"), id=event_id)
         if event.owner_id != request.user.id:
-            is_participant = Participant.objects.filter(event=event, user=request.user).exists()
+            is_participant = Participant.objects.filter(
+                event=event, user=request.user
+            ).exists()
             if not is_participant:
                 return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -584,10 +600,3 @@ class EventProgressView(APIView):
         payload = compute_event_progress(event_id)
         set_cached_progress(event_id, payload)
         return Response(payload)
-
-
-
-
-
-
-

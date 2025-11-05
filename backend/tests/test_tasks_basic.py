@@ -24,7 +24,9 @@ def _auth_client(user: User) -> APIClient:
 def _create_event_with_owner(email: str) -> tuple[Event, User]:
     owner = User.objects.create_user(email=email, password="Password123")
     event = Event.objects.create(owner=owner, title="Demo Event")
-    Participant.objects.get_or_create(event=event, user=owner, defaults={"role": Participant.Role.ORGANIZER})
+    Participant.objects.get_or_create(
+        event=event, user=owner, defaults={"role": Participant.Role.ORGANIZER}
+    )
     return event, owner
 
 
@@ -83,7 +85,9 @@ def test_create_task_sets_incremental_order_within_list() -> None:
 
 def test_event_participant_can_read_but_cannot_modify_without_ownership() -> None:
     event, owner = _create_event_with_owner("board-owner@example.com")
-    member = User.objects.create_user(email="member@example.com", password="Password123")
+    member = User.objects.create_user(
+        email="member@example.com", password="Password123"
+    )
     Participant.objects.create(event=event, user=member, role=Participant.Role.MEMBER)
     task_list = TaskList.objects.create(event=event, title="Ideas")
     Task.objects.create(list=task_list, title="Draft agenda")

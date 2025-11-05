@@ -24,7 +24,9 @@ class UserManager(BaseUserManager["User"]):
 
     use_in_migrations = True
 
-    def _create_user(self, email: str, password: str | None, **extra_fields: Any) -> "User":
+    def _create_user(
+        self, email: str, password: str | None, **extra_fields: Any
+    ) -> "User":
         if not email:
             raise ValueError("The email field must be set.")
         normalized_email = self.normalize_email(email)
@@ -33,12 +35,16 @@ class UserManager(BaseUserManager["User"]):
         user.save(using=self._db)
         return user
 
-    def create_user(self, email: str, password: str | None = None, **extra_fields: Any) -> "User":
+    def create_user(
+        self, email: str, password: str | None = None, **extra_fields: Any
+    ) -> "User":
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, email: str, password: str | None, **extra_fields: Any) -> "User":
+    def create_superuser(
+        self, email: str, password: str | None, **extra_fields: Any
+    ) -> "User":
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
@@ -54,9 +60,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField("Email", unique=True)
     name = models.CharField("Name", max_length=255, null=True, blank=True)
     email_notifications_enabled = models.BooleanField(
-        _('Уведомления на email включены'),
+        _("Уведомления на email включены"),
         default=True,
-        help_text=_('Получайте напоминания и обновления о событиях на электронную почту.'),
+        help_text=_(
+            "Получайте напоминания и обновления о событиях на электронную почту."
+        ),
     )
     avatar = models.ImageField(
         "Avatar",

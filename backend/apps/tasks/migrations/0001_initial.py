@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -19,8 +18,14 @@ class Migration(migrations.Migration):
                 ("id", models.BigAutoField(primary_key=True, serialize=False)),
                 ("title", models.CharField(max_length=100, verbose_name="Название")),
                 ("order", models.IntegerField(default=0, verbose_name="Порядок")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="Создано")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="Обновлено")),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Создано"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Обновлено"),
+                ),
                 (
                     "event",
                     models.ForeignKey(
@@ -56,11 +61,23 @@ class Migration(migrations.Migration):
                         verbose_name="Статус",
                     ),
                 ),
-                ("start_at", models.DateTimeField(blank=True, null=True, verbose_name="Начать")),
-                ("due_at", models.DateTimeField(blank=True, null=True, verbose_name="Дедлайн")),
+                (
+                    "start_at",
+                    models.DateTimeField(blank=True, null=True, verbose_name="Начать"),
+                ),
+                (
+                    "due_at",
+                    models.DateTimeField(blank=True, null=True, verbose_name="Дедлайн"),
+                ),
                 ("order", models.IntegerField(default=0, verbose_name="Порядок")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="Создано")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="Обновлено")),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Создано"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Обновлено"),
+                ),
                 (
                     "assignee",
                     models.ForeignKey(
@@ -99,7 +116,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="tasklist",
-            index=models.Index(fields=["event", "order"], name="idx_tasklist_event_order"),
+            index=models.Index(
+                fields=["event", "order"], name="idx_tasklist_event_order"
+            ),
         ),
         migrations.AddIndex(
             model_name="tasklist",

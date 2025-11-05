@@ -56,7 +56,9 @@ def _build_ws_path(event_id: int, user: User) -> str:
 
 @pytest.mark.asyncio
 async def test_participant_can_connect(event: Event, owner: User) -> None:
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
     connected, close_code = await communicator.connect()
     assert connected
     await communicator.disconnect()
@@ -68,7 +70,9 @@ async def test_non_participant_is_rejected(event: Event) -> None:
     stranger = await database_sync_to_async(User.objects.create_user)(
         email="stranger@example.com", password="Secret123"
     )
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, stranger), headers=ORIGIN_HEADERS)
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, stranger), headers=ORIGIN_HEADERS
+    )
     connected, close_code = await communicator.connect()
     assert not connected
     # Consumer closes connection with 4403 for forbidden access.
@@ -78,8 +82,12 @@ async def test_non_participant_is_rejected(event: Event) -> None:
 
 
 @pytest.mark.asyncio
-async def test_task_creation_broadcast(event: Event, owner: User, task_list: TaskList) -> None:
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
+async def test_task_creation_broadcast(
+    event: Event, owner: User, task_list: TaskList
+) -> None:
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
     connected, close_code = await communicator.connect()
     assert connected
 
@@ -111,7 +119,9 @@ async def test_task_update_triggers_progress_invalidation(
     owner: User,
     existing_task: Task,
 ) -> None:
-    communicator = WebsocketCommunicator(application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS)
+    communicator = WebsocketCommunicator(
+        application, _build_ws_path(event.id, owner), headers=ORIGIN_HEADERS
+    )
     connected, close_code = await communicator.connect()
     assert connected
 

@@ -15,21 +15,29 @@ class RegistrationSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    name = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=255)
+    name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=255
+    )
 
     def validate_email(self, value: str) -> str:
         """Проверяет, что email ещё не занят."""
         normalized = value.strip().lower()
         if User.objects.filter(email__iexact=normalized).exists():
-            raise serializers.ValidationError(_("Пользователь с таким email уже зарегистрирован."), code="duplicate")
+            raise serializers.ValidationError(
+                _("Пользователь с таким email уже зарегистрирован."), code="duplicate"
+            )
         return normalized
 
     def validate_password(self, value: str) -> str:
         """Убеждается, что пароль содержит буквы и цифры."""
         if not any(symbol.isdigit() for symbol in value):
-            raise serializers.ValidationError(_("Пароль должен содержать хотя бы одну цифру."), code="weak_password")
+            raise serializers.ValidationError(
+                _("Пароль должен содержать хотя бы одну цифру."), code="weak_password"
+            )
         if not any(symbol.isalpha() for symbol in value):
-            raise serializers.ValidationError(_("Пароль должен содержать хотя бы одну букву."), code="weak_password")
+            raise serializers.ValidationError(
+                _("Пароль должен содержать хотя бы одну букву."), code="weak_password"
+            )
         return value
 
     def create(self, validated_data: dict[str, Any]) -> User:
@@ -82,10 +90,14 @@ class ResendConfirmationSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email__iexact=normalized)
         except User.DoesNotExist as exc:
-            raise serializers.ValidationError(self.error_messages["not_found"], code="not_found") from exc
+            raise serializers.ValidationError(
+                self.error_messages["not_found"], code="not_found"
+            ) from exc
 
         if user.is_active:
-            raise serializers.ValidationError(self.error_messages["already_active"], code="already_active")
+            raise serializers.ValidationError(
+                self.error_messages["already_active"], code="already_active"
+            )
 
         self.context["user"] = user
         return normalized

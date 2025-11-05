@@ -4,7 +4,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -18,8 +17,18 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.BigAutoField(primary_key=True, serialize=False)),
                 ("text", models.TextField(verbose_name="Текст")),
-                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Создано")),
-                ("edited_at", models.DateTimeField(blank=True, null=True, verbose_name="Изменено")),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        auto_now_add=True, db_index=True, verbose_name="Создано"
+                    ),
+                ),
+                (
+                    "edited_at",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Изменено"
+                    ),
+                ),
                 (
                     "author",
                     models.ForeignKey(
@@ -49,6 +58,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="message",
-            index=models.Index(fields=["event", "created_at"], name="chat_messag_event_i_af102c_idx"),
+            index=models.Index(
+                fields=["event", "created_at"], name="chat_messag_event_i_af102c_idx"
+            ),
         ),
     ]

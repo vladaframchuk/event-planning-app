@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("events", "0002_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -31,15 +30,28 @@ class Migration(migrations.Migration):
                 ("expires_at", models.DateTimeField(verbose_name="Истекает в")),
                 (
                     "max_uses",
-                    models.PositiveIntegerField(default=0, verbose_name="Максимум использований"),
+                    models.PositiveIntegerField(
+                        default=0, verbose_name="Максимум использований"
+                    ),
                 ),
                 (
                     "uses_count",
-                    models.PositiveIntegerField(default=0, verbose_name="Количество использований"),
+                    models.PositiveIntegerField(
+                        default=0, verbose_name="Количество использований"
+                    ),
                 ),
-                ("is_revoked", models.BooleanField(default=False, verbose_name="Отозвано")),
-                ("created_at", models.DateTimeField(auto_now_add=True, verbose_name="Создано")),
-                ("updated_at", models.DateTimeField(auto_now=True, verbose_name="Обновлено")),
+                (
+                    "is_revoked",
+                    models.BooleanField(default=False, verbose_name="Отозвано"),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Создано"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Обновлено"),
+                ),
                 (
                     "created_by",
                     models.ForeignKey(
@@ -65,7 +77,8 @@ class Migration(migrations.Migration):
                 "ordering": ("-created_at",),
                 "indexes": [
                     models.Index(
-                        fields=["event", "expires_at", "is_revoked"], name="inv_event_exp_rev_idx"
+                        fields=["event", "expires_at", "is_revoked"],
+                        name="inv_event_exp_rev_idx",
                     )
                 ],
             },

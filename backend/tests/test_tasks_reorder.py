@@ -21,7 +21,9 @@ def _auth_client(user: User) -> APIClient:
 def _create_event_with_owner(email: str) -> tuple[Event, User]:
     owner = User.objects.create_user(email=email, password="Password123")
     event = Event.objects.create(owner=owner, title="Demo Event")
-    Participant.objects.get_or_create(event=event, user=owner, defaults={"role": Participant.Role.ORGANIZER})
+    Participant.objects.get_or_create(
+        event=event, user=owner, defaults={"role": Participant.Role.ORGANIZER}
+    )
     return event, owner
 
 
@@ -42,7 +44,11 @@ def test_owner_can_reorder_tasklists_and_orders_are_compact_0_based() -> None:
     assert response.json() == {"message": "ok", "count": 3}
 
     ordered_lists = TaskList.objects.filter(event=event).order_by("order", "id")
-    assert [task_list.id for task_list in ordered_lists] == [list_b.id, list_c.id, list_a.id]
+    assert [task_list.id for task_list in ordered_lists] == [
+        list_b.id,
+        list_c.id,
+        list_a.id,
+    ]
     assert [task_list.order for task_list in ordered_lists] == [0, 1, 2]
 
 
@@ -175,5 +181,8 @@ def test_move_task_between_lists_via_two_calls_persists_positions() -> None:
     assert [task.order for task in remaining_tasks] == [0, 1]
 
     target_tasks = Task.objects.filter(list=list_b).order_by("order", "id")
-    assert [task.id for task in target_tasks] == [task_target_existing.id, task_to_move.id]
+    assert [task.id for task in target_tasks] == [
+        task_target_existing.id,
+        task_to_move.id,
+    ]
     assert [task.order for task in target_tasks] == [0, 1]

@@ -86,7 +86,9 @@ def _register_font(font_name: str, path: Path) -> bool:
 def _ensure_fonts() -> tuple[str, str]:
     """Готовит шрифты для кириллического текста с запасным вариантом."""
     if not _REPORTLAB_AVAILABLE:
-        raise RuntimeError("ReportLab недоступен. Установите пакет reportlab, чтобы формировать PDF-отчёты.")
+        raise RuntimeError(
+            "ReportLab недоступен. Установите пакет reportlab, чтобы формировать PDF-отчёты."
+        )
     global _FONT_REGULAR_NAME, _FONT_BOLD_NAME
 
     if _FONT_REGULAR_NAME and _FONT_BOLD_NAME:
@@ -143,7 +145,9 @@ def _build_snapshots(tasks: Iterable[Task]) -> list[_TaskSnapshot]:
     snapshots: list[_TaskSnapshot] = []
     for task in tasks:
         assignee = getattr(task.assignee, "user", None)
-        assignee_name = getattr(assignee, "name", None) or getattr(assignee, "email", "—")
+        assignee_name = getattr(assignee, "name", None) or getattr(
+            assignee, "email", "—"
+        )
         status_label = task.get_status_display()
         due_date = _format_datetime(task.due_at)
         list_title = task.list.title
@@ -167,15 +171,25 @@ def _truncate(text: str, limit: int) -> str:
     return text[: max(limit - 1, 1)] + "…"
 
 
-def _draw_header(pdf: Canvas, title: str, generated_at: datetime, font_regular: str, font_bold: str) -> float:
+def _draw_header(
+    pdf: Canvas, title: str, generated_at: datetime, font_regular: str, font_bold: str
+) -> float:
     """Рисует шапку и возвращает вертикальную позицию начала таблицы."""
     width, height = A4
     margin = 40.0
     pdf.setFont(font_bold, 18)
     pdf.drawString(margin, height - margin, title)
     pdf.setFont(font_regular, 11)
-    timestamp = timezone.localtime(generated_at) if timezone.is_aware(generated_at) else generated_at
-    pdf.drawString(margin, height - margin - 18, f"Дата формирования: {timestamp.strftime('%d.%m.%Y %H:%M')}")
+    timestamp = (
+        timezone.localtime(generated_at)
+        if timezone.is_aware(generated_at)
+        else generated_at
+    )
+    pdf.drawString(
+        margin,
+        height - margin - 18,
+        f"Дата формирования: {timestamp.strftime('%d.%m.%Y %H:%M')}",
+    )
     pdf.setStrokeColor(colors.lightgrey)
     pdf.line(margin, height - margin - 26, width - margin, height - margin - 26)
     return height - margin - 48
@@ -236,7 +250,9 @@ def _draw_table(
 def generate_event_pdf(event_id: int) -> bytes:
     """Генерирует PDF-отчёт по задачам события."""
     if not _REPORTLAB_AVAILABLE:
-        raise RuntimeError("ReportLab недоступен. Установите пакет reportlab, чтобы формировать PDF-отчёты.")
+        raise RuntimeError(
+            "ReportLab недоступен. Установите пакет reportlab, чтобы формировать PDF-отчёты."
+        )
     event = _event_queryset().get(id=event_id)
     all_tasks: list[Task] = []
     for task_list in event.task_lists.all():
@@ -250,7 +266,9 @@ def generate_event_pdf(event_id: int) -> bytes:
 
     generated_at = timezone.now()
     header_y = _draw_header(pdf, event.title, generated_at, font_regular, font_bold)
-    _draw_table(pdf, header_y, snapshots, font_regular, font_bold, event.title, generated_at)
+    _draw_table(
+        pdf, header_y, snapshots, font_regular, font_bold, event.title, generated_at
+    )
 
     pdf.save()
     return buffer.getvalue()

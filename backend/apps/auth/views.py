@@ -15,7 +15,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .emails import send_confirmation_email
-from .serializers import EmailTokenObtainPairSerializer, RegistrationSerializer, ResendConfirmationSerializer
+from .serializers import (
+    EmailTokenObtainPairSerializer,
+    RegistrationSerializer,
+    ResendConfirmationSerializer,
+)
 from .tasks import send_confirmation_email_async
 from .utils import EmailConfirmationTokenError, verify_email_confirmation_token
 
@@ -61,7 +65,9 @@ class RegistrationView(APIView):
             )
         user = serializer.save()
         _dispatch_confirmation_email(user)
-        return Response({"message": "confirmation_sent"}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "confirmation_sent"}, status=status.HTTP_201_CREATED
+        )
 
 
 class ResendConfirmationView(APIView):
@@ -97,7 +103,9 @@ class LoginView(TokenObtainPairView):
                     pass
                 else:
                     if not user.is_active:
-                        message = _("Учётная запись ещё не активирована. Проверьте почту.")
+                        message = _(
+                            "Учётная запись ещё не активирована. Проверьте почту."
+                        )
                         return Response(
                             {"detail": message},
                             status=status.HTTP_400_BAD_REQUEST,

@@ -31,7 +31,9 @@ def _auth_client(user: User) -> APIClient:
 def test_organizer_can_list_participants() -> None:
     event, organizer = _make_event_with_organizer("owner@example.com")
     member_user = _make_user("member@example.com")
-    Participant.objects.create(event=event, user=member_user, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=event, user=member_user, role=Participant.Role.MEMBER
+    )
 
     client = _auth_client(organizer)
     response = client.get(f"/api/events/{event.id}/participants")
@@ -47,7 +49,9 @@ def test_organizer_can_list_participants() -> None:
 def test_member_cannot_list_participants() -> None:
     event, organizer = _make_event_with_organizer("owner2@example.com")
     member_user = _make_user("member2@example.com")
-    Participant.objects.create(event=event, user=member_user, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=event, user=member_user, role=Participant.Role.MEMBER
+    )
 
     client = _auth_client(member_user)
     response = client.get(f"/api/events/{event.id}/participants")
@@ -58,7 +62,9 @@ def test_member_cannot_list_participants() -> None:
 def test_organizer_can_update_participant_role() -> None:
     event, organizer = _make_event_with_organizer("owner3@example.com")
     participant_user = _make_user("member3@example.com")
-    participant = Participant.objects.create(event=event, user=participant_user, role=Participant.Role.MEMBER)
+    participant = Participant.objects.create(
+        event=event, user=participant_user, role=Participant.Role.MEMBER
+    )
 
     client = _auth_client(organizer)
     response = client.patch(
@@ -75,9 +81,13 @@ def test_organizer_can_update_participant_role() -> None:
 def test_member_cannot_update_participant_role() -> None:
     event, organizer = _make_event_with_organizer("owner4@example.com")
     member_user = _make_user("member4@example.com")
-    Participant.objects.create(event=event, user=member_user, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=event, user=member_user, role=Participant.Role.MEMBER
+    )
     other_user = _make_user("other4@example.com")
-    other_participant = Participant.objects.create(event=event, user=other_user, role=Participant.Role.MEMBER)
+    other_participant = Participant.objects.create(
+        event=event, user=other_user, role=Participant.Role.MEMBER
+    )
 
     client = _auth_client(member_user)
     response = client.patch(
@@ -108,7 +118,9 @@ def test_cannot_demote_last_organizer() -> None:
 def test_cannot_self_demote_if_only_organizer() -> None:
     event, organizer = _make_event_with_organizer("owner6@example.com")
     member_user = _make_user("member6@example.com")
-    Participant.objects.create(event=event, user=member_user, role=Participant.Role.MEMBER)
+    Participant.objects.create(
+        event=event, user=member_user, role=Participant.Role.MEMBER
+    )
     organizer_participant = Participant.objects.get(event=event, user=organizer)
 
     client = _auth_client(organizer)
@@ -127,7 +139,9 @@ def test_cannot_self_demote_if_only_organizer() -> None:
 def test_organizer_can_remove_participant() -> None:
     event, organizer = _make_event_with_organizer("owner7@example.com")
     member_user = _make_user("member7@example.com")
-    participant = Participant.objects.create(event=event, user=member_user, role=Participant.Role.MEMBER)
+    participant = Participant.objects.create(
+        event=event, user=member_user, role=Participant.Role.MEMBER
+    )
 
     client = _auth_client(organizer)
     response = client.delete(f"/api/events/{event.id}/participants/{participant.id}")
@@ -141,7 +155,9 @@ def test_cannot_remove_last_organizer() -> None:
     organizer_participant = Participant.objects.get(event=event, user=organizer)
 
     client = _auth_client(organizer)
-    response = client.delete(f"/api/events/{event.id}/participants/{organizer_participant.id}")
+    response = client.delete(
+        f"/api/events/{event.id}/participants/{organizer_participant.id}"
+    )
 
     assert response.status_code == 400
     assert response.json()["code"] == "last_organizer"

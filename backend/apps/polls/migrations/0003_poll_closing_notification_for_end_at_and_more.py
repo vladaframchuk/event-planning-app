@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("events", "0003_invite"),
         ("polls", "0002_poll_version"),
@@ -26,7 +25,8 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="poll",
             index=models.Index(
-                fields=["closing_notification_sent_at"], name="idx_poll_closing_notified"
+                fields=["closing_notification_sent_at"],
+                name="idx_poll_closing_notified",
             ),
         ),
     ]

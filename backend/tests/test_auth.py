@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 
@@ -20,7 +20,11 @@ def test_register_sends_email_and_creates_inactive_user(client) -> None:
     response = _post_json(
         client,
         "/api/auth/register",
-        {"email": "new_user@example.com", "password": "Password123", "name": "Пользователь"},
+        {
+            "email": "new_user@example.com",
+            "password": "Password123",
+            "name": "Пользователь",
+        },
     )
 
     assert response.status_code == 201
@@ -38,9 +42,13 @@ def test_register_sends_email_and_creates_inactive_user(client) -> None:
 @pytest.mark.django_db
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 def test_resend_confirmation_sends_email(client) -> None:
-    User.objects.create_user(email="pending@example.com", password="Password123", is_active=False)
+    User.objects.create_user(
+        email="pending@example.com", password="Password123", is_active=False
+    )
 
-    response = _post_json(client, "/api/auth/resend-confirmation", {"email": "pending@example.com"})
+    response = _post_json(
+        client, "/api/auth/resend-confirmation", {"email": "pending@example.com"}
+    )
 
     assert response.status_code == 200
     assert response.json() == {"message": "confirmation_sent"}
@@ -50,9 +58,13 @@ def test_resend_confirmation_sends_email(client) -> None:
 
 @pytest.mark.django_db
 def test_resend_confirmation_rejects_active_user(client) -> None:
-    User.objects.create_user(email="active@example.com", password="Password123", is_active=True)
+    User.objects.create_user(
+        email="active@example.com", password="Password123", is_active=True
+    )
 
-    response = _post_json(client, "/api/auth/resend-confirmation", {"email": "active@example.com"})
+    response = _post_json(
+        client, "/api/auth/resend-confirmation", {"email": "active@example.com"}
+    )
 
     assert response.status_code == 400
     payload = response.json()
@@ -62,7 +74,9 @@ def test_resend_confirmation_rejects_active_user(client) -> None:
 
 @pytest.mark.django_db
 def test_confirm_activates_user_valid_token(client) -> None:
-    user = User.objects.create_user(email="pending@example.com", password="Password123", is_active=False)
+    user = User.objects.create_user(
+        email="pending@example.com", password="Password123", is_active=False
+    )
     token = make_email_confirmation_token(user.pk)
 
     response = client.get(f"/api/auth/confirm?token={token}")
@@ -85,12 +99,17 @@ def test_confirm_rejects_expired_or_bad_token(client, monkeypatch) -> None:
     monkeypatch.setattr("apps.auth.views.verify_email_confirmation_token", fake_verify)
     expired_response = client.get("/api/auth/confirm?token=fake")
     assert expired_response.status_code == 400
-    assert expired_response.json()["token"][0] == "Срок действия токена подтверждения истёк."
+    assert (
+        expired_response.json()["token"][0]
+        == "Срок действия токена подтверждения истёк."
+    )
 
 
 @pytest.mark.django_db
 def test_login_fails_if_inactive(client) -> None:
-    User.objects.create_user(email="inactive@example.com", password="Password123", is_active=False)
+    User.objects.create_user(
+        email="inactive@example.com", password="Password123", is_active=False
+    )
 
     response = _post_json(
         client,
@@ -105,7 +124,9 @@ def test_login_fails_if_inactive(client) -> None:
 
 @pytest.mark.django_db
 def test_login_success_and_refresh_returns_new_access(client) -> None:
-    User.objects.create_user(email="active@example.com", password="Password123", is_active=True)
+    User.objects.create_user(
+        email="active@example.com", password="Password123", is_active=True
+    )
 
     login_response = _post_json(
         client,
@@ -117,7 +138,9 @@ def test_login_success_and_refresh_returns_new_access(client) -> None:
     tokens = login_response.json()
     assert "access" in tokens and "refresh" in tokens
 
-    refresh_response = _post_json(client, "/api/auth/refresh", {"refresh": tokens["refresh"]})
+    refresh_response = _post_json(
+        client, "/api/auth/refresh", {"refresh": tokens["refresh"]}
+    )
     assert refresh_response.status_code == 200
     new_tokens = refresh_response.json()
     assert "access" in new_tokens

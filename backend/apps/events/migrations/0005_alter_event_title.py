@@ -16,7 +16,6 @@ def truncate_event_titles(apps, _schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("events", "0004_alter_participant_role"),
     ]

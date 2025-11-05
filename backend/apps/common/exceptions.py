@@ -20,13 +20,17 @@ _STATUS_MESSAGES: dict[int, str] = {
 }
 
 _DETAIL_TRANSLATIONS: dict[str, str] = {
-    "Authentication credentials were not provided.": _("Учетные данные не предоставлены."),
+    "Authentication credentials were not provided.": _(
+        "Учетные данные не предоставлены."
+    ),
     "Invalid token.": _("Неверный токен."),
     "Invalid refresh token.": _("Неверный токен обновления."),
     "No active account found with the given credentials": _(
         "Не найден активный пользователь с указанными учетными данными."
     ),
-    "Unable to log in with provided credentials.": _("Не удалось войти с указанными учетными данными."),
+    "Unable to log in with provided credentials.": _(
+        "Не удалось войти с указанными учетными данными."
+    ),
     "You do not have permission to perform this action.": _(
         "У вас нет прав для выполнения этого действия."
     ),
@@ -35,7 +39,9 @@ _DETAIL_TRANSLATIONS: dict[str, str] = {
 
 
 def _contains_cyrillic(value: str) -> bool:
-    return any("\u0400" <= char <= "\u04FF" or char in {"\u0451", "\u0401"} for char in value)
+    return any(
+        "\u0400" <= char <= "\u04ff" or char in {"\u0451", "\u0401"} for char in value
+    )
 
 
 def _translate_detail(detail: str, status_code: int) -> str:
@@ -71,11 +77,15 @@ def localized_exception_handler(exc: Exception, context: dict[str, Any]) -> Any:
                 translated_detail = dict(raw_detail)
                 inner_detail = translated_detail.get("detail")
                 if isinstance(inner_detail, str):
-                    translated_detail["detail"] = _translate_detail(inner_detail, response.status_code)
+                    translated_detail["detail"] = _translate_detail(
+                        inner_detail, response.status_code
+                    )
                 payload["detail"] = translated_detail
             elif raw_detail is None:
                 payload["detail"] = fallback_detail
-                other_fields = {key: value for key, value in data.items() if key != "detail"}
+                other_fields = {
+                    key: value for key, value in data.items() if key != "detail"
+                }
                 if other_fields and "errors" not in payload:
                     payload["errors"] = other_fields
         else:
@@ -90,5 +100,7 @@ def localized_exception_handler(exc: Exception, context: dict[str, Any]) -> Any:
     if isinstance(data, list):
         return response
 
-    response.data = {"detail": _STATUS_MESSAGES.get(response.status_code, _FALLBACK_MESSAGE)}
+    response.data = {
+        "detail": _STATUS_MESSAGES.get(response.status_code, _FALLBACK_MESSAGE)
+    }
     return response

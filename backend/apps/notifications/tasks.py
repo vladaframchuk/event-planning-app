@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
@@ -116,12 +116,14 @@ def send_poll_closing_notifications() -> int:
     polls = (
         Poll.objects.select_related("event__owner")
         .prefetch_related(
-            Prefetch("options", queryset=PollOption.objects.annotate(votes_count=Count("votes"))),
+            Prefetch(
+                "options",
+                queryset=PollOption.objects.annotate(votes_count=Count("votes")),
+            ),
             "event__participants__user",
         )
         .filter(
-            Q(end_at__isnull=False, end_at__lte=now)
-            | Q(is_closed=True),
+            Q(end_at__isnull=False, end_at__lte=now) | Q(is_closed=True),
         )
     )
 

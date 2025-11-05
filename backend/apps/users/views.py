@@ -24,7 +24,11 @@ from .serializers import (
     NotificationSettingsSerializer,
     PasswordChangeSerializer,
 )
-from .utils import EmailChangeTokenError, make_email_change_token, verify_email_change_token
+from .utils import (
+    EmailChangeTokenError,
+    make_email_change_token,
+    verify_email_change_token,
+)
 
 User = get_user_model()
 
@@ -32,7 +36,10 @@ User = get_user_model()
 def _invalidate_user_refresh_tokens(user: User) -> None:
     """Принудительно отзывает все refresh-токены пользователя."""
     try:
-        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+        from rest_framework_simplejwt.token_blacklist.models import (
+            BlacklistedToken,
+            OutstandingToken,
+        )
     except ImportError:
         return
 
@@ -110,7 +117,11 @@ class AvatarUploadView(APIView):
         relative_path = f"users/{user.pk}/avatar{extension}"
         previous_name = user.avatar.name if user.avatar else None
 
-        if previous_name and previous_name != relative_path and default_storage.exists(previous_name):
+        if (
+            previous_name
+            and previous_name != relative_path
+            and default_storage.exists(previous_name)
+        ):
             default_storage.delete(previous_name)
 
         if default_storage.exists(relative_path):
@@ -133,7 +144,9 @@ class ChangePasswordView(APIView):
     schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
-        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer = PasswordChangeSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -146,7 +159,9 @@ class EmailChangeInitView(APIView):
     schema = AutoSchema()
 
     def post(self, request: Request) -> Response:
-        serializer = EmailChangeRequestSerializer(data=request.data, context={"request": request})
+        serializer = EmailChangeRequestSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
 
         user: User = request.user  # type: ignore[assignment]
@@ -195,7 +210,10 @@ class EmailChangeConfirmView(APIView):
         try:
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
-            return Response({"detail": _("Пользователь не найден.")}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": _("Пользователь не найден.")},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         if user.email.lower() == new_email.lower():
             return Response(
@@ -227,7 +245,9 @@ class NotificationSettingsView(APIView):
     schema = AutoSchema()
 
     def patch(self, request: Request) -> Response:
-        serializer = NotificationSettingsSerializer(data=request.data, context={"request": request})
+        serializer = NotificationSettingsSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         user: User = request.user  # type: ignore[assignment]

@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -47,7 +46,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="event",
-            index=models.Index(fields=["owner", "start_at"], name="idx_event_owner_start"),
+            index=models.Index(
+                fields=["owner", "start_at"], name="idx_event_owner_start"
+            ),
         ),
         migrations.AddIndex(
             model_name="event",
@@ -59,7 +60,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="participant",
-            index=models.Index(fields=["user", "event"], name="idx_participant_user_event"),
+            index=models.Index(
+                fields=["user", "event"], name="idx_participant_user_event"
+            ),
         ),
         migrations.AddConstraint(
             model_name="participant",

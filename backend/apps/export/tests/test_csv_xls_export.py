@@ -13,7 +13,9 @@ from apps.events.models import Event, Participant
 from apps.polls.models import Poll, PollOption, Vote
 from apps.tasks.models import Task, TaskList
 
-openpyxl = pytest.importorskip("openpyxl", reason="openpyxl требуется для проверки XLS-экспорта.")
+openpyxl = pytest.importorskip(
+    "openpyxl", reason="openpyxl требуется для проверки XLS-экспорта."
+)
 
 pytestmark = pytest.mark.django_db()
 
@@ -33,7 +35,9 @@ def _create_event_with_data() -> tuple[Event, User, Task, Poll, PollOption]:
 
     owner = User.objects.create_user(email="owner@export.test", password="Password123")
     event = Event.objects.create(title="Экспортное событие", owner=owner)
-    organizer = Participant.objects.create(event=event, user=owner, role=Participant.Role.ORGANIZER)
+    organizer = Participant.objects.create(
+        event=event, user=owner, role=Participant.Role.ORGANIZER
+    )
 
     task_list = TaskList.objects.create(event=event, title="Список задач", order=0)
     start_at = timezone.now()
@@ -69,7 +73,10 @@ def test_event_export_csv_returns_utf8_bom_and_contains_data() -> None:
 
     assert response.status_code == 200
     assert response["Content-Type"] == "text/csv"
-    assert response["Content-Disposition"] == f'attachment; filename="event_{event.id}_plan.csv"'
+    assert (
+        response["Content-Disposition"]
+        == f'attachment; filename="event_{event.id}_plan.csv"'
+    )
 
     content = response.content
     assert content.startswith(codecs.BOM_UTF8)
@@ -90,7 +97,10 @@ def test_event_export_xls_loads_with_openpyxl_and_contains_data() -> None:
         response["Content-Type"]
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    assert response["Content-Disposition"] == f'attachment; filename="event_{event.id}_plan.xlsx"'
+    assert (
+        response["Content-Disposition"]
+        == f'attachment; filename="event_{event.id}_plan.xlsx"'
+    )
 
     workbook = openpyxl.load_workbook(BytesIO(response.content))
     assert "Задачи" in workbook.sheetnames
@@ -109,7 +119,9 @@ def test_event_export_xls_loads_with_openpyxl_and_contains_data() -> None:
 
 def test_event_export_csv_forbidden_for_non_participant() -> None:
     event, owner, *_ = _create_event_with_data()
-    outsider = User.objects.create_user(email="outsider@export.test", password="Password123")
+    outsider = User.objects.create_user(
+        email="outsider@export.test", password="Password123"
+    )
 
     client = _auth_client(outsider)
     response = client.get(f"/api/events/{event.id}/export/csv")

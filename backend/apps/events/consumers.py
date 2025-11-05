@@ -35,14 +35,18 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self) -> None:
         user = self.scope.get("user")
         if user is None or isinstance(user, AnonymousUser) or not user.is_authenticated:
-            WS_ERRORS.labels(consumer=self.metrics_consumer, reason="unauthenticated").inc()
+            WS_ERRORS.labels(
+                consumer=self.metrics_consumer, reason="unauthenticated"
+            ).inc()
             await self.close(code=4401)
             return
 
         try:
             event_id = int(self.scope["url_route"]["kwargs"]["event_id"])
         except (KeyError, ValueError, TypeError):
-            WS_ERRORS.labels(consumer=self.metrics_consumer, reason="invalid_route").inc()
+            WS_ERRORS.labels(
+                consumer=self.metrics_consumer, reason="invalid_route"
+            ).inc()
             await self.close(code=4400)
             return
 
@@ -93,7 +97,9 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
     async def broadcast(self, event: dict[str, Any]) -> None:
         if event.get("message_type") == "chat.typing":
             sender_id = event.get("sender_id")
-            if isinstance(sender_id, int) and sender_id == getattr(self, "user_id", None):
+            if isinstance(sender_id, int) and sender_id == getattr(
+                self, "user_id", None
+            ):
                 return
         message = {"type": event["message_type"], "payload": event["payload"]}
         if self._payload_exceeds_limit(message):
@@ -131,7 +137,9 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
 
         event_id = payload.get("event_id")
         if not isinstance(event_id, int) or event_id != getattr(self, "event_id", None):
-            logger.debug("EventConsumer: typing payload with mismatched event %s", payload)
+            logger.debug(
+                "EventConsumer: typing payload with mismatched event %s", payload
+            )
             return
 
         user = self.scope.get("user")
@@ -159,7 +167,9 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
         )
 
     def _typing_allowed(self, event_id: int) -> bool:
-        last_sent_map = cast(dict[int, float], self.scope.setdefault("_typing_last_sent", {}))
+        last_sent_map = cast(
+            dict[int, float], self.scope.setdefault("_typing_last_sent", {})
+        )
         now = time.monotonic()
         last_value = last_sent_map.get(event_id, 0.0)
         if now - last_value < TYPING_RATE_LIMIT_SECONDS:

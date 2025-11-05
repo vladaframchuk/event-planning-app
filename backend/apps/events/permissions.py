@@ -113,7 +113,9 @@ class _ParticipantRoleResolver:
             return False
         cache_key = (event_id, user_id)
         if cache_key not in self._owner_cache:
-            self._owner_cache[cache_key] = Event.objects.filter(id=event_id, owner_id=user_id).exists()
+            self._owner_cache[cache_key] = Event.objects.filter(
+                id=event_id, owner_id=user_id
+            ).exists()
         return self._owner_cache[cache_key]
 
 

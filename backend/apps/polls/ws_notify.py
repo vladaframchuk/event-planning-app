@@ -21,7 +21,9 @@ def ws_notify_event(event_id: int, message_type: str, payload: dict[str, Any]) -
 
     channel_layer = get_channel_layer()
     if channel_layer is None:
-        logger.debug("ws_notify_event: channel layer отсутствует, пропускаем %s", message_type)
+        logger.debug(
+            "ws_notify_event: channel layer отсутствует, пропускаем %s", message_type
+        )
         return
 
     ensure_group_name_regex_allows_colon(channel_layer)
@@ -33,4 +35,3 @@ def ws_notify_event(event_id: int, message_type: str, payload: dict[str, Any]) -
             "payload": payload,
         },
     )
-

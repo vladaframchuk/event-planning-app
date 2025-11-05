@@ -1,9 +1,7 @@
-
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("events", "0003_invite"),
         ("tasks", "0001_initial"),
@@ -37,7 +35,11 @@ class Migration(migrations.Migration):
             model_name="task",
             name="status",
             field=models.CharField(
-                choices=[("todo", "К выполнению"), ("doing", "В процессе"), ("done", "Завершена")],
+                choices=[
+                    ("todo", "К выполнению"),
+                    ("doing", "В процессе"),
+                    ("done", "Завершена"),
+                ],
                 default="todo",
                 max_length=16,
                 verbose_name="Статус",

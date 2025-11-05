@@ -77,11 +77,15 @@ def test_change_password_success_and_fail() -> None:
     assert wrong_payload["errors"]["old_password"] == ["Текущий пароль указан неверно."]
 
     same_password_payload = {"old_password": "Newpass456", "new_password": "Newpass456"}
-    response = client.post("/api/me/change-password", same_password_payload, format="json")
+    response = client.post(
+        "/api/me/change-password", same_password_payload, format="json"
+    )
     assert response.status_code == 400
     same_payload = response.json()
     assert same_payload["detail"] == "Некорректные данные."
-    assert same_payload["errors"]["new_password"] == ["Новый пароль должен отличаться от текущего."]
+    assert same_payload["errors"]["new_password"] == [
+        "Новый пароль должен отличаться от текущего."
+    ]
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -107,7 +111,10 @@ def test_change_email_flow() -> None:
         format="json",
     )
     assert response.status_code == 200
-    assert response.json()["detail"] == "Письмо с подтверждением отправлено на новый адрес."
+    assert (
+        response.json()["detail"]
+        == "Письмо с подтверждением отправлено на новый адрес."
+    )
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
     assert email.to == ["new@example.com"]
@@ -117,20 +124,31 @@ def test_change_email_flow() -> None:
     token = match.group(1)
 
     unauthenticated_client = APIClient()
-    confirm_response = unauthenticated_client.get(f"/api/account/email/change-confirm?token={token}")
+    confirm_response = unauthenticated_client.get(
+        f"/api/account/email/change-confirm?token={token}"
+    )
     assert confirm_response.status_code == 200
-    assert confirm_response.json()["detail"] == "Email успешно обновлён. Пожалуйста, войдите заново."
+    assert (
+        confirm_response.json()["detail"]
+        == "Email успешно обновлён. Пожалуйста, войдите заново."
+    )
 
     user.refresh_from_db()
     assert user.email == "new@example.com"
 
-    reused_token_response = unauthenticated_client.get(f"/api/account/email/change-confirm?token={token}")
+    reused_token_response = unauthenticated_client.get(
+        f"/api/account/email/change-confirm?token={token}"
+    )
     assert reused_token_response.status_code == 400
     assert reused_token_response.json()["detail"] == "Адрес уже подтверждён ранее."
 
 
 def test_notification_settings_toggle() -> None:
-    user = User.objects.create_user(email="notify@example.com", password="Password123", email_notifications_enabled=True)
+    user = User.objects.create_user(
+        email="notify@example.com",
+        password="Password123",
+        email_notifications_enabled=True,
+    )
     client = _auth_client(user)
 
     response = client.patch(

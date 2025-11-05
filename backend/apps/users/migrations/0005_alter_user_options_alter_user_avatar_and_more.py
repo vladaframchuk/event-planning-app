@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0004_user_avatar_url"),
     ]
@@ -46,16 +45,22 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="user",
             name="locale",
-            field=models.CharField(blank=True, max_length=32, null=True, verbose_name="Locale"),
+            field=models.CharField(
+                blank=True, max_length=32, null=True, verbose_name="Locale"
+            ),
         ),
         migrations.AlterField(
             model_name="user",
             name="name",
-            field=models.CharField(blank=True, max_length=255, null=True, verbose_name="Name"),
+            field=models.CharField(
+                blank=True, max_length=255, null=True, verbose_name="Name"
+            ),
         ),
         migrations.AlterField(
             model_name="user",
             name="timezone",
-            field=models.CharField(blank=True, max_length=64, null=True, verbose_name="Timezone"),
+            field=models.CharField(
+                blank=True, max_length=64, null=True, verbose_name="Timezone"
+            ),
         ),
     ]

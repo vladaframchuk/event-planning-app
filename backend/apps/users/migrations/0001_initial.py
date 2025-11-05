@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -20,13 +19,18 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
                     ),
                 ),
                 ("password", models.CharField(max_length=128, verbose_name="password")),
                 (
                     "last_login",
-                    models.DateTimeField(blank=True, null=True, verbose_name="last login"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
                 ),
                 (
                     "is_superuser",
@@ -36,17 +40,31 @@ class Migration(migrations.Migration):
                         verbose_name="superuser status",
                     ),
                 ),
-                ("email", models.EmailField(max_length=254, unique=True, verbose_name="Email")),
+                (
+                    "email",
+                    models.EmailField(
+                        max_length=254, unique=True, verbose_name="Email"
+                    ),
+                ),
                 (
                     "name",
-                    models.CharField(blank=True, max_length=255, null=True, verbose_name="Имя"),
+                    models.CharField(
+                        blank=True, max_length=255, null=True, verbose_name="Имя"
+                    ),
                 ),
-                ("is_active", models.BooleanField(default=True, verbose_name="Активен")),
-                ("is_staff", models.BooleanField(default=False, verbose_name="Сотрудник")),
+                (
+                    "is_active",
+                    models.BooleanField(default=True, verbose_name="Активен"),
+                ),
+                (
+                    "is_staff",
+                    models.BooleanField(default=False, verbose_name="Сотрудник"),
+                ),
                 (
                     "date_joined",
                     models.DateTimeField(
-                        default=django.utils.timezone.now, verbose_name="Дата регистрации"
+                        default=django.utils.timezone.now,
+                        verbose_name="Дата регистрации",
                     ),
                 ),
                 (

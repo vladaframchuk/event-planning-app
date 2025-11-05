@@ -45,7 +45,9 @@ def test_owner_can_create_invite_and_get_invite_url(settings) -> None:
     assert payload["max_uses"] == 5
     assert payload["uses_count"] == 0
     assert payload["is_revoked"] is False
-    assert payload["invite_url"] == f"http://frontend.test/join?token={payload['token']}"
+    assert (
+        payload["invite_url"] == f"http://frontend.test/join?token={payload['token']}"
+    )
 
     invite = Invite.objects.get(token=payload["token"])
     assert invite.event_id == event.id
@@ -98,15 +100,21 @@ def test_validate_invite_ok_and_expired_and_revoked_and_exhausted() -> None:
     assert ok_body["event"]["location"] == "Berlin"
     assert ok_body["uses_left"] == 3
 
-    expired_response = client.get("/api/invites/validate", {"token": invite_expired.token})
+    expired_response = client.get(
+        "/api/invites/validate", {"token": invite_expired.token}
+    )
     assert expired_response.status_code == 200
     assert expired_response.json()["status"] == "expired"
 
-    revoked_response = client.get("/api/invites/validate", {"token": invite_revoked.token})
+    revoked_response = client.get(
+        "/api/invites/validate", {"token": invite_revoked.token}
+    )
     assert revoked_response.status_code == 200
     assert revoked_response.json()["status"] == "revoked"
 
-    exhausted_response = client.get("/api/invites/validate", {"token": invite_exhausted.token})
+    exhausted_response = client.get(
+        "/api/invites/validate", {"token": invite_exhausted.token}
+    )
     assert exhausted_response.status_code == 200
     exhausted_body = exhausted_response.json()
     assert exhausted_body["status"] == "exhausted"
@@ -124,8 +132,12 @@ def test_validate_invite_ok_and_expired_and_revoked_and_exhausted() -> None:
 
 def test_accept_invite_creates_participant_and_increments_uses() -> None:
     """Успешное принятие инвайта добавляет участника и увеличивает счетчик использований."""
-    owner = User.objects.create_user(email="creator@example.com", password="Password123")
-    attendee = User.objects.create_user(email="member@example.com", password="Password123")
+    owner = User.objects.create_user(
+        email="creator@example.com", password="Password123"
+    )
+    attendee = User.objects.create_user(
+        email="member@example.com", password="Password123"
+    )
     event = Event.objects.create(owner=owner, title="Joinable Event")
     invite = Invite.objects.create(
         event=event,
@@ -135,11 +147,15 @@ def test_accept_invite_creates_participant_and_increments_uses() -> None:
     )
 
     client = _auth_client(attendee)
-    response = client.post("/api/invites/accept", data={"token": invite.token}, format="json")
+    response = client.post(
+        "/api/invites/accept", data={"token": invite.token}, format="json"
+    )
 
     assert response.status_code == 201
     assert response.json() == {"message": "joined", "event_id": event.id}
-    assert Participant.objects.filter(event=event, user=attendee, role=Participant.Role.MEMBER).exists()
+    assert Participant.objects.filter(
+        event=event, user=attendee, role=Participant.Role.MEMBER
+    ).exists()
 
     invite.refresh_from_db()
     assert invite.uses_count == 1
@@ -148,7 +164,9 @@ def test_accept_invite_creates_participant_and_increments_uses() -> None:
 def test_accept_invite_when_already_member_returns_already_member() -> None:
     """Повторное использование инвайта участником возвращает already_member без ошибок."""
     owner = User.objects.create_user(email="owner2@example.com", password="Password123")
-    member = User.objects.create_user(email="member2@example.com", password="Password123")
+    member = User.objects.create_user(
+        email="member2@example.com", password="Password123"
+    )
     event = Event.objects.create(owner=owner, title="Membership Event")
     invite = Invite.objects.create(
         event=event,
@@ -160,7 +178,9 @@ def test_accept_invite_when_already_member_returns_already_member() -> None:
     Participant.objects.create(event=event, user=member, role=Participant.Role.MEMBER)
 
     client = _auth_client(member)
-    response = client.post("/api/invites/accept", data={"token": invite.token}, format="json")
+    response = client.post(
+        "/api/invites/accept", data={"token": invite.token}, format="json"
+    )
 
     assert response.status_code == 200
     assert response.json() == {"message": "already_member"}
@@ -170,8 +190,12 @@ def test_accept_invite_when_already_member_returns_already_member() -> None:
 
 def test_non_owner_cannot_revoke_others_invite() -> None:
     """Только владелец события может отзывать инвайт."""
-    owner = User.objects.create_user(email="revoker@example.com", password="Password123")
-    stranger = User.objects.create_user(email="stranger@example.com", password="Password123")
+    owner = User.objects.create_user(
+        email="revoker@example.com", password="Password123"
+    )
+    stranger = User.objects.create_user(
+        email="stranger@example.com", password="Password123"
+    )
     event = Event.objects.create(owner=owner, title="Revocable Event")
     invite = Invite.objects.create(
         event=event,
@@ -180,14 +204,18 @@ def test_non_owner_cannot_revoke_others_invite() -> None:
     )
 
     stranger_client = _auth_client(stranger)
-    forbidden_response = stranger_client.post("/api/invites/revoke", data={"token": invite.token}, format="json")
+    forbidden_response = stranger_client.post(
+        "/api/invites/revoke", data={"token": invite.token}, format="json"
+    )
     assert forbidden_response.status_code == 403
 
     invite.refresh_from_db()
     assert invite.is_revoked is False
 
     owner_client = _auth_client(owner)
-    success_response = owner_client.post("/api/invites/revoke", data={"token": invite.token}, format="json")
+    success_response = owner_client.post(
+        "/api/invites/revoke", data={"token": invite.token}, format="json"
+    )
     assert success_response.status_code == 200
     assert success_response.json() == {"message": "revoked"}
 

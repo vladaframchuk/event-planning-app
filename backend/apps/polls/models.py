@@ -46,7 +46,10 @@ class Poll(models.Model):
         indexes = [
             models.Index(fields=["event", "is_closed"], name="idx_poll_event_closed"),
             models.Index(fields=["end_at"], name="idx_poll_end_at"),
-            models.Index(fields=["closing_notification_sent_at"], name="idx_poll_closing_notified"),
+            models.Index(
+                fields=["closing_notification_sent_at"],
+                name="idx_poll_closing_notified",
+            ),
         ]
         ordering = ("-created_at", "id")
 

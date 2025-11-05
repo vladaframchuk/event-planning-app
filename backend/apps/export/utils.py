@@ -66,12 +66,16 @@ def _event_base_queryset() -> QuerySet[Event]:
         queryset=Poll.objects.order_by("created_at", "id").prefetch_related(
             Prefetch(
                 "options",
-                queryset=PollOption.objects.annotate(votes_count=Count("votes")).order_by("id"),
+                queryset=PollOption.objects.annotate(
+                    votes_count=Count("votes")
+                ).order_by("id"),
             )
         ),
     )
 
-    return Event.objects.only("id", "title").prefetch_related(task_prefetch, poll_prefetch)
+    return Event.objects.only("id", "title").prefetch_related(
+        task_prefetch, poll_prefetch
+    )
 
 
 def _format_datetime(value: Any) -> str:
@@ -174,10 +178,12 @@ def generate_event_csv(event_id: int) -> bytes:
     buffer = StringIO(newline="")
     writer = csv.writer(buffer, delimiter=_CSV_DELIMITER)
 
-    writer.writerow([f"Событие", event.title])
+    writer.writerow(["Событие", event.title])
     writer.writerow([])
     writer.writerow(["Задачи"])
-    writer.writerow(["Название задачи", "Статус", "Исполнитель", "Дата начала", "Дедлайн"])
+    writer.writerow(
+        ["Название задачи", "Статус", "Исполнитель", "Дата начала", "Дедлайн"]
+    )
     for row in task_rows:
         writer.writerow([row.title, row.status, row.assignee, row.start_at, row.due_at])
 
@@ -198,7 +204,9 @@ def generate_event_xls(event_id: int) -> bytes:
         from openpyxl import Workbook
         from openpyxl.styles import Alignment, Font, PatternFill
         from openpyxl.utils import get_column_letter
-    except ImportError as exc:  # pragma: no cover - выполняется только если нет openpyxl
+    except (
+        ImportError
+    ) as exc:  # pragma: no cover - выполняется только если нет openpyxl
         raise RuntimeError("openpyxl требуется для экспорта в XLS.") from exc
 
     event = _event_base_queryset().get(id=event_id)
@@ -214,7 +222,13 @@ def generate_event_xls(event_id: int) -> bytes:
     header_fill = PatternFill(fill_type="solid", fgColor="FF1F2937")
     header_alignment = Alignment(horizontal="center", vertical="center")
 
-    task_headers = ["Название задачи", "Статус", "Исполнитель", "Дата начала", "Дедлайн"]
+    task_headers = [
+        "Название задачи",
+        "Статус",
+        "Исполнитель",
+        "Дата начала",
+        "Дедлайн",
+    ]
     tasks_sheet.append(task_headers)
     for cell in tasks_sheet[1]:
         cell.font = header_font
@@ -222,7 +236,9 @@ def generate_event_xls(event_id: int) -> bytes:
         cell.alignment = header_alignment
 
     for row in task_rows:
-        tasks_sheet.append([row.title, row.status, row.assignee, row.start_at, row.due_at])
+        tasks_sheet.append(
+            [row.title, row.status, row.assignee, row.start_at, row.due_at]
+        )
 
     tasks_sheet.freeze_panes = "A2"
 
@@ -258,4 +274,3 @@ def generate_event_xls(event_id: int) -> bytes:
     buffer = BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
-
