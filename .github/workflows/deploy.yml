@@ -71,15 +71,24 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Prepare SSH configuration
+      - name: Prepare SSH key
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s' "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          printf '%s' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+
+      - name: Test SSH connection
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${SSH_USER}@${SSH_HOST}" "echo 'SSH OK'; hostname"
 
       - name: Derive repository name
         id: repo
@@ -96,7 +105,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           python -c "import pathlib, sys; back, front, user, token, prefix = sys.argv[1:6]; pathlib.Path('deploy_inputs.env').write_text('\n'.join([f'BACKEND_TAG={back}', f'FRONTEND_TAG={front}', f'GHCR_USERNAME={user}', f'GHCR_TOKEN={token}', f'REGISTRY_IMAGE_PREFIX={prefix}']), encoding='utf-8')" "$BACKEND_TAG" "$FRONTEND_TAG" "$GHCR_USERNAME" "$GHCR_TOKEN" "$REGISTRY_IMAGE_PREFIX"
-          scp -i ~/.ssh/id_rsa deploy_inputs.env "${SSH_USER}@${SSH_HOST}:~/event-planning-app/deploy_inputs.env"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes deploy_inputs.env "${SSH_USER}@${SSH_HOST}:~/event-planning-app/deploy_inputs.env"
           rm deploy_inputs.env
 
       - name: Deploy to production
@@ -104,4 +113,4 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
-          ssh -i ~/.ssh/id_rsa "${SSH_USER}@${SSH_HOST}" "set -euo pipefail; cd ~/event-planning-app; set -a; source deploy_inputs.env; set +a; rm deploy_inputs.env; ./scripts/deploy.sh"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${SSH_USER}@${SSH_HOST}" "set -euo pipefail; cd ~/event-planning-app; set -a; source deploy_inputs.env; set +a; rm deploy_inputs.env; ./scripts/deploy.sh"
